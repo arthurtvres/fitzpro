@@ -1,0 +1,250 @@
+/* ---------- shell: sidebar + conteúdo ---------- */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-largura) 1fr;
+  min-height: 100vh;
+}
+
+.conteudo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.conteudo-corpo {
+  padding: 30px;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ---------- header ---------- */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borda);
+  padding: var(--e-4) var(--e-5);
+  display: flex;
+  align-items: center;
+  gap: var(--e-4);
+}
+.header .titulo-area {
+  flex: 1;
+  min-width: 0;
+}
+.header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.header h1 .icone-tchau {
+  color: var(--alerta-texto);
+  flex-shrink: 0;
+}
+.header p {
+  margin: 2px 0 0;
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.header .acoes-header {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+/* Só aparece quando a sidebar vira drawer. */
+.botao-menu {
+  display: none;
+}
+
+.voltar {
+  align-self: flex-start;
+}
+
+/* ---------- sidebar ---------- */
+
+.sidebar {
+  background: var(--sidebar-fundo);
+  color: var(--sidebar-texto);
+  padding: var(--e-5) var(--e-3) var(--e-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-5);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.sidebar-marca {
+  padding: 0 var(--e-2);
+}
+/*
+ * A marca é um botão só para poder ser clicada — não deve parecer um nem
+ * reagir a nada. Os três seletores existem para vencer o
+ * `button:hover:not(:disabled)` de base.css, que é mais específico que
+ * `.botao-marca:hover` e pintava o fundo claro dos botões por cima da logo.
+ */
+.botao-marca,
+.botao-marca:hover,
+.botao-marca:active {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  transition: none;
+}
+/* Lockup horizontal (3.75:1) com fundo transparente: entra direto, sem plate. */
+.sidebar-logo {
+  width: 100%;
+  max-width: 190px;
+  height: auto;
+  display: block;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.grupo-titulo {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  background: none;
+  border: none;
+  border-radius: var(--raio-controle);
+  padding: 9px var(--e-3);
+  color: var(--sidebar-texto);
+  font-weight: 500;
+  font-size: 14px;
+  text-align: left;
+}
+.grupo-titulo:hover:not(:disabled) {
+  background: var(--sidebar-hover);
+  border-color: transparent;
+}
+.grupo-titulo .rotulo {
+  flex: 1;
+}
+.grupo-titulo .icone {
+  display: flex;
+  color: var(--sidebar-texto-fraco);
+  flex-shrink: 0;
+}
+.grupo-titulo .seta {
+  color: var(--sidebar-texto-fraco);
+  display: flex;
+  transition: transform var(--transicao);
+}
+.grupo-titulo .seta.aberta {
+  transform: rotate(90deg);
+}
+/* Marca o grupo que contém a página atual. */
+.grupo-titulo.tem-ativo,
+.grupo-titulo.tem-ativo .icone {
+  color: #fff;
+}
+
+/* Atalho (sem subitens): quando é a tela atual, vira pílula azul — mesmo
+   tratamento do subitem ativo, já que ele é a própria rota. */
+.grupo-titulo.atalho.ativo,
+.grupo-titulo.atalho.ativo .icone {
+  background: var(--acento-solido);
+  color: #fff;
+}
+.grupo-titulo.atalho.ativo:hover:not(:disabled) {
+  background: var(--acento-solido);
+}
+
+.grupo-itens {
+  list-style: none;
+  margin: 2px 0 var(--e-2);
+  padding: 0 0 0 var(--e-4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 1px solid var(--sidebar-borda);
+  margin-left: 22px;
+}
+.grupo-itens .item {
+  width: 100%;
+  justify-content: flex-start;
+  background: none;
+  border: none;
+  border-radius: var(--raio-controle);
+  padding: 7px var(--e-3);
+  color: var(--sidebar-texto-fraco);
+  font-size: 13.5px;
+  font-weight: 400;
+}
+.grupo-itens .item:hover:not(:disabled) {
+  background: var(--sidebar-hover);
+  border-color: transparent;
+  color: var(--sidebar-texto);
+}
+.grupo-itens .item.ativo {
+  background: var(--acento-solido);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sidebar-rodape {
+  font-size: 12px;
+  color: var(--sidebar-texto-fraco);
+  border-top: 1px solid var(--sidebar-borda);
+  padding: var(--e-3) var(--e-2) 0;
+}
+
+/* ---------- responsivo: sidebar vira drawer ---------- */
+
+@media (max-width: 1024px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .botao-menu {
+    display: inline-flex;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-largura);
+    height: 100vh;
+    z-index: 30;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--sombra-flutuante);
+  }
+  .sidebar.aberta {
+    transform: translateX(0);
+  }
+  .fundo-drawer {
+    position: fixed;
+    inset: 0;
+    background: rgba(23, 26, 31, 0.45);
+    z-index: 20;
+  }
+}
+
+@media (max-width: 640px) {
+  .conteudo-corpo {
+    padding: var(--e-4);
+  }
+  .header {
+    padding: var(--e-3) var(--e-4);
+  }
+}

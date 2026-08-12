@@ -1,0 +1,68 @@
+/* Design system FitzPRO — fonte única da verdade para cor, espaço e forma.
+   Os nomes são semânticos de propósito: trocar um valor aqui repinta a interface
+   inteira sem tocar em regra nenhuma. */
+
+:root {
+  /* Superfícies */
+  --fundo: #f8f9fa;
+  --superficie: #ffffff;
+  --superficie-2: #f2f4f6; /* hover e faixas sutis sobre o branco */
+  --borda: #e7e9ec;
+  --borda-forte: #d5d9df;
+
+  /* Texto */
+  --texto: #171a1f;
+  --texto-fraco: #636872;
+
+  /* Azul da marca. Usado puro em ícone, borda, anel de foco e detalhe —
+     onde não carrega texto por cima. */
+  --acento: #168bff;
+  /* Preenchimento de botão/pílula com rótulo branco: #168BFF só dá 3.4:1 com
+     branco, abaixo do mínimo de 4.5:1. Este tom mantém a mesma família azul e
+     chega a 4.65:1. */
+  --acento-solido: #0f74d9;
+  --acento-escuro: #0e6fcc; /* hover do preenchimento */
+  /* Texto e link azul sobre fundo claro: 5.5:1 no branco, 4.9:1 no --acento-suave. */
+  --acento-texto: #0a68c6;
+  --acento-suave: #e8f3ff; /* fundo de item ativo, badge informativa */
+
+  /* Estado */
+  --sucesso: #22c55e;
+  --sucesso-suave: #e7f8ee;
+  --sucesso-texto: #15803d;
+  --alerta: #f59e0b;
+  --alerta-suave: #fef4e5;
+  --alerta-texto: #a16207;
+  --erro: #ef4444;
+  --erro-suave: #fdecec;
+  --erro-texto: #b91c1c;
+
+  /* Sidebar — única área escura, por isso tem tokens próprios */
+  --sidebar-fundo: #111318;
+  --sidebar-texto: #e8eaee;
+  --sidebar-texto-fraco: #8b919c;
+  --sidebar-hover: #1c1f27;
+  --sidebar-borda: #23262e;
+  --sidebar-largura: 248px;
+
+  /* Forma */
+  --raio-card: 12px;
+  --raio-controle: 8px;
+  --raio-pilula: 999px;
+
+  /* Espaço — grid de 4/8px */
+  --e-1: 4px;
+  --e-2: 8px;
+  --e-3: 12px;
+  --e-4: 16px;
+  --e-5: 24px;
+  --e-6: 32px;
+
+  /* Elevação: bordas finas em vez de sombras fortes; a sombra só marca
+     o que flutua de verdade (modal, drawer, dropdown). */
+  --sombra-flutuante: 0 10px 30px rgba(23, 26, 31, 0.14);
+
+  --transicao: 0.15s ease;
+
+  color-scheme: light;
+}

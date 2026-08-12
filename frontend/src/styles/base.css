@@ -1,0 +1,126 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.01em;
+}
+
+/* ---------- botões ---------- */
+
+button {
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-2);
+  border: 1px solid var(--borda-forte);
+  background: var(--superficie);
+  color: var(--texto);
+  padding: 8px 14px;
+  border-radius: var(--raio-controle);
+  transition: background var(--transicao), border-color var(--transicao),
+    color var(--transicao);
+}
+button:hover:not(:disabled) {
+  background: var(--superficie-2);
+  border-color: var(--borda-forte);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primario {
+  background: var(--acento-solido);
+  border-color: var(--acento-solido);
+  color: #fff;
+  font-weight: 600;
+}
+button.primario:hover:not(:disabled) {
+  background: var(--acento-escuro);
+  border-color: var(--acento-escuro);
+}
+
+button.perigo {
+  color: var(--erro-texto);
+}
+button.perigo:hover:not(:disabled) {
+  background: var(--erro-suave);
+  border-color: var(--erro);
+}
+
+/* Ação inline dentro de listas e cards: sem moldura até o hover. */
+button.link {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--texto-fraco);
+  padding: 4px 8px;
+  font-size: 13px;
+}
+button.link:hover:not(:disabled) {
+  background: var(--superficie-2);
+  border-color: var(--borda);
+  color: var(--texto);
+}
+button.link.destaque {
+  color: var(--acento-texto);
+}
+button.link.perigo {
+  color: var(--erro-texto);
+}
+
+button.icone {
+  padding: 6px;
+  color: var(--texto-fraco);
+}
+
+/* ---------- campos ---------- */
+
+input,
+select,
+textarea {
+  font: inherit;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--raio-controle);
+  border: 1px solid var(--borda-forte);
+  background: var(--superficie);
+  color: var(--texto);
+  transition: border-color var(--transicao), box-shadow var(--transicao);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--texto-fraco);
+  opacity: 0.8;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px rgba(22, 139, 255, 0.18);
+}
+textarea {
+  resize: vertical;
+}
+
+/* Foco por teclado visível em qualquer controle. */
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}

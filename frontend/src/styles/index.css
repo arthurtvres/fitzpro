@@ -1,0 +1,5 @@
+/* Ponto de entrada dos estilos: a ordem dos imports importa para a cascata. */
+@import "./tokens.css";
+@import "./base.css";
+@import "./layout.css";
+@import "./componentes.css";

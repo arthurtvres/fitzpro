@@ -1,0 +1,2837 @@
+/* ---------- cards ---------- */
+
+.painel {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  padding: var(--e-4);
+}
+.painel-estreito {
+  max-width: 560px;
+}
+.painel-formulario-aluno {
+  width: min(100%, 830px);
+  margin: 0 auto;
+  padding: var(--e-5);
+}
+/* Escolha da foto de perfil: preview à esquerda, ações à direita. */
+.campo-foto-corpo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+}
+.campo-foto-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2);
+}
+.campo-foto-acoes .ajuda-campo {
+  flex-basis: 100%;
+}
+.rotulo-foto {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto);
+  margin-bottom: var(--e-2);
+  display: block;
+}
+.campo-foto .avatar {
+  border: 1px solid var(--borda);
+}
+.remover-foto-perfil {
+  color: var(--erro-texto);
+}
+
+/* ---------- área do aluno ---------- */
+
+.aluno-hoje,
+.aluno-evolucao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+
+/* Quem treina o aluno: primeira coisa da tela inicial. */
+.cartao-personal {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+}
+.cartao-personal .info {
+  min-width: 0;
+}
+.cartao-personal .rotulo {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-fraco);
+}
+.cartao-personal strong {
+  display: block;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.cartao-personal .contatos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-3);
+  margin-top: var(--e-1);
+}
+.cartao-personal .contatos a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--acento-texto);
+}
+
+.destaque-hoje > header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-3);
+}
+.destaque-hoje h2 {
+  font-size: 17px;
+  margin: 0;
+  text-transform: capitalize;
+}
+.destaque-hoje header p {
+  margin: 2px 0 0;
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.destaque-hoje > header > svg {
+  color: var(--acento);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.icone-treino {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: var(--raio-controle);
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+}
+
+.lista-treino-hoje {
+  list-style: none;
+  margin: var(--e-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.lista-treino-hoje li {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+}
+.lista-treino-hoje li > div {
+  flex: 1;
+  min-width: 0;
+}
+.lista-treino-hoje strong {
+  display: block;
+  font-size: 14px;
+}
+.lista-treino-hoje span {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+.cartoes-resumo-aluno {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--e-3);
+}
+.cartao-resumo-aluno {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cartao-resumo-aluno .icone-resumo {
+  color: var(--acento);
+  margin-bottom: var(--e-1);
+}
+.cartao-resumo-aluno .valor {
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.cartao-resumo-aluno .titulo {
+  font-size: 13px;
+  font-weight: 500;
+}
+.cartao-resumo-aluno .apoio {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+.cartao-resumo-aluno .link {
+  align-self: flex-start;
+  margin-top: var(--e-2);
+}
+
+/* Lista de treinos/dietas do aluno: a linha inteira é o botão. */
+.lista-planos-aluno {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.lista-planos-aluno button {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--e-3);
+  background: none;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  color: inherit;
+}
+.lista-planos-aluno button:hover {
+  border-color: var(--acento);
+  background: var(--superficie-2);
+}
+.lista-planos-aluno .info {
+  flex: 1;
+  min-width: 0;
+}
+.lista-planos-aluno .info strong {
+  display: block;
+  font-size: 14px;
+}
+.lista-planos-aluno .info span {
+  font-size: 12px;
+  color: var(--texto-fraco);
+  text-transform: capitalize;
+}
+.lista-planos-aluno svg:last-child {
+  color: var(--texto-fraco);
+  flex-shrink: 0;
+}
+.voltar-plano {
+  margin-bottom: var(--e-3);
+}
+
+/* Evolução: os números da última medição, com o quanto andaram. */
+.titulo-secao {
+  font-size: 15px;
+  margin: 0;
+}
+.apoio-secao {
+  margin: 2px 0 var(--e-4);
+  font-size: 13px;
+  color: var(--texto-fraco);
+}
+.grade-evolucao {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--e-3);
+}
+.metrica-evolucao {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  padding: var(--e-3);
+}
+.metrica-evolucao .rotulo {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+.metrica-evolucao strong {
+  display: block;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  margin: 2px 0;
+}
+.metrica-evolucao strong em {
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--texto-fraco);
+  margin-left: 2px;
+}
+.metrica-evolucao .variacao {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--texto-fraco);
+}
+.metrica-evolucao .variacao.positiva {
+  color: var(--sucesso-texto);
+}
+.metrica-evolucao.vazia strong {
+  color: var(--texto-fraco);
+}
+
+.lista-avaliacoes-aluno {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-1);
+}
+.lista-avaliacoes-aluno button {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--e-2) var(--e-3);
+  background: none;
+  border: 0;
+  border-radius: var(--raio-controle);
+  color: inherit;
+}
+.lista-avaliacoes-aluno button:hover {
+  background: var(--superficie-2);
+}
+.lista-avaliacoes-aluno .data {
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 82px;
+}
+.lista-avaliacoes-aluno .resumo {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+.observacao-avaliacao {
+  margin: var(--e-3) 0 0;
+  font-size: 13px;
+  color: var(--texto-fraco);
+}
+
+/* Minha conta: dois cards empilhados, na mesma largura do formulário de aluno. */
+.perfil {
+  width: min(100%, 830px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+.painel-perfil {
+  padding: var(--e-5);
+}
+/* Confirmação discreta ao lado do botão — some ao editar de novo. */
+.aviso-salvo {
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sucesso-texto);
+}
+.painel-formulario-dieta {
+  width: min(100%, 1020px);
+  margin: 0 auto;
+  padding: var(--e-5);
+}
+.painel > h2 {
+  margin: 0 0 var(--e-3);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-fraco);
+}
+
+.barra-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-3);
+  margin-bottom: var(--e-3);
+  flex-wrap: wrap;
+}
+.barra-acoes h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  font-size: 13px;
+  color: var(--texto-fraco);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.checkbox input {
+  width: auto;
+  accent-color: var(--acento);
+}
+
+/* ---------- login ---------- */
+
+.tela-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--e-5);
+  background: var(--fundo);
+  color: var(--texto-fraco);
+}
+.cartao-login {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  padding: var(--e-6);
+  width: 100%;
+  max-width: 400px;
+  color: var(--texto);
+}
+.cartao-login h1 {
+  font-size: 20px;
+  margin: 0 0 var(--e-4);
+}
+.marca-login {
+  margin-bottom: var(--e-5);
+  display: flex;
+  justify-content: center;
+}
+/* O cartão é claro: o lockup escuro entra sem tratamento nenhum aqui. */
+.marca-login img {
+  width: 100%;
+  max-width: 230px;
+  height: auto;
+  display: block;
+}
+.cartao-login button.primario {
+  width: 100%;
+  padding: 10px;
+}
+/* O cadastro tem muito mais campo que o login: cabe mais largo e rola. */
+.cartao-cadastro {
+  max-width: 460px;
+  max-height: min(92vh, 900px);
+  overflow-y: auto;
+}
+/* Asterisco antes do rótulo, como no modelo. */
+.campo .asterisco {
+  color: var(--erro-texto);
+  margin-right: 3px;
+}
+/* Telefone: o +55 é fixo, então é rótulo, não campo editável. */
+.campo-telefone {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  overflow: hidden;
+  background: var(--superficie);
+}
+.campo-telefone:focus-within {
+  border-color: var(--acento);
+  /* Mesmo anel dos campos normais, definido em base.css. */
+  box-shadow: 0 0 0 3px rgba(22, 139, 255, 0.18);
+}
+.campo-telefone .prefixo-pais {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 var(--e-2);
+  background: var(--superficie-2);
+  border-right: 1px solid var(--borda);
+  color: var(--texto-fraco);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.campo-telefone input {
+  border: 0;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+.campo-telefone input:focus {
+  box-shadow: none;
+}
+.campo.com-erro .campo-telefone {
+  border-color: var(--erro);
+}
+
+/* Caixa de marcar, usada no aceite dos termos. */
+.opcao-caixa {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  font-size: 13px;
+  font-weight: 400;
+  padding: 3px 0;
+  cursor: pointer;
+}
+.opcao-caixa input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  accent-color: var(--acento-solido);
+  cursor: pointer;
+}
+/* O aceite não é uma opção entre outras: alinha pelo topo porque quebra linha. */
+.aceite-termos {
+  align-items: flex-start;
+}
+.aceite-termos a {
+  color: var(--acento-texto);
+  text-decoration: underline;
+}
+
+.apoio-login {
+  color: var(--texto-fraco);
+  font-size: 13px;
+  margin: calc(var(--e-3) * -1) 0 var(--e-4);
+}
+/* Alternar entre entrar e criar conta: discreto, é ação secundária. */
+.alternar-auth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-1);
+  width: 100%;
+  margin-top: var(--e-4);
+  padding-top: var(--e-4);
+  border-top: 1px solid var(--borda);
+  font-size: 13px;
+  color: var(--texto-fraco);
+}
+.alternar-auth strong {
+  color: var(--acento-texto);
+  font-weight: 600;
+}
+
+/* Bloco do usuário logado, no rodapé da sidebar. */
+.sidebar-rodape strong {
+  display: block;
+  color: var(--sidebar-texto);
+  font-size: 13px;
+}
+.sidebar-rodape span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* O nome no rodapé é o atalho mais curto para "Minha conta". */
+.sidebar-rodape .atalho-conta {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: var(--e-1);
+  margin: calc(var(--e-1) * -1);
+  color: inherit;
+  font-size: inherit;
+  border-radius: var(--raio-controle);
+}
+/* min-width: 0 para o e-mail longo poder truncar dentro do flex. */
+.sidebar-rodape .atalho-conta-texto {
+  min-width: 0;
+}
+.sidebar-rodape .avatar {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-texto);
+}
+.sidebar-rodape .atalho-conta:hover {
+  background: var(--sidebar-hover);
+}
+.sidebar-rodape .sair {
+  margin-top: var(--e-2);
+  background: none;
+  border: 1px solid var(--sidebar-borda);
+  color: var(--sidebar-texto-fraco);
+  padding: 5px 10px;
+  font-size: 12px;
+  width: 100%;
+}
+.sidebar-rodape .sair:hover:not(:disabled) {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-texto);
+  border-color: var(--sidebar-borda);
+}
+
+/* ---------- avaliações ---------- */
+
+.grade-medidas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--e-3);
+}
+.grade-fotos-avaliacao,
+.galeria-avaliacao {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--e-3);
+}
+.grade-fotos-avaliacao figure,
+.galeria-avaliacao figure {
+  margin: 0;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+  overflow: hidden;
+}
+.grade-fotos-avaliacao img,
+.galeria-avaliacao img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  display: block;
+}
+.grade-fotos-avaliacao figure {
+  position: relative;
+}
+.grade-fotos-avaliacao button {
+  margin: var(--e-2);
+}
+.galeria-avaliacao figcaption {
+  padding: var(--e-2);
+  color: var(--texto-fraco);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.tabela .variacao {
+  color: var(--texto-fraco);
+  white-space: nowrap;
+}
+
+.avaliacoes-page {
+  width: min(100%, 1420px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+.avaliacoes-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(180px, 260px) minmax(170px, 220px);
+  gap: var(--e-3);
+  align-items: center;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  padding: var(--e-3);
+}
+.avaliacoes-tabela .acoes-celula {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--e-2);
+}
+.fotos-inline {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+.evolucao-aluno {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+.avaliacao-aluno-select {
+  justify-content: flex-start;
+}
+.evolucao-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-3);
+  padding: var(--e-2) var(--e-1);
+}
+.evolucao-topo h2,
+.historico-aluno h2,
+.grafico-evolucao h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.evolucao-topo span {
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.metricas-evolucao {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--e-3);
+}
+.metrica-evolucao {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--e-3);
+}
+.metrica-evolucao span {
+  color: var(--texto-fraco);
+  font-size: 12.5px;
+}
+.metrica-evolucao strong {
+  font-size: 22px;
+}
+.metrica-evolucao small,
+.metrica-evolucao em {
+  color: var(--texto-fraco);
+  font-size: 12.5px;
+  font-style: normal;
+}
+.grafico-evolucao {
+  color: var(--acento-texto);
+}
+.grafico-evolucao .barra-acoes {
+  margin-bottom: var(--e-3);
+}
+.grafico-evolucao .barra-acoes select {
+  width: auto;
+  min-width: 180px;
+  font-size: 13px;
+}
+.grafico-evolucao svg {
+  width: 100%;
+  height: 260px;
+  display: block;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background:
+    linear-gradient(var(--superficie-2), var(--superficie-2)) padding-box,
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 31px,
+      var(--borda) 32px
+    );
+  padding: var(--e-3);
+}
+.grafico-legenda {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e-2);
+  margin-top: var(--e-2);
+  color: var(--texto-fraco);
+  font-size: 12px;
+  overflow-x: auto;
+}
+.grafico-legenda span {
+  min-width: 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.grafico-legenda strong {
+  color: var(--texto);
+  font-size: 12.5px;
+}
+.historico-aluno {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.avaliacao-linha-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--e-3);
+  align-items: center;
+  text-align: left;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  background: var(--superficie);
+  padding: var(--e-3) var(--e-4);
+}
+.avaliacao-linha-card span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.avaliacao-modal-topo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  color: var(--texto-fraco);
+}
+.avaliacao-modal-topo strong {
+  color: var(--texto);
+}
+.avaliacao-modal-topo span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.comparativo-avaliacao td:first-child {
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.painel-formulario-avaliacao {
+  width: min(100%, 830px);
+  margin: 0 auto;
+  padding: var(--e-5);
+}
+.avaliacao-form .secao-formulario:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+.referencia-avaliacao {
+  margin: calc(var(--e-2) * -1) 0 0;
+}
+.grade-avaliacao {
+  display: grid;
+  gap: var(--e-3);
+}
+.grade-avaliacao.composicao {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.grade-avaliacao.medidas {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.imc-calculado {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+  padding: var(--e-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-3);
+}
+.imc-calculado span {
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.imc-calculado strong {
+  font-size: 18px;
+}
+.imc-calculado em {
+  color: var(--texto-fraco);
+  font-size: 12.5px;
+  font-style: normal;
+  text-align: right;
+}
+.upload-avaliacao {
+  border: 1px dashed var(--borda-forte);
+  border-radius: var(--raio-card);
+  background: var(--superficie-2);
+  min-height: 210px;
+  padding: var(--e-5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-2);
+  color: var(--texto-fraco);
+  text-align: center;
+  cursor: pointer;
+}
+.upload-avaliacao:hover {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+}
+.upload-avaliacao strong {
+  color: var(--texto);
+}
+.upload-avaliacao button {
+  margin-top: var(--e-2);
+}
+.upload-avaliacao input {
+  display: none;
+}
+.upload-avaliacao small {
+  font-size: 12px;
+}
+.grade-fotos-avaliacao .remover-foto {
+  position: absolute;
+  top: var(--e-2);
+  right: var(--e-2);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--raio-pilula);
+  background: var(--superficie);
+  border-color: var(--borda);
+}
+
+/* ---------- home ---------- */
+
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-5);
+}
+.data-hoje {
+  margin: 0;
+  color: var(--texto-fraco);
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.grade-metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--e-4);
+}
+.metrica {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto auto;
+  column-gap: var(--e-3);
+  align-items: center;
+}
+.metrica .icone-metrica {
+  grid-row: 1 / 3;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--raio-controle);
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.metrica .rotulo {
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+}
+.metrica .valor {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.metrica .nota {
+  grid-column: 1 / -1;
+  margin-top: var(--e-2);
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+.grade-home {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--e-5);
+  align-items: start;
+}
+.agenda-acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+}
+.agenda-form {
+  display: grid;
+  grid-template-columns: 110px minmax(150px, 1fr) minmax(150px, 1fr);
+  gap: var(--e-2);
+  margin-bottom: var(--e-3);
+  padding: var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+}
+.agenda-form input,
+.agenda-form select {
+  font-size: 13px;
+}
+.agenda-form button {
+  justify-self: start;
+}
+.agenda-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.agenda-item {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: var(--e-3);
+  align-items: center;
+  padding: var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie);
+}
+.agenda-item time {
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 700;
+}
+.agenda-item > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.agenda-aluno {
+  align-self: flex-start;
+  padding: 0;
+  font-weight: 700;
+}
+.agenda-item span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+
+/* ---------- tabela ---------- */
+
+.rolagem-tabela {
+  overflow-x: auto;
+}
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.tabela th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-fraco);
+  padding: 0 var(--e-3) var(--e-2);
+  border-bottom: 1px solid var(--borda);
+  white-space: nowrap;
+}
+.tabela td {
+  padding: var(--e-3);
+  border-bottom: 1px solid var(--borda);
+  vertical-align: middle;
+}
+.tabela tbody tr:last-child td {
+  border-bottom: none;
+}
+.tabela tbody tr:hover {
+  background: var(--superficie-2);
+}
+.tabela tbody tr.linha-clicavel {
+  cursor: pointer;
+}
+.tabela td .sub {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+.tabela .acoes-celula {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---------- listas ---------- */
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+
+.item-aluno {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: var(--e-3) var(--e-4);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie);
+  cursor: pointer;
+  transition: border-color var(--transicao), background var(--transicao);
+}
+.item-aluno:hover {
+  background: var(--superficie-2);
+}
+.item-aluno.selecionado {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+}
+.item-aluno.inativo .nome {
+  color: var(--texto-fraco);
+}
+/* min-width: 0 é o que permite o ellipsis funcionar dentro do flex. */
+.item-aluno .info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.item-aluno .nome,
+.item-aluno .meta {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.item-aluno .nome {
+  font-weight: 600;
+}
+.item-aluno .meta {
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+}
+/* As ações não encolhem: quem cede espaço é o nome. */
+.item-aluno .acoes {
+  display: flex;
+  gap: var(--e-1);
+  flex-shrink: 0;
+}
+.item-aluno .badge {
+  flex-shrink: 0;
+}
+
+/* Inicial do aluno no lugar de foto. */
+.avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: var(--raio-pilula);
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  /* A foto é quadrada; quem arredonda é o contêiner. */
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.avatar-foto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.item-aluno.inativo .avatar {
+  background: var(--superficie-2);
+  color: var(--texto-fraco);
+}
+
+/* Cabeçalho do modal do aluno. */
+.resumo-aluno {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding-bottom: var(--e-4);
+  margin-bottom: var(--e-4);
+  border-bottom: 1px solid var(--borda);
+}
+.resumo-aluno .info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.resumo-aluno .meta {
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+}
+
+/* ---------- badges ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--raio-pilula);
+  white-space: nowrap;
+  background: var(--superficie-2);
+  color: var(--texto-fraco);
+  border: 1px solid var(--borda);
+}
+.badge .ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.badge.info {
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+  border-color: transparent;
+}
+.badge.sucesso {
+  background: var(--sucesso-suave);
+  color: var(--sucesso-texto);
+  border-color: transparent;
+}
+.badge.alerta {
+  background: var(--alerta-suave);
+  color: var(--alerta-texto);
+  border-color: transparent;
+}
+.badge.erro {
+  background: var(--erro-suave);
+  color: var(--erro-texto);
+  border-color: transparent;
+}
+
+/* ---------- formulários ---------- */
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.campo label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texto);
+}
+.campo label span {
+  color: var(--erro-texto);
+}
+.campo.com-erro input,
+.campo.com-erro select,
+.campo.com-erro textarea,
+.campo.com-erro .input-com-sufixo,
+.campo.com-erro .input-senha {
+  border-color: var(--erro);
+}
+.linha {
+  display: flex;
+  gap: var(--e-3);
+}
+.linha > * {
+  flex: 1;
+}
+.acoes-form {
+  display: flex;
+  gap: var(--e-2);
+  justify-content: flex-end;
+}
+
+.aluno-form {
+  gap: var(--e-4);
+}
+.secao-formulario {
+  padding-top: var(--e-2);
+  border-top: 1px solid var(--borda);
+}
+.aluno-form .secao-formulario:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+.secao-formulario h2 {
+  margin: 0;
+  color: var(--texto-fraco);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.secao-formulario p {
+  margin: 4px 0 0;
+  color: var(--texto-fraco);
+  font-size: 12.5px;
+}
+.grade-form-aluno {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.15fr) minmax(140px, 0.9fr) minmax(120px, 0.65fr);
+  gap: var(--e-3);
+}
+.input-com-sufixo,
+.input-senha {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie);
+  transition: border-color var(--transicao), box-shadow var(--transicao);
+}
+.input-com-sufixo:focus-within,
+.input-senha:focus-within {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-suave);
+}
+.input-com-sufixo input,
+.input-senha input {
+  border: 0;
+  box-shadow: none;
+}
+.input-com-sufixo input:focus,
+.input-senha input:focus {
+  box-shadow: none;
+}
+.input-com-sufixo span {
+  padding-right: var(--e-3);
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.input-senha button {
+  border: 0;
+  background: transparent;
+  color: var(--texto-fraco);
+  padding: 8px var(--e-3);
+}
+.input-senha button:hover:not(:disabled) {
+  background: transparent;
+  color: var(--texto);
+}
+.ajuda-campo,
+.erro-campo,
+.campos-obrigatorios {
+  display: block;
+  font-size: 12.5px;
+}
+.ajuda-campo,
+.campos-obrigatorios {
+  color: var(--texto-fraco);
+  margin: 0 0 calc(var(--e-2) * -1);
+}
+.erro-campo {
+  color: var(--erro-texto);
+}
+.erro-campo.geral {
+  border: 1px solid var(--erro);
+  border-radius: var(--raio-controle);
+  background: var(--erro-suave);
+  padding: var(--e-3);
+  margin: 0;
+}
+
+/* ---------- abas ---------- */
+
+.abas {
+  display: flex;
+  gap: var(--e-1);
+  border-bottom: 1px solid var(--borda);
+  margin-bottom: var(--e-4);
+}
+.abas button {
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--texto-fraco);
+  padding: var(--e-2) var(--e-3);
+  font-weight: 500;
+}
+.abas button:hover:not(:disabled) {
+  background: none;
+  color: var(--texto);
+}
+.abas button.ativa {
+  color: var(--acento-texto);
+  border-bottom-color: var(--acento);
+}
+
+/* ---------- cartões de treino/dieta/prescrição ---------- */
+
+.cartao {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie);
+  padding: var(--e-3);
+  display: flex;
+  gap: var(--e-3);
+  align-items: flex-start;
+}
+.cartao:hover {
+  border-color: var(--borda-forte);
+}
+.cartao .corpo {
+  flex: 1;
+  min-width: 0;
+}
+.cartao .titulo {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+}
+.cartao .descricao {
+  color: var(--texto-fraco);
+  font-size: 13px;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+.cartao .acoes {
+  display: flex;
+  gap: var(--e-1);
+}
+
+.selo {
+  font-size: 11.5px;
+  padding: 2px 8px;
+  border-radius: var(--raio-pilula);
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  color: var(--texto-fraco);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.selo.aluno {
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+  border-color: transparent;
+}
+
+.filtro {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  font-size: 13px;
+  color: var(--texto-fraco);
+  white-space: nowrap;
+}
+.filtro select {
+  width: auto;
+  min-width: 150px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* ---------- tela de treinos ---------- */
+
+.treinos-page {
+  width: min(100%, 1420px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+
+/* ---------- tela de dietas ---------- */
+
+.dietas-page {
+  width: min(100%, 1420px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+.dietas-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(180px, 260px);
+  gap: var(--e-3);
+  align-items: center;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  padding: var(--e-3);
+}
+.dietas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+.dieta-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--e-3);
+  align-items: start;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  padding: var(--e-3) var(--e-4);
+  transition: border-color var(--transicao), background var(--transicao);
+}
+.dieta-card:hover {
+  border-color: var(--borda-forte);
+  background: #fff;
+}
+.dieta-card-corpo {
+  min-width: 0;
+}
+.dieta-card-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+.dieta-card h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.3;
+}
+.dieta-aluno,
+.dieta-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-3);
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.dieta-aluno {
+  gap: 5px;
+  margin-bottom: 7px;
+}
+.dieta-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.dieta-acoes {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dieta-acoes > .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.observacao-plano {
+  margin: var(--e-2) 0 0;
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.treinos-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(160px, 220px) minmax(140px, 180px) minmax(150px, 190px);
+  gap: var(--e-3);
+  align-items: center;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  padding: var(--e-3);
+}
+.treinos-toolbar select,
+.treinos-toolbar input {
+  font-size: 13px;
+}
+.treino-busca {
+  margin: 0;
+}
+.treinos-resumo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--e-4);
+  color: var(--texto-fraco);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.controle-segmentado {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie);
+}
+.controle-segmentado button {
+  border: 0;
+  background: transparent;
+  color: var(--texto-fraco);
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.controle-segmentado button.ativo {
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+}
+.treinos-lista,
+.treinos-grupos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+.treino-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--e-3);
+  align-items: start;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  padding: var(--e-3) var(--e-4);
+  transition:
+    border-color var(--transicao),
+    background var(--transicao);
+}
+.treino-card:hover {
+  border-color: var(--borda-forte);
+  background: #fff;
+}
+.treino-card.incompleto {
+  border-left: 3px solid var(--alerta);
+}
+.treino-card-corpo {
+  min-width: 0;
+}
+.treino-card-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.treino-card h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.treino-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-3);
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.treino-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.treino-card p {
+  margin: 6px 0 0;
+  color: var(--texto-fraco);
+  font-size: 13.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--raio-pilula);
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.badge-status.completo {
+  color: var(--sucesso-texto);
+  background: var(--sucesso-suave);
+}
+.badge-status.incompleto {
+  color: var(--alerta-texto);
+  background: var(--alerta-suave);
+}
+.treino-acoes {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.treino-acoes > .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.botao-montar {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+  font-weight: 600;
+}
+.botao-montar:hover:not(:disabled) {
+  background: var(--acento-solido);
+  border-color: var(--acento-solido);
+  color: #fff;
+}
+.botao-menu-card {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.menu-card {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 8;
+  min-width: 190px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  box-shadow: var(--sombra-flutuante);
+  padding: var(--e-1);
+}
+.menu-card button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  border: 0;
+  background: transparent;
+  color: var(--texto);
+  justify-content: flex-start;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.menu-card button:hover:not(:disabled) {
+  background: var(--superficie-2);
+}
+.menu-card button.perigo,
+button.perigo {
+  color: var(--erro-texto);
+}
+.menu-card button.perigo:hover:not(:disabled),
+button.perigo:hover:not(:disabled) {
+  background: var(--erro-suave);
+}
+.grupo-aluno-treinos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.grupo-aluno-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-3);
+  padding: var(--e-2) var(--e-1);
+}
+.grupo-aluno-topo h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.grupo-aluno-topo span {
+  color: var(--texto-fraco);
+  font-size: 12.5px;
+}
+.aviso-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-3);
+  border: 1px solid var(--alerta);
+  border-radius: var(--raio-controle);
+  background: var(--alerta-suave);
+  color: var(--alerta-texto);
+  padding: var(--e-3);
+  font-size: 13px;
+}
+.confirmacao-exclusao p {
+  margin: 0 0 var(--e-4);
+  color: var(--texto-fraco);
+  line-height: 1.5;
+}
+
+/* ---------- tela de alunos ---------- */
+
+.alunos-page {
+  width: min(100%, 1420px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+.metricas-alunos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--e-3);
+}
+.metrica-aluno {
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transicao), background var(--transicao);
+}
+.metrica-aluno:hover:not(:disabled),
+.metrica-aluno.ativa {
+  border-color: var(--acento);
+  background: var(--superficie);
+}
+.metrica-aluno.ativa .icone-metrica {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+.alunos-toolbar {
+  grid-template-columns: minmax(280px, 1fr) minmax(190px, 280px) minmax(150px, 190px);
+}
+.alunos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+.aluno-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--e-3);
+  align-items: start;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  padding: var(--e-3) var(--e-4);
+  transition: border-color var(--transicao), background var(--transicao);
+}
+.aluno-card:hover {
+  border-color: var(--borda-forte);
+}
+.aluno-card.inativo {
+  opacity: 0.72;
+}
+.aluno-avatar {
+  border: 0;
+  margin-top: 2px;
+}
+.aluno-card-corpo {
+  min-width: 0;
+}
+.aluno-card-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+}
+.aluno-card h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.3;
+}
+.aluno-card p {
+  margin: 4px 0 0;
+  color: var(--texto-fraco);
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.aluno-operacional {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-3);
+  margin-top: var(--e-2);
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.aluno-operacional span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.aluno-situacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: var(--e-2);
+  color: var(--sucesso-texto);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.aluno-situacao.alerta {
+  color: var(--alerta-texto);
+}
+.aluno-operacional .aluno-ok {
+  color: var(--sucesso-texto);
+  font-weight: 600;
+}
+.aluno-operacional .aluno-pendencia {
+  color: var(--alerta-texto);
+  font-weight: 600;
+}
+.aluno-card-acoes {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+@media (max-width: 980px) {
+  .treinos-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dietas-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .avaliacoes-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .metricas-evolucao,
+  .grade-avaliacao.composicao,
+  .grade-avaliacao.medidas {
+    grid-template-columns: 1fr 1fr;
+  }
+  .alunos-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .metricas-alunos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .treino-card {
+    grid-template-columns: 1fr;
+  }
+  .dieta-card {
+    grid-template-columns: 1fr;
+  }
+  .aluno-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .aluno-card-acoes {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+  .grade-form-aluno {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dieta-editor-grid {
+    grid-template-columns: 1fr;
+  }
+  .resumo-dieta {
+    position: static;
+    order: -1;
+  }
+  .alimento-editor {
+    grid-template-columns: 1fr 1fr;
+  }
+  .agenda-form {
+    grid-template-columns: 1fr 1fr;
+  }
+  .treino-acoes {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 620px) {
+  .treinos-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .dietas-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .avaliacoes-toolbar,
+  .metricas-evolucao,
+  .grade-avaliacao.composicao,
+  .grade-avaliacao.medidas {
+    grid-template-columns: 1fr;
+  }
+  .evolucao-topo,
+  .imc-calculado {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .imc-calculado em {
+    text-align: left;
+  }
+  .avaliacao-linha-card {
+    grid-template-columns: 1fr;
+  }
+  .painel-formulario-avaliacao {
+    padding: var(--e-4);
+  }
+  .avaliacao-form .acoes-form {
+    flex-direction: column-reverse;
+  }
+  .avaliacao-form .acoes-form button {
+    width: 100%;
+  }
+  .alunos-toolbar,
+  .metricas-alunos {
+    grid-template-columns: 1fr;
+  }
+  .treinos-resumo {
+    align-items: stretch;
+  }
+  .controle-segmentado {
+    width: 100%;
+  }
+  .controle-segmentado button {
+    flex: 1;
+  }
+  .treino-acoes {
+    width: 100%;
+  }
+  .dieta-acoes {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .dieta-acoes .botao-montar {
+    flex: 1 1 160px;
+  }
+  .aluno-card {
+    grid-template-columns: 1fr;
+  }
+  .aluno-avatar {
+    justify-self: start;
+  }
+  .aluno-card-acoes {
+    grid-column: 1;
+    width: 100%;
+  }
+  .painel-formulario-aluno {
+    padding: var(--e-4);
+  }
+  .painel-formulario-dieta {
+    padding: var(--e-4);
+  }
+  .grade-form-aluno {
+    grid-template-columns: 1fr;
+  }
+  .grade-dieta-plano,
+  .grade-dieta-macros,
+  .grade-refeicao-nutrientes,
+  .refeicao-topo,
+  .alimento-editor {
+    grid-template-columns: 1fr;
+  }
+  .botao-adicionar-refeicao {
+    width: 100%;
+  }
+  .aluno-form .acoes-form {
+    flex-direction: column-reverse;
+  }
+  .aluno-form .acoes-form button {
+    width: 100%;
+  }
+  .agenda-acoes,
+  .agenda-form,
+  .agenda-item {
+    grid-template-columns: 1fr;
+  }
+  .agenda-acoes button,
+  .agenda-form button {
+    width: 100%;
+  }
+  .botao-montar {
+    flex: 1 1 160px;
+  }
+  .menu-card {
+    left: 0;
+    right: auto;
+  }
+}
+
+.divisor {
+  border: 0;
+  border-top: 1px solid var(--borda);
+  margin: var(--e-4) 0;
+}
+
+/* ---------- detalhes em modal ---------- */
+
+.detalhe-registro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+.grade-detalhes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--e-3);
+}
+.grade-detalhes > div,
+.bloco-detalhe {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+  padding: var(--e-3);
+}
+.grade-detalhes span,
+.bloco-detalhe span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-fraco);
+}
+.grade-detalhes strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.bloco-detalhe p {
+  margin: 0;
+  color: var(--texto);
+  font-size: 13.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.bloco-detalhe.compacto {
+  margin-bottom: var(--e-3);
+}
+
+/* ---------- plano alimentar ---------- */
+
+.formulario-dieta .barra-acoes {
+  margin-bottom: var(--e-3);
+}
+.formulario-dieta .barra-acoes h2 {
+  margin: 0;
+}
+.dieta-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: var(--e-3);
+  align-items: start;
+}
+.dieta-editor-principal {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+.grade-dieta-plano {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(160px, 220px);
+  gap: var(--e-3);
+}
+.grade-dieta-macros,
+.grade-refeicao-nutrientes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-3);
+}
+.grade-refeicao-nutrientes {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.lista-refeicoes-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+.refeicao-form {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+  padding: var(--e-3);
+}
+.refeicao-editor {
+  background: var(--superficie);
+  border-radius: var(--raio-card);
+  padding: var(--e-4);
+}
+.refeicao-topo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px auto;
+  gap: var(--e-2);
+  align-items: center;
+  margin-bottom: var(--e-3);
+}
+.refeicao-titulo-wrap {
+  min-width: 0;
+}
+.refeicao-titulo-botao {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--texto);
+  padding: 6px 0;
+  text-align: left;
+  font-weight: 700;
+  font-size: 16px;
+}
+.refeicao-titulo-botao:hover:not(:disabled) {
+  background: transparent;
+  color: var(--acento-texto);
+}
+.refeicao-menu {
+  position: relative;
+}
+.alimentos-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  margin-bottom: var(--e-2);
+}
+.alimentos-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  margin-bottom: var(--e-3);
+}
+.alimento-editor {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(90px, 120px) minmax(110px, 140px) auto;
+  gap: var(--e-2);
+  align-items: end;
+  padding: var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+}
+.alimento-nome input {
+  font-weight: 600;
+}
+.alimento-form {
+  align-items: flex-end;
+}
+.remover-alimento {
+  flex: 0 0 auto;
+  margin-bottom: 2px;
+}
+.observacao-refeicao {
+  margin-top: var(--e-3);
+}
+.observacao-refeicao summary {
+  color: var(--acento-texto);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.observacao-refeicao textarea {
+  margin-top: var(--e-2);
+}
+.total-refeicao {
+  margin-top: var(--e-3);
+  padding-top: var(--e-3);
+  border-top: 1px solid var(--borda);
+  color: var(--texto-fraco);
+  font-size: 13px;
+  font-weight: 600;
+}
+.botao-adicionar-refeicao {
+  align-self: flex-start;
+}
+.resumo-dieta {
+  position: sticky;
+  top: 88px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+.resumo-dieta h2 {
+  margin: 0;
+  color: var(--texto-fraco);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.resumo-dieta > strong {
+  font-size: 24px;
+  line-height: 1.2;
+}
+.linha-resumo-dieta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.linha-resumo-dieta span,
+.resumo-refeicoes {
+  color: var(--texto-fraco);
+  font-size: 12.5px;
+}
+.linha-resumo-dieta strong {
+  font-size: 13px;
+}
+.barra-progresso {
+  height: 7px;
+  border-radius: var(--raio-pilula);
+  background: var(--superficie-2);
+  overflow: hidden;
+}
+.barra-progresso span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--acento);
+}
+
+.plano-alimentar {
+  display: flex;
+  flex-direction: column;
+}
+.plano-alimentar-modal {
+  max-height: min(72vh, 760px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.plano-modal-cabecalho {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-3);
+  padding-bottom: var(--e-3);
+  margin-bottom: var(--e-3);
+  border-bottom: 1px solid var(--borda);
+  background: var(--superficie);
+}
+.plano-modal-cabecalho h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  line-height: 1.3;
+}
+.plano-modal-cabecalho span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.plano-modal-resumo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: var(--e-3);
+}
+.plano-modal-resumo > span {
+  color: var(--texto-fraco);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.plano-modal-resumo strong {
+  font-size: 26px;
+  line-height: 1.2;
+}
+.plano-modal-resumo small {
+  color: var(--texto-fraco);
+  font-size: 13px;
+  font-weight: 500;
+}
+.plano-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--e-3);
+}
+.plano-meta span {
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+}
+.plano-meta strong {
+  font-size: 24px;
+  line-height: 1.2;
+}
+.plano-macros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--e-2);
+  margin-bottom: var(--e-4);
+}
+.plano-macros-modal {
+  margin-bottom: 0;
+}
+.plano-macros div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+  padding: var(--e-3);
+}
+.plano-macros span {
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.refeicao-plano {
+  border-top: 1px solid var(--borda);
+  padding: var(--e-4) 0;
+}
+.plano-refeicoes-modal {
+  margin-top: var(--e-3);
+}
+.refeicao-plano-modal {
+  padding: var(--e-4) 0;
+}
+.refeicao-plano:last-child {
+  padding-bottom: 0;
+}
+.refeicao-plano h3 {
+  margin: 0 0 var(--e-3);
+  font-size: 15px;
+}
+.refeicao-modal-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-3);
+  margin-bottom: var(--e-3);
+}
+.refeicao-modal-topo h3 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-2);
+  margin: 0;
+  font-size: 15.5px;
+}
+.refeicao-modal-topo time {
+  color: var(--texto-fraco);
+  font-size: 13px;
+  font-weight: 700;
+}
+.refeicao-modal-topo > strong {
+  color: var(--texto-fraco);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.lista-alimentos-plano {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--e-3);
+}
+.lista-alimentos-modal {
+  gap: 7px;
+}
+.lista-alimentos-plano div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--e-4);
+  font-size: 14px;
+}
+.lista-alimentos-plano span {
+  overflow-wrap: anywhere;
+}
+.lista-alimentos-plano strong {
+  color: var(--texto-fraco);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.calorias-refeicao,
+.macros-refeicao {
+  margin: 0;
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.macros-refeicao-modal {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+  margin-top: var(--e-3);
+}
+.macros-refeicao-modal strong {
+  color: var(--texto);
+  font-weight: 700;
+}
+.calorias-refeicao {
+  margin-top: var(--e-2);
+  color: var(--texto);
+  font-weight: 600;
+}
+.observacao-plano {
+  margin-top: var(--e-3);
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.observacao-plano span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--texto-fraco);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.observacao-plano p {
+  margin: 0;
+  color: var(--texto);
+  line-height: 1.5;
+}
+.plano-sem-refeicoes {
+  margin: var(--e-3) 0 0;
+  color: var(--texto-fraco);
+  font-size: 13.5px;
+}
+
+/* ---------- catálogo de exercícios ---------- */
+
+.filtros-catalogo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  margin-bottom: var(--e-4);
+}
+.campo-busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.campo-busca .lupa {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  color: var(--texto-fraco);
+  pointer-events: none;
+}
+.campo-busca input {
+  padding-left: 36px;
+}
+.filtros-catalogo .linha-selects {
+  display: flex;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+}
+.filtros-catalogo .linha-selects select {
+  width: auto;
+  flex: 1 1 150px;
+  min-width: 130px;
+  font-size: 13px;
+}
+.filtros-catalogo .contagem {
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+}
+
+.grade-exercicios {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--e-3);
+}
+.cartao-exercicio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  background: var(--superficie);
+  padding: var(--e-2);
+  transition: border-color var(--transicao);
+}
+.cartao-exercicio:hover {
+  border-color: var(--borda-forte);
+}
+.cartao-exercicio .dados {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  padding: 0 var(--e-1);
+}
+.cartao-exercicio .dados strong {
+  font-size: 13.5px;
+}
+.cartao-exercicio .meta {
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+}
+
+.miniatura {
+  padding: 0;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  overflow: hidden;
+  background: var(--superficie-2);
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.miniatura:hover {
+  border-color: var(--acento);
+  background: var(--superficie-2);
+}
+.miniatura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.miniatura.pequena {
+  width: 56px;
+  min-width: 56px;
+  aspect-ratio: 1;
+}
+.miniatura .sem-imagem {
+  color: var(--texto-fraco);
+  font-size: 11.5px;
+}
+
+/* ---------- modal ---------- */
+
+.fundo-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(23, 26, 31, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--e-6) var(--e-4);
+  overflow-y: auto;
+  z-index: 40;
+}
+.modal {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  box-shadow: var(--sombra-flutuante);
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
+}
+.modal.largo {
+  max-width: 920px;
+}
+.modal-topo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--e-3);
+  padding: var(--e-4);
+  border-bottom: 1px solid var(--borda);
+}
+.modal-topo h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.modal-topo button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--borda);
+  background: var(--superficie-2);
+  color: var(--texto);
+  padding: 7px;
+  border-radius: var(--raio-controle);
+  flex-shrink: 0;
+}
+.modal-topo .modal-fechar {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+.modal-topo .modal-fechar:hover:not(:disabled) {
+  background: var(--erro-suave);
+  border-color: var(--erro);
+  color: var(--erro-texto);
+}
+.modal-corpo {
+  padding: var(--e-4);
+}
+.modal.largo .modal-corpo {
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+}
+
+.selos-exercicio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1);
+  margin-bottom: var(--e-3);
+}
+.fotos-exercicio {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--e-3);
+  margin: var(--e-4) 0;
+}
+.fotos-exercicio img {
+  width: 100%;
+  border-radius: var(--raio-controle);
+  border: 1px solid var(--borda);
+  background: var(--superficie-2);
+}
+.instrucoes {
+  margin: 0;
+  padding-left: var(--e-4);
+  color: var(--texto-fraco);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.instrucoes li {
+  margin-bottom: var(--e-2);
+}
+
+/* ---------- prescrição dentro do treino ---------- */
+
+.lista-prescricao {
+  padding: 0;
+}
+.lista-prescricao .posicao {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  border-radius: var(--raio-pilula);
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  color: var(--texto-fraco);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lista-prescricao .cartao {
+  align-items: center;
+}
+.lista-prescricao .cartao.arrastando {
+  border-color: var(--acento);
+  box-shadow: var(--sombra-flutuante);
+  opacity: 0.9;
+}
+.lista-prescricao .acoes {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.alca {
+  cursor: grab;
+  color: var(--texto-fraco);
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  touch-action: none;
+}
+.alca:active {
+  cursor: grabbing;
+}
+.alca:hover:not(:disabled) {
+  background: none;
+  color: var(--texto);
+}
+
+/* ---------- avisos e estados ---------- */
+
+.erro {
+  background: var(--erro-suave);
+  border: 1px solid var(--erro);
+  color: var(--erro-texto);
+  padding: var(--e-3);
+  border-radius: var(--raio-controle);
+  margin-bottom: var(--e-4);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e-4);
+  align-items: center;
+  font-size: 13.5px;
+}
+.erro button {
+  border: none;
+  background: none;
+  color: inherit;
+  padding: 2px;
+}
+
+.vazio {
+  color: var(--texto-fraco);
+  font-size: 13.5px;
+  padding: var(--e-6) var(--e-4);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--e-2);
+}
+.vazio p {
+  margin: 0;
+}
+.icone-vazio {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--raio-pilula);
+  background: var(--superficie-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--texto-fraco);
+}
+
+.aviso-inativo {
+  background: var(--alerta-suave);
+  border: 1px solid var(--alerta);
+  color: var(--alerta-texto);
+  border-radius: var(--raio-controle);
+  padding: var(--e-3);
+  font-size: 13px;
+  margin-bottom: var(--e-4);
+}
+
+/* ---------- skeletons ---------- */
+
+.esqueleto {
+  background: linear-gradient(
+    90deg,
+    var(--superficie-2) 25%,
+    #e9ecef 37%,
+    var(--superficie-2) 63%
+  );
+  background-size: 400% 100%;
+  animation: brilho 1.4s ease infinite;
+  border-radius: 6px;
+}
+@keyframes brilho {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto {
+    animation: none;
+  }
+}
+
+.esqueleto-linha {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+}
+.esqueleto-linha .corpo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.esqueleto.avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: var(--raio-pilula);
+}
+.esqueleto.texto {
+  height: 12px;
+  width: 70%;
+}
+.esqueleto.texto.curto {
+  width: 40%;
+}
+.esqueleto-cartao {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  padding: var(--e-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.esqueleto.bloco {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--raio-controle);
+}
