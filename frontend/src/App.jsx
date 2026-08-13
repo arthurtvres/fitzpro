@@ -22,6 +22,8 @@ import ViewAvaliacoes from "./features/alunos/ViewAvaliacoes.jsx";
 import CatalogoExercicios from "./features/exercicios/CatalogoExercicios.jsx";
 import DetalheExercicio from "./features/exercicios/DetalheExercicio.jsx";
 import Home from "./features/inicio/Home.jsx";
+import PaginaLegal from "./features/legal/PaginaLegal.jsx";
+import ReaceitarTermos from "./features/legal/ReaceitarTermos.jsx";
 import PainelDoPersonal from "./features/painel/PainelDoPersonal.jsx";
 import MeuPerfil from "./features/perfil/MeuPerfil.jsx";
 import { CONFIG_POR_CHAVE } from "./features/planos/config.js";
@@ -127,10 +129,23 @@ export default function App() {
 
   // ---------- alunos ----------
 
-  function editarAluno(aluno) {
-    setAlunoEmEdicao(aluno);
+  /**
+   * Abre o formulário com o cadastro **completo**, buscado por id.
+   *
+   * O item que vem da lista é um resumo (ver `resumo()` no backend) e não tem
+   * nascimento, sexo nem endereço. Preencher o formulário com ele deixaria
+   * esses campos em branco, e salvar apagaria o que não veio — o formulário
+   * manda o objeto inteiro, não só o que mudou.
+   */
+  async function editarAluno(aluno) {
     setErro(null);
+    setAlunoEmEdicao(aluno);
     setRota("alunos/criar");
+    try {
+      setAlunoEmEdicao(await api.alunos.buscar(aluno.id));
+    } catch (e) {
+      setErro(e.message);
+    }
   }
 
   async function salvarAluno(dados) {
@@ -485,7 +500,6 @@ export default function App() {
         <PaginaDoAluno
           key={alunoIdDaRota}
           alunoId={alunoIdDaRota}
-          conhecido={alunoDaRota}
           aoErrar={setErro}
           aoMontarTreino={montarTreino}
           aoEditar={editarAluno}
@@ -518,6 +532,19 @@ export default function App() {
         aoCriarDieta={() => navegar("dietas/criar")}
         aoCriarAvaliacao={() => navegar("avaliacoes/criar")}
         aoErrar={setErro}
+      />
+    );
+  }
+
+  // Antes de qualquer verificação de sessão: os documentos legais são públicos
+  // e precisam abrir para quem ainda não tem conta — o checkbox de aceite no
+  // cadastro e no convite aponta para cá. Ficam também acessíveis a quem já
+  // está logado, sem o shell, porque a leitura é a mesma.
+  if (rota === "termos" || rota === "privacidade") {
+    return (
+      <PaginaLegal
+        documento={rota}
+        aoVoltar={() => (window.history.length > 1 ? irPara(-1) : irPara("/"))}
       />
     );
   }
@@ -573,6 +600,20 @@ export default function App() {
         aoEntrar={setLogado}
         aoCriarConta={() => setTelaAuth("criar")}
         aoEsquecerSenha={() => irPara("/esqueci-senha")}
+      />
+    );
+  }
+
+  // Antes de escolher o app: os termos valem para os dois papéis. Fica **depois**
+  // das páginas legais, que são públicas — senão a pessoa não conseguiria ler o
+  // que está sendo pedida para aceitar.
+  if (logado.termos_pendentes) {
+    return (
+      <ReaceitarTermos
+        tema={tema}
+        usuario={logado}
+        aoAceitar={setLogado}
+        aoSair={sair}
       />
     );
   }

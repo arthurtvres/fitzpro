@@ -14,14 +14,19 @@ import DetalheAluno from "./DetalheAluno.jsx";
  * detalhe abria modal sobre modal. Modal é para interrupção curta com uma
  * decisão; aqui o personal fica, navega entre cinco abas e preenche formulário.
  *
- * **Busca por id em vez de receber o aluno pronto por prop.** É o que faz a URL
- * valer: colar /alunos/12 numa aba nova, dar F5 ou voltar pelo histórico chega
- * aqui sem nenhum estado do React preservado. Se a lista já estiver carregada,
- * o aluno dela aparece na hora e a busca só confirma — ninguém vê spinner à toa.
+ * **Busca por id, sempre.** É o que faz a URL valer: colar /alunos/12 numa aba
+ * nova, dar F5 ou voltar pelo histórico chega aqui sem nenhum estado do React
+ * preservado.
+ *
+ * Havia um atalho aqui — usar o aluno que a lista já tinha, para não mostrar
+ * spinner. Ele caiu quando a listagem passou a devolver um resumo: o resumo não
+ * tem nascimento, sexo nem endereço, e a ficha piscaria "—" nesses campos até a
+ * busca responder. Mostrar o esqueleto por um instante é melhor que mostrar
+ * dado errado por um instante.
  */
-export default function PaginaDoAluno({ alunoId, conhecido, aoErrar, ...resto }) {
-  const [aluno, setAluno] = useState(conhecido ?? null);
-  const [carregando, setCarregando] = useState(!conhecido);
+export default function PaginaDoAluno({ alunoId, aoErrar, ...resto }) {
+  const [aluno, setAluno] = useState(null);
+  const [carregando, setCarregando] = useState(true);
   const [sumido, setSumido] = useState(false);
 
   useEffect(() => {

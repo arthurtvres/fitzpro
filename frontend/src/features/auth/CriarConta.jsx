@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 import { api } from "../../api/index.js";
+import AceiteDeTermos from "../legal/AceiteDeTermos.jsx";
 import {
   FAIXAS_DE_ALUNOS,
   apenasDigitos,
@@ -52,8 +53,10 @@ export default function CriarConta({ tema, aoEntrar, aoVoltar }) {
     setErroGeral(null);
   };
 
-  const alternarTermos = (evento) => {
-    setDados((atual) => ({ ...atual, aceitou_termos: evento.target.checked }));
+  // Recebe booleano, e nao o evento: quem chama e o `AceiteDeTermos`, que ja
+  // resolveu o checkbox por dentro.
+  const alternarTermos = (marcado) => {
+    setDados((atual) => ({ ...atual, aceitou_termos: marcado }));
     setErros((atual) => ({ ...atual, aceitou_termos: null }));
   };
 
@@ -127,7 +130,7 @@ export default function CriarConta({ tema, aoEntrar, aoVoltar }) {
     <div className="tela-login">
       <div className="cartao-login cartao-cadastro">
         <div className="marca-login">
-          <img src={tema === "dark" ? "/fitzpro.png" : "/fitzprologin.png"} alt="FitzPro" />
+          <img src="/fitzprologo.png" alt="FitzPro" />
         </div>
 
         <h1>Criar conta</h1>
@@ -259,21 +262,11 @@ export default function CriarConta({ tema, aoEntrar, aoVoltar }) {
           </Campo>
 
           <div className={`campo${erros.aceitou_termos ? " com-erro" : ""}`}>
-            <label className="opcao-caixa aceite-termos">
-              <input
-                type="checkbox"
-                checked={dados.aceitou_termos}
-                onChange={alternarTermos}
-                aria-invalid={Boolean(erros.aceitou_termos)}
-              />
-              <span>
-                Li e aceito os <a href="#termos">termos de uso</a> e a{" "}
-                <a href="#privacidade">política de privacidade</a>
-              </span>
-            </label>
-            {erros.aceitou_termos && (
-              <span className="erro-campo">{erros.aceitou_termos}</span>
-            )}
+            <AceiteDeTermos
+              marcado={dados.aceitou_termos}
+              aoMarcar={alternarTermos}
+              erro={erros.aceitou_termos}
+            />
           </div>
 
           <button type="submit" className="primario" disabled={criando}>

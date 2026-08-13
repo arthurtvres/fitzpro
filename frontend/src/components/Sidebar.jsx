@@ -90,7 +90,9 @@ export default function Sidebar({
           }}
           aria-label="FitzPro — ir para o início"
         >
-          <img className="sidebar-logo sidebar-logo-cheia" src="/fitzpro.png" alt="FitzPro" />
+          <img className="sidebar-logo sidebar-logo-cheia" src="/fitzprologo.png" alt="FitzPro" />
+          {/* Recolhida usa a marca reduzida, e não a logo cheia: na faixa
+              estreita a versão com texto encolheria a ponto de não se ler. */}
           <img
             className="sidebar-logo sidebar-logo-compacta"
             src="/fitzprotop2.png"

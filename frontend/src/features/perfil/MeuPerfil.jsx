@@ -4,6 +4,12 @@ import { Check, Crown, Eye, EyeOff, IdCard, Lock } from "lucide-react";
 import { api } from "../../api/index.js";
 import CampoFoto from "../../components/CampoFoto.jsx";
 import {
+  cepValido,
+  cpfValido,
+  formatarCep,
+  formatarCpf,
+} from "../../utils/documentos.js";
+import {
   apenasDigitos,
   formatarTelefone,
   telefoneValido,
@@ -168,6 +174,9 @@ function MeuPlano({ usuario }) {
 }
 
 function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
+  // Telefone e data de nascimento são exigências do cadastro de ALUNO; o
+  // personal informa se quiser. A API aplica a mesma distinção.
+  const ehAluno = usuario.papel === "ALUNO";
   const [dados, setDados] = useState({
     nome: "",
     email: "",
@@ -193,8 +202,9 @@ function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
       data_nascimento: usuario.data_nascimento ?? "",
       sexo: usuario.sexo ?? "",
       telefone: formatarTelefone(usuario.telefone ?? ""),
-      cpf: usuario.cpf ?? "",
-      cep: usuario.cep ?? "",
+      // O servidor guarda so digitos; a mascara e para ler.
+      cpf: formatarCpf(usuario.cpf ?? ""),
+      cep: formatarCep(usuario.cep ?? ""),
       logradouro: usuario.logradouro ?? "",
       numero_endereco: usuario.numero_endereco ?? "",
       complemento: usuario.complemento ?? "",
@@ -209,9 +219,11 @@ function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
     setSalvo(false);
   };
 
+  const mascaraDe = { telefone: formatarTelefone, cpf: formatarCpf, cep: formatarCep };
+
   const alterar = (campo) => (evento) => {
-    const valor =
-      campo === "telefone" ? formatarTelefone(evento.target.value) : evento.target.value;
+    const mascara = mascaraDe[campo];
+    const valor = mascara ? mascara(evento.target.value) : evento.target.value;
     setDados((atual) => ({ ...atual, [campo]: valor }));
     setErros((atual) => ({ ...atual, [campo]: null }));
     setSalvo(false);
@@ -223,13 +235,25 @@ function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
     const proximos = {};
     if (!dados.nome.trim()) proximos.nome = "Informe o seu nome.";
     if (!emailValido(dados.email.trim())) proximos.email = "Informe um e-mail válido.";
-    if (dados.data_nascimento && dados.data_nascimento > new Date().toISOString().slice(0, 10)) {
+    // Obrigatória só para aluno, como o telefone: é regra do cadastro de
+    // aluno, e a API recusa o PUT sem ela. O personal não precisa informar.
+    if (ehAluno && !dados.data_nascimento) {
+      proximos.data_nascimento = "Informe a data de nascimento.";
+    } else if (
+      dados.data_nascimento &&
+      dados.data_nascimento > new Date().toISOString().slice(0, 10)
+    ) {
       proximos.data_nascimento = "Informe uma data de nascimento válida.";
+    }
+    // Opcionais, mas preenchidos têm que fechar a conta — a API recusa de
+    // qualquer forma, e descobrir aqui poupa a ida ao servidor.
+    if (dados.cpf && !cpfValido(dados.cpf)) proximos.cpf = "CPF inválido.";
+    if (dados.cep && !cepValido(dados.cep)) {
+      proximos.cep = "Informe o CEP com 8 dígitos.";
     }
     // A API exige telefone de aluno; do personal, aceita em branco. Preenchido,
     // porém, tem que estar certo nos dois casos.
-    const exigido = usuario.papel === "ALUNO";
-    if ((exigido || dados.telefone) && !telefoneValido(dados.telefone)) {
+    if ((ehAluno || dados.telefone) && !telefoneValido(dados.telefone)) {
       proximos.telefone = "Informe o telefone com DDD.";
     }
     setErros(proximos);
@@ -304,7 +328,7 @@ function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
           id="perfil-telefone"
           label="Telefone celular"
           erro={erros.telefone}
-          obrigatorio={usuario.papel === "ALUNO"}
+          obrigatorio={ehAluno}
         >
           <div className="campo-telefone">
             <span className="prefixo-pais" aria-hidden="true">
@@ -328,6 +352,7 @@ function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
             id="perfil-nascimento"
             label="Data de nascimento"
             erro={erros.data_nascimento}
+            obrigatorio={ehAluno}
           >
             <input
               id="perfil-nascimento"
@@ -356,24 +381,28 @@ function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
               descricao="Dados cadastrais e endereço do seu perfil profissional."
             />
 
-            <Campo id="perfil-cpf" label="CPF">
+            <Campo id="perfil-cpf" label="CPF" erro={erros.cpf}>
               <input
                 id="perfil-cpf"
                 value={dados.cpf}
                 onChange={alterar("cpf")}
                 placeholder="000.000.000-00"
+                inputMode="numeric"
                 autoComplete="off"
+                aria-invalid={Boolean(erros.cpf)}
               />
             </Campo>
 
             <div className="grade-form-aluno">
-              <Campo id="perfil-cep" label="CEP">
+              <Campo id="perfil-cep" label="CEP" erro={erros.cep}>
                 <input
                   id="perfil-cep"
                   value={dados.cep}
                   onChange={alterar("cep")}
                   placeholder="00000-000"
+                  inputMode="numeric"
                   autoComplete="postal-code"
+                  aria-invalid={Boolean(erros.cep)}
                 />
               </Campo>
 

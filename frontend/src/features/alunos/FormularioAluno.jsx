@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
 import CampoFoto from "../../components/CampoFoto.jsx";
+import Modal from "../../components/Modal.jsx";
+import { MAIORIDADE, eMenor, idadeDe } from "./regras.js";
 import {
   apenasDigitos,
   formatarTelefone,
@@ -40,6 +42,9 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   // O padrão é convidar: quem define a senha do aluno é o aluno.
   const [porConvite, setPorConvite] = useState(true);
+  // Guarda o corpo pronto enquanto o diálogo do menor está aberto: confirmar
+  // envia exatamente o que já tinha sido montado e validado.
+  const [confirmandoMenor, setConfirmandoMenor] = useState(null);
 
   const editando = Boolean(aluno);
 
@@ -101,11 +106,12 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
     if (!editando && !porConvite && dados.senha.length < 6) {
       proximos.senha = "A senha deve possuir pelo menos 6 caracteres.";
     }
-    if (dados.data_nascimento) {
-      const hoje = new Date().toISOString().slice(0, 10);
-      if (dados.data_nascimento > hoje) {
-        proximos.data_nascimento = "Informe uma data de nascimento válida.";
-      }
+    // Obrigatória desde que existe verificação de idade: sem a data não dá
+    // para saber se o cadastro precisa de autorização dos responsáveis.
+    if (!dados.data_nascimento) {
+      proximos.data_nascimento = "Informe a data de nascimento.";
+    } else if (dados.data_nascimento > new Date().toISOString().slice(0, 10)) {
+      proximos.data_nascimento = "Informe uma data de nascimento válida.";
     }
     if (dados.objetivo === "Outro" && !objetivoFinal) {
       proximos.objetivo_outro = "Descreva o objetivo do aluno.";
@@ -138,6 +144,15 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
       // quando o personal escolheu definir a senha.
       if (!editando && !porConvite) corpo.senha = dados.senha;
 
+      // Menor de idade: pergunta antes de salvar, e só então envia. O servidor
+      // recusa sem a declaração de qualquer jeito — o diálogo existe para o
+      // personal saber por que, não para ser a única barreira.
+      if (!editando && eMenor(dados.data_nascimento)) {
+        setConfirmandoMenor(corpo);
+        setSalvando(false);
+        return;
+      }
+
       await aoSalvar(corpo);
       if (!editando) setDados(VAZIO);
     } catch (e) {
@@ -147,6 +162,20 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
       } else {
         setErros({ formulario: mensagem || "Não foi possível salvar o aluno." });
       }
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function confirmarAutorizacao() {
+    const corpo = { ...confirmandoMenor, autorizacao_responsavel: true };
+    setConfirmandoMenor(null);
+    setSalvando(true);
+    try {
+      await aoSalvar(corpo);
+      setDados(VAZIO);
+    } catch (e) {
+      setErros({ formulario: e?.message ?? "Não foi possível salvar o aluno." });
     } finally {
       setSalvando(false);
     }
@@ -231,6 +260,7 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
           id="aluno-nascimento"
           label="Data de nascimento"
           erro={erroDe("data_nascimento")}
+          obrigatorio
         >
           <input
             id="aluno-nascimento"
@@ -330,6 +360,33 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
           </Campo>
           )}
         </>
+      )}
+
+      {/* Fechar sem confirmar só não salva — o formulário fica inteiro, com
+          tudo preenchido. Bloquear o cadastro aqui puniria um clique errado
+          com a perda de tudo o que foi digitado. */}
+      {confirmandoMenor && (
+        <Modal
+          titulo="Aluno menor de idade"
+          aoFechar={() => setConfirmandoMenor(null)}
+        >
+          <div className="confirmacao-menor">
+            <p>
+              O aluno tem <strong>{idadeDe(dados.data_nascimento)} anos</strong> e precisa da
+              autorização de um responsável para realizar o cadastro.
+            </p>
+            <p className="pergunta">O cadastro foi autorizado?</p>
+
+            <div className="acoes-form">
+              <button type="button" onClick={() => setConfirmandoMenor(null)}>
+                Não tenho autorização
+              </button>
+              <button type="button" className="primario" onClick={confirmarAutorizacao}>
+                Sim, tenho autorização
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       <p className="campos-obrigatorios">* Campos obrigatórios</p>

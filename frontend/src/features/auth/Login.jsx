@@ -24,7 +24,7 @@ export default function Login({ tema, aoEntrar, aoCriarConta, aoEsquecerSenha })
     <div className="tela-login">
       <div className="cartao-login">
         <div className="marca-login">
-          <img src={tema === "dark" ? "/fitzpro.png" : "/fitzprologin.png"} alt="FitzPro" />
+          <img src="/fitzprologo.png" alt="FitzPro" />
         </div>
 
         <h1>Entrar</h1>

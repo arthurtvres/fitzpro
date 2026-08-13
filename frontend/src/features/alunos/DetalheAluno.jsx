@@ -8,6 +8,7 @@ import DetalhePlano from "../planos/DetalhePlano.jsx";
 import PainelPlano from "../planos/PainelPlano.jsx";
 import PainelProgressao from "../progressao/PainelProgressao.jsx";
 import FichaDoAluno from "./FichaDoAluno.jsx";
+import ObservacoesDoAluno from "./ObservacoesDoAluno.jsx";
 import PainelAvaliacoes from "./PainelAvaliacoes.jsx";
 
 /**
@@ -84,7 +85,12 @@ export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino, aoEditar 
 
       {/* key força remontar ao trocar de aba/aluno, zerando formulário e lista */}
       {aba === "informacoes" ? (
-        <FichaDoAluno aluno={aluno} aoEditar={aoEditar} aoErrar={aoErrar} />
+        <>
+          <FichaDoAluno aluno={aluno} aoEditar={aoEditar} aoErrar={aoErrar} />
+          {/* Abaixo da ficha, como no modelo. `key` para trocar de aluno
+              recarregar a nota em vez de mostrar a do anterior. */}
+          <ObservacoesDoAluno key={aluno.id} aluno={aluno} aoErrar={aoErrar} />
+        </>
       ) : aba === "progressao" ? (
         <PainelProgressao key={`${aluno.id}-pr`} aluno={aluno} aoErrar={aoErrar} />
       ) : aba === "avaliacoes" ? (

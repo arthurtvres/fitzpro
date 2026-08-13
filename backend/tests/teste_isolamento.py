@@ -18,6 +18,7 @@ from fastapi import HTTPException  # noqa: E402
 from pydantic import ValidationError  # noqa: E402
 from sqlmodel import Session, select  # noqa: E402
 
+from app.core import config as config_app  # noqa: E402
 from app.core.dependencias import personal_atual  # noqa: E402
 from app.db.session import create_db_and_tables, engine  # noqa: E402
 from app.models import (  # noqa: E402
@@ -38,6 +39,7 @@ from app.models import (  # noqa: E402
     Usuario,
     UsuarioAtualizacao,
     UsuarioCriacao,
+    publico,
 )
 from app.routers import auth, avaliacoes, dietas, execucoes, painel, treinos, usuarios  # noqa: E402
 from app.routers import progressao as progressao_rotas  # noqa: E402
@@ -53,6 +55,11 @@ catalogo.carregar()
 s = Session(engine)
 
 ok = falhas = 0
+
+# Data de nascimento virou obrigatoria para aluno (ha verificacao de idade).
+# Nos testes em que a idade nao e o assunto, usa-se este adulto fixo — data
+# relativa a hoje, para nao virar menor com a passagem do tempo.
+ADULTO = date.today().replace(year=date.today().year - 30)
 
 
 def checar(descricao, esperado, funcao):
@@ -92,10 +99,10 @@ ana = registrar("Ana", "ana@x.com")
 bruno = registrar("Bruno", "bruno@x.com")
 
 aluno_ana = usuarios.criar_usuario(
-    UsuarioCriacao(nome="Aluno da Ana", email="a1@x.com", senha="123456", telefone="11961234560"), s, ana
+    UsuarioCriacao(nome="Aluno da Ana", email="a1@x.com", senha="123456", telefone="11961234560", data_nascimento=ADULTO), s, ana
 )
 aluno_bruno = usuarios.criar_usuario(
-    UsuarioCriacao(nome="Aluno do Bruno", email="b1@x.com", senha="123456", telefone="11961234561"), s, bruno
+    UsuarioCriacao(nome="Aluno do Bruno", email="b1@x.com", senha="123456", telefone="11961234561", data_nascimento=ADULTO), s, bruno
 )
 id_ana, id_bruno = aluno_ana["id"], aluno_bruno["id"]
 print(f"  Ana={ana.id} (aluno {id_ana})   Bruno={bruno.id} (aluno {id_bruno})")
@@ -157,14 +164,15 @@ assert len(dietas.listar_dietas(None, s, ana)) == 0
 
 print("\n== o aluno logado nao ve os colegas do mesmo personal ==")
 aluno2 = usuarios.criar_usuario(
-    UsuarioCriacao(nome="Colega", email="a2@x.com", senha="123456", telefone="11961234562"), s, ana)
+    UsuarioCriacao(nome="Colega", email="a2@x.com", senha="123456", telefone="11961234562", data_nascimento=ADULTO), s, ana)
 obj_aluno = s.get(Usuario, id_ana)
 checar("aluno GET colega de tenant", 404,
        lambda: usuarios.buscar_usuario(aluno2["id"], s, obj_aluno))
 checar("aluno GET a si mesmo", "ok", lambda: usuarios.buscar_usuario(id_ana, s, obj_aluno))
 checar("aluno PUT em si mesmo", "ok", lambda: usuarios.atualizar_usuario(
     id_ana, UsuarioAtualizacao(nome="Eu mesmo", email="a1@x.com",
-                               telefone="11912345678"), s, obj_aluno))
+                               telefone="11912345678",
+                               data_nascimento=ADULTO), s, obj_aluno))
 checar("aluno PUT no colega", 404, lambda: usuarios.atualizar_usuario(
     aluno2["id"], UsuarioAtualizacao(nome="Invadido", email="a2@x.com",
                                      telefone="11912345678"), s, obj_aluno))
@@ -213,10 +221,10 @@ checar("sem informar o porte", 422, lambda: auth.registrar(
 
 print("\n== telefone no cadastro de aluno ==")
 checar("aluno sem telefone", 422, lambda: usuarios.criar_usuario(
-    UsuarioCriacao(nome="Sem fone", email="sf@x.com", senha="123456"), s, ana))
+    UsuarioCriacao(nome="Sem fone", email="sf@x.com", senha="123456", data_nascimento=ADULTO), s, ana))
 checar("aluno com telefone invalido", 422, lambda: usuarios.criar_usuario(
     UsuarioCriacao(nome="Fone ruim", email="fr@x.com", senha="123456",
-                   telefone="abc"), s, ana))
+                   telefone="abc", data_nascimento=ADULTO), s, ana))
 
 print("\n== telefone na edicao: regra e por papel, nao por schema ==")
 checar("personal salva o proprio perfil sem telefone", "ok",
@@ -719,11 +727,19 @@ for descricao, condicao in [
 
 print("\n== convite do aluno ==")
 convidada = usuarios.criar_usuario(
-    UsuarioCriacao(nome="Marina", email="marina@x.com", telefone="11961234599"), s, ana)
+    UsuarioCriacao(nome="Marina", email="marina@x.com", telefone="11961234599", data_nascimento=ADULTO), s, ana)
 obj_convidada = s.get(Usuario, convidada["id"])
 
 checar("login antes de aceitar o convite", 401, lambda: auth.login(
     auth.Credenciais(email="marina@x.com", senha="123456"), s))
+
+# Reenvio antes do aceite: e a unica janela em que ele faz sentido. Depois do
+# primeiro acesso o aluno ja tem senha, e o caminho passa a ser a recuperacao —
+# coberto no bloco "cadastro do aluno apos o primeiro acesso".
+checar("reenviar convite do proprio aluno", "ok",
+       lambda: usuarios.reenviar_convite(convidada["id"], s, ana))
+checar("reenviar convite de aluno ALHEIO", 404,
+       lambda: usuarios.reenviar_convite(convidada["id"], s, bruno))
 
 conv = token_acesso.emitir(obj_convidada, FinalidadeDoToken.CONVITE, s)
 leitura_1 = auth.ler_convite(conv, s)
@@ -743,19 +759,13 @@ checar("login com a senha que o ALUNO escolheu", "ok", lambda: auth.login(
 checar("reusar o convite", 400, lambda: auth.aceitar_convite(
     auth.AceiteDoConvite(token=conv, senha="outrasenha1", aceitou_termos=True), s))
 
-# Reenvio: o personal dono pode, o de fora nao — o convite e uma escrita na
-# conta do aluno, e a regra de tenant vale igual.
-checar("reenviar convite do proprio aluno", "ok",
-       lambda: usuarios.reenviar_convite(convidada["id"], s, ana))
-checar("reenviar convite de aluno ALHEIO", 404,
-       lambda: usuarios.reenviar_convite(convidada["id"], s, bruno))
 checar("aluno tentando reenviar convite", 403,
        lambda: personal_atual(obj_convidada))
 
 s.refresh(obj_convidada)
 com_senha = usuarios.criar_usuario(
     UsuarioCriacao(nome="Rafa", email="rafa@x.com", telefone="11961234598",
-                   senha="123456"), s, ana)
+                   senha="123456", data_nascimento=ADULTO), s, ana)
 
 for descricao, condicao in [
     ("cadastro sem senha dispara convite", convidada["convite_enviado"] is True),
@@ -774,6 +784,391 @@ for descricao, condicao in [
     # com um link de convite.
     ("a leitura publica nao vaza o resto do cadastro",
      set(leitura_1) == {"nome", "email", "personal_nome"}),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+# ===================== versao dos termos aceitos =====================
+#
+# Guardar so o booleano nao prova nada: "concordou" sem saber COM O QUE nao
+# serve num pedido de titular nem numa disputa. As tres colunas andam juntas.
+
+print("\n== versao dos termos ==")
+recem = registrar("Recem", "recem@x.com")
+# Fica sem aceitar de proposito: por convite, quem aceita e o aluno, entao este
+# e o unico estado em que um usuario existe sem versao de termos gravada.
+# Cadastro COM senha aceita na hora — testado no bloco de aceite automatico.
+pendente_sem_aceite = s.get(Usuario, usuarios.criar_usuario(
+    UsuarioCriacao(nome="So Convidado", email="soconvidado@x.com",
+                   telefone="11961234590", data_nascimento=ADULTO), s, recem)["id"])
+aluno_convidado = usuarios.criar_usuario(
+    UsuarioCriacao(nome="Convidada", email="conv@x.com", telefone="11961234597", data_nascimento=ADULTO), s, recem)
+obj_convidado = s.get(Usuario, aluno_convidado["id"])
+tok_conv = token_acesso.emitir(obj_convidado, FinalidadeDoToken.CONVITE, s)
+auth.aceitar_convite(
+    auth.AceiteDoConvite(token=tok_conv, senha="senhadele1", aceitou_termos=True), s)
+s.refresh(obj_convidado)
+
+for descricao, condicao in [
+    ("personal grava a versao no cadastro",
+     recem.termos_versao == config_app.VERSAO_DOS_TERMOS),
+    ("aluno grava a versao ao aceitar o convite",
+     obj_convidado.termos_versao == config_app.VERSAO_DOS_TERMOS),
+    ("aluno so convidado ainda nao tem versao",
+     pendente_sem_aceite.termos_versao is None),
+    ("as tres colunas andam juntas",
+     all([obj_convidado.aceitou_termos,
+          obj_convidado.termos_aceitos_em is not None,
+          obj_convidado.termos_versao])),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+# ============ o cadastro passa a ser do aluno apos o 1o acesso ============
+#
+# O personal cadastra para poder convidar. Assim que o aluno entra e assume a
+# conta, o cadastro e dele. A janela anterior fica aberta de proposito: se o
+# e-mail foi digitado errado, o convite nao chega e o aluno nao entra — sem ela
+# ninguem conseguiria consertar.
+
+print("\n== cadastro do aluno apos o primeiro acesso ==")
+pendente = usuarios.criar_usuario(
+    UsuarioCriacao(nome="Pendente", email="pendente@x.com", telefone="11961234596", data_nascimento=ADULTO), s, ana)
+obj_pendente = s.get(Usuario, pendente["id"])
+
+def editar(alvo_id, quem, nome="Corrigido", email="pendente@x.com"):
+    return lambda: usuarios.atualizar_usuario(
+        alvo_id, UsuarioAtualizacao(nome=nome, email=email, telefone="11961234596",
+                                    data_nascimento=ADULTO),
+        s, quem)
+
+checar("personal corrige aluno que NAO ativou", "ok", editar(pendente["id"], ana))
+checar("personal redefine senha de quem nao ativou", "ok", lambda: usuarios.trocar_senha(
+    pendente["id"], TrocaDeSenha(senha_nova="provisoria1"), s, ana))
+
+tok_p = token_acesso.emitir(obj_pendente, FinalidadeDoToken.CONVITE, s)
+auth.aceitar_convite(
+    auth.AceiteDoConvite(token=tok_p, senha="minhasenha1", aceitou_termos=True), s)
+s.refresh(obj_pendente)
+
+checar("personal edita aluno que JA ativou", 403, editar(pendente["id"], ana))
+# Definir a senha de alguem e poder entrar como essa pessoa: e a trava que mais
+# importa das tres, e por isso ela e teste e nao comentario.
+checar("personal redefine senha de quem JA ativou", 403, lambda: usuarios.trocar_senha(
+    pendente["id"], TrocaDeSenha(senha_nova="tomada12345"), s, ana))
+checar("personal reenvia convite para quem ja ativou", 400,
+       lambda: usuarios.reenviar_convite(pendente["id"], s, ana))
+
+checar("o proprio aluno edita o cadastro dele", "ok",
+       editar(pendente["id"], obj_pendente, nome="Eu Mesmo"))
+checar("o proprio aluno troca a senha dele", "ok", lambda: usuarios.trocar_senha(
+    pendente["id"], TrocaDeSenha(senha_atual="minhasenha1", senha_nova="outrasenha1"),
+    s, obj_pendente))
+
+# A trava e sobre o cadastro, nao sobre a relacao: desativar continua sendo do
+# personal, senao ele nao teria como encerrar o atendimento.
+checar("personal ainda desativa o aluno", "ok",
+       lambda: usuarios.desativar_usuario(pendente["id"], s, ana))
+checar("personal ainda reativa o aluno", "ok",
+       lambda: usuarios.reativar_usuario(pendente["id"], s, ana))
+checar("personal continua editando a SI MESMO", "ok", lambda: usuarios.atualizar_usuario(
+    ana.id, UsuarioAtualizacao(nome="Ana", email="ana@x.com"), s, ana))
+checar("aluno de OUTRO personal segue 404", 404, editar(id_bruno, ana, email="b1@x.com"))
+
+# ============ observacoes privadas do personal sobre o aluno ============
+#
+# E o caderno do profissional, nao um recado. A anotacao fica no registro do
+# ALUNO, entao o caminho por onde ela poderia vazar e justamente a resposta que
+# o proprio aluno recebe — daqui sai a assercao sobre `publico()`.
+
+print("\n== observacoes do personal ==")
+usuarios.salvar_observacoes(
+    id_ana, usuarios.Observacoes(texto="  Joelho direito: evitar agachamento profundo.  "),
+    s, ana)
+lido = usuarios.ler_observacoes(id_ana, s, ana)
+
+# O 403 do aluno mora em `personal_atual`, que e um Depends — chamar a funcao
+# direto o pula. Entao a barreira e conferida onde ela existe: nas duas rotas
+# estar atras DELA, e nao de `usuario_atual`, que deixaria o aluno entrar.
+for nome_rota in ("ler_observacoes", "salvar_observacoes"):
+    guarda = inspect.signature(
+        getattr(usuarios, nome_rota)).parameters["logado"].default
+    condicao = guarda.dependency is personal_atual
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {nome_rota} exige personal_atual")
+checar("personal lendo observacoes de aluno ALHEIO", 404,
+       lambda: usuarios.ler_observacoes(id_bruno, s, ana))
+checar("personal escrevendo em aluno ALHEIO", 404,
+       lambda: usuarios.salvar_observacoes(
+           id_bruno, usuarios.Observacoes(texto="invadido"), s, ana))
+checar("observacao longa demais", 400,
+       lambda: usuarios.salvar_observacoes(
+           id_ana,
+           usuarios.Observacoes(texto="x" * (usuarios.TAMANHO_MAXIMO_OBSERVACOES + 1)),
+           s, ana))
+
+do_aluno = usuarios.buscar_usuario(id_ana, s, obj_aluno)
+na_sessao = publico(s.get(Usuario, id_ana))
+usuarios.salvar_observacoes(id_ana, usuarios.Observacoes(texto="   "), s, ana)
+s.expire_all()
+apagada = s.get(Usuario, id_ana).observacoes
+
+for descricao, condicao in [
+    ("o personal le o que escreveu", lido["texto"].startswith("Joelho direito")),
+    ("o texto e guardado sem espaco nas pontas", lido["texto"] == lido["texto"].strip()),
+    # A rota existe justamente para a anotacao NAO viajar em `publico()`, que e
+    # o que o proprio aluno recebe em /auth/eu e ao ler o cadastro dele.
+    ("`publico` nao carrega observacoes", "observacoes" not in na_sessao),
+    ("o aluno nao ve a nota no proprio cadastro", "observacoes" not in do_aluno),
+    # Vazio vira None: "nunca escreveu" e "apagou" no mesmo lugar, senao toda
+    # leitura precisaria testar os dois.
+    ("texto em branco apaga e vira nulo", apagada is None),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+# ====== aceite automatico, primeiro acesso e aluno menor de idade ======
+#
+# Duas regras que se cruzam: o personal que cadastra com senha aceita os termos
+# pelo aluno, e a partir dai `aceitou_termos` deixa de significar "o aluno
+# assumiu a conta". Quem passa a dizer isso e `primeiro_acesso_em` — e e ele
+# que controla ate quando o personal pode editar.
+
+print("\n== aceite automatico e primeiro acesso ==")
+completo = usuarios.criar_usuario(
+    UsuarioCriacao(nome="Completo", email="completo@x.com", telefone="11961234595",
+                   senha="senhadoper1", data_nascimento=ADULTO), s, ana)
+obj_completo = s.get(Usuario, completo["id"])
+# Lido ANTES do login: e o ponto da separacao entre aceite e posse da conta.
+acesso_antes_do_login = obj_completo.primeiro_acesso_em
+
+convidado2 = usuarios.criar_usuario(
+    UsuarioCriacao(nome="Convidado2", email="conv2@x.com", telefone="11961234594", data_nascimento=ADULTO), s, ana)
+obj_convidado2 = s.get(Usuario, convidado2["id"])
+
+# Cadastrado pelo personal ainda e editavel: o aceite foi registrado, mas ele
+# nunca entrou. Sem esta janela o personal perderia o cadastro de alguem que
+# talvez nunca faca login, e ninguem poderia corrigir um e-mail errado.
+checar("personal edita quem ele cadastrou com senha", "ok",
+       lambda: usuarios.atualizar_usuario(
+           completo["id"],
+           UsuarioAtualizacao(nome="Corrigido", email="completo@x.com",
+                              telefone="11961234595",
+                              data_nascimento=ADULTO), s, ana))
+
+auth.login(auth.Credenciais(email="completo@x.com", senha="senhadoper1"), s)
+s.refresh(obj_completo)
+
+checar("depois do 1o login o personal nao edita mais", 403,
+       lambda: usuarios.atualizar_usuario(
+           completo["id"],
+           UsuarioAtualizacao(nome="Tarde", email="completo@x.com",
+                              telefone="11961234595",
+                              data_nascimento=ADULTO), s, ana))
+
+print("\n== aluno menor de idade ==")
+hoje = date.today()
+menor = hoje.replace(year=hoje.year - 15)
+maior = hoje.replace(year=hoje.year - 30)
+
+checar("menor SEM autorizacao", 400, lambda: usuarios.criar_usuario(
+    UsuarioCriacao(nome="Menor", email="menor@x.com", telefone="11961234593",
+                   data_nascimento=menor, senha="senha123456"), s, ana))
+checar("menor COM autorizacao", "ok", lambda: usuarios.criar_usuario(
+    UsuarioCriacao(nome="Menor", email="menor@x.com", telefone="11961234593",
+                   data_nascimento=menor, autorizacao_responsavel=True,
+                   senha="senha123456"), s, ana))
+checar("maior sem autorizacao segue normal", "ok", lambda: usuarios.criar_usuario(
+    UsuarioCriacao(nome="Maior", email="maior@x.com", telefone="11961234592",
+                   data_nascimento=maior, senha="senha123456"), s, ana))
+# Sem data nao ha como saber se o cadastro precisa de autorizacao, entao
+# "nao informado" viraria justamente a forma de contornar a regra do menor.
+checar("cadastro SEM data de nascimento", 422, lambda: usuarios.criar_usuario(
+    UsuarioCriacao(nome="Sem Data", email="semdata@x.com", telefone="11961234591",
+                   senha="senha123456"), s, ana))
+checar("data de nascimento no futuro", 422, lambda: usuarios.criar_usuario(
+    UsuarioCriacao(nome="Futuro", email="futuro@x.com", telefone="11961234589",
+                   data_nascimento=hoje.replace(year=hoje.year + 1),
+                   senha="senha123456"), s, ana))
+
+com_autorizacao = s.exec(select(Usuario).where(Usuario.email == "menor@x.com")).first()
+maior_de_idade = s.exec(select(Usuario).where(Usuario.email == "maior@x.com")).first()
+
+for descricao, condicao in [
+    ("cadastro completo ja nasce com os termos aceitos",
+     obj_completo.aceitou_termos and obj_completo.termos_versao == config_app.VERSAO_DOS_TERMOS),
+    ("cadastro por convite NAO aceita pelo aluno",
+     obj_convidado2.aceitou_termos is False),
+    # A separacao que sustenta as duas regras: aceitar os termos e assumir a
+    # conta viraram coisas diferentes quando o personal passou a aceitar por
+    # outra pessoa. Aceite automatico NAO marca posse...
+    ("aceite automatico nao marca primeiro acesso", acesso_antes_do_login is None),
+    # ...e o login marca.
+    ("o login do aluno marca o primeiro acesso",
+     obj_completo.primeiro_acesso_em is not None),
+    ("a autorizacao fica registrada com data",
+     com_autorizacao.autorizacao_responsavel_em is not None),
+    ("quem nao e menor nao ganha registro de autorizacao",
+     maior_de_idade.autorizacao_responsavel_em is None),
+    # A flag de entrada nao pode virar coluna: se virasse, o corpo do PUT
+    # poderia reescrever a declaracao depois.
+    ("autorizacao_responsavel nao vaza para a resposta",
+     "autorizacao_responsavel" not in completo),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+# ===================== CPF e CEP =====================
+#
+# Mesma regra do telefone: formatar e da tela, o banco guarda o numero. Sem
+# normalizar, "529.982.247-25" e "52998224725" viram registros diferentes e
+# nenhuma busca acha os dois. O CPF ainda confere os digitos verificadores —
+# erro de digitacao vira um numero que parece valido e so falha quando alguem
+# precisa dele para valer.
+
+print("\n== CPF e CEP ==")
+
+def com_documento(**extras):
+    return lambda: UsuarioAtualizacao(
+        nome="X", email="x@x.com", telefone="11961234560",
+        data_nascimento=ADULTO, **extras)
+
+checar("CPF valido com pontuacao", "ok", com_documento(cpf="529.982.247-25"))
+checar("CPF valido sem pontuacao", "ok", com_documento(cpf="52998224725"))
+checar("CPF com digito verificador errado", 422, com_documento(cpf="529.982.247-24"))
+# Passa na conta dos verificadores, mas nao e CPF de ninguem: e o que se digita
+# para sair do campo.
+checar("CPF de digitos repetidos", 422, com_documento(cpf="111.111.111-11"))
+checar("CPF curto demais", 422, com_documento(cpf="123"))
+checar("CPF sem digito nenhum", 422, com_documento(cpf="abcdefghijk"))
+checar("CEP valido com hifen", "ok", com_documento(cep="01310-100"))
+checar("CEP com 7 digitos", 422, com_documento(cep="0131010"))
+
+guardado_cpf = UsuarioAtualizacao(
+    nome="X", email="x@x.com", telefone="11961234560", data_nascimento=ADULTO,
+    cpf="529.982.247-25", cep="01310-100")
+
+for descricao, condicao in [
+    ("CPF e guardado so com digitos", guardado_cpf.cpf == "52998224725"),
+    ("CEP e guardado so com digitos", guardado_cpf.cep == "01310100"),
+    # Os dois sao opcionais: em branco e "nao informado", nao erro.
+    ("CPF em branco vira nulo",
+     UsuarioAtualizacao(nome="X", email="x@x.com", telefone="11961234560",
+                        data_nascimento=ADULTO, cpf="").cpf is None),
+    ("CEP em branco vira nulo",
+     UsuarioAtualizacao(nome="X", email="x@x.com", telefone="11961234560",
+                        data_nascimento=ADULTO, cep="").cep is None),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+# ============ o que viaja numa LISTAGEM vs. num DETALHE ============
+#
+# `publico` devolve o modelo inteiro e serve ao cadastro de UM usuario. Listagem
+# usa `resumo`, uma lista branca. A diferenca importa porque campo novo no
+# modelo entra em `publico` sozinho — foi assim que CPF e endereco passaram a
+# viajar em toda listagem, e por isso `observacoes` precisou ser excluido a mao.
+
+print("\n== recorte dos dados nas listagens ==")
+
+CHAVES_DO_RESUMO = {
+    "id", "nome", "email", "telefone", "foto_url", "ativo",
+    "objetivo", "idade", "aceitou_termos", "primeiro_acesso_em",
+}
+PESSOAIS = {
+    "cpf", "cep", "logradouro", "numero_endereco", "complemento", "bairro",
+    "data_nascimento", "sexo", "altura_cm", "observacoes",
+    "termos_versao", "termos_aceitos_em", "autorizacao_responsavel_em",
+}
+
+s.get(Usuario, id_ana).cpf = "52998224725"
+s.commit()
+
+na_listagem = usuarios.listar_usuarios(None, False, s, ana)[0]
+no_painel = painel.resumo_do_personal(None, s, ana)["alunos"][0]["aluno"]
+no_detalhe = usuarios.buscar_usuario(id_ana, s, ana)
+
+for descricao, condicao in [
+    # Travar o conjunto exato, e nao so "nao tem cpf": assim, acrescentar campo
+    # ao resumo sem pensar quebra o teste em vez de vazar em silencio.
+    ("a listagem tem exatamente as chaves do resumo",
+     set(na_listagem) == CHAVES_DO_RESUMO),
+    ("o painel usa o mesmo recorte", set(no_painel) == CHAVES_DO_RESUMO),
+    ("nenhum dado pessoal na listagem", not (set(na_listagem) & PESSOAIS)),
+    ("nenhum dado pessoal no painel", not (set(no_painel) & PESSOAIS)),
+    # O detalhe continua completo: recortar la quebraria a ficha e o formulario.
+    ("o detalhe segue trazendo o cadastro inteiro",
+     {"cpf", "data_nascimento", "sexo"} <= set(no_detalhe)),
+    # A lista precisa do avatar e de saber se o aluno ja assumiu a conta.
+    ("a listagem mantem o que a tela usa",
+     {"foto_url", "primeiro_acesso_em", "idade"} <= set(na_listagem)),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+# ============ reaceite quando os termos mudam ============
+#
+# As duas constantes existem para separar "o que esta publicado" de "o que
+# exige novo consentimento". Se fossem uma so, corrigir uma virgula
+# interromperia todo mundo — e aceite frequente e aceite que ninguem le.
+
+print("\n== reaceite de termos ==")
+from app.services import termos as servico_termos  # noqa: E402
+
+leitora = registrar("Leitora", "leitora@x.com")
+versao_publicada = config_app.VERSAO_DOS_TERMOS
+versao_minima = config_app.VERSAO_MINIMA_ACEITA
+
+pendente_ao_dia = servico_termos.pendente(leitora)
+
+# Correcao de ortografia: sobe so a versao publicada.
+config_app.VERSAO_DOS_TERMOS = "2026-09-01"
+pendente_apos_typo = servico_termos.pendente(leitora)
+
+# Mudanca material: sobe as duas.
+config_app.VERSAO_MINIMA_ACEITA = "2026-09-01"
+pendente_apos_material = servico_termos.pendente(leitora)
+
+resposta = auth.aceitar_nova_versao(s, leitora)
+s.refresh(leitora)
+pendente_apos_aceitar = servico_termos.pendente(leitora)
+versao_gravada = leitora.termos_versao
+
+# Aluno que o personal aceitou por ele nunca viu o texto: na primeira mudanca
+# material ele finalmente ve.
+aluno_auto = s.get(Usuario, usuarios.criar_usuario(
+    UsuarioCriacao(nome="Auto", email="auto@x.com", telefone="11961234588",
+                   data_nascimento=ADULTO, senha="senha123456"), s, leitora)["id"])
+config_app.VERSAO_MINIMA_ACEITA = "2026-10-01"
+pendente_para_aluno_auto = servico_termos.pendente(aluno_auto)
+
+config_app.VERSAO_DOS_TERMOS = versao_publicada
+config_app.VERSAO_MINIMA_ACEITA = versao_minima
+
+for descricao, condicao in [
+    ("quem acabou de aceitar nao tem pendencia", pendente_ao_dia is False),
+    # O ponto de existirem duas constantes.
+    ("correcao de ortografia NAO pede reaceite", pendente_apos_typo is False),
+    ("mudanca material pede reaceite", pendente_apos_material is True),
+    ("aceitar resolve a pendencia", pendente_apos_aceitar is False),
+    ("o aceite grava a versao publicada", versao_gravada == "2026-09-01"),
+    ("a resposta ja diz que nao ha pendencia",
+     resposta["usuario"]["termos_pendentes"] is False
+     if "usuario" in resposta else resposta["termos_pendentes"] is False),
+    ("aluno aceito pelo personal tambem reaceita",
+     pendente_para_aluno_auto is True),
+    # Login e /eu carregam a bandeira; e dela que o front depende para trancar.
+    ("login informa a pendencia",
+     "termos_pendentes" in auth.login(
+         auth.Credenciais(email="leitora@x.com", senha="senha12345"), s)["usuario"]),
+    ("/eu informa a pendencia", "termos_pendentes" in auth.eu(leitora)),
 ]:
     ok += condicao
     falhas += not condicao

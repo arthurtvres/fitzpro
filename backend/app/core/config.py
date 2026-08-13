@@ -20,6 +20,14 @@ URL_BANCO = os.getenv("FITZPRO_DB_URL", f"sqlite:///{ARQUIVO_BANCO}")
 
 ARQUIVO_EXERCICIOS = DIRETORIO_APP / "data" / "exercises.json"
 
+# O build do front. Existindo, o backend o serve — e passa a ser um artefato só
+# no ar, o que resolve de uma vez o fallback de SPA: `/alunos/12` recarregado
+# devolve o index.html em vez de 404. Ausente (desenvolvimento, testes), nada
+# muda e o Vite continua servindo em outra porta.
+DIRETORIO_FRONTEND = Path(
+    os.getenv("FITZPRO_DIR_FRONTEND", DIRETORIO_BACKEND.parent / "frontend" / "dist")
+)
+
 # As imagens do catálogo (~96 MB) não são versionadas: apontamos para o
 # GitHub Pages do dataset de origem.
 BASE_IMAGENS_EXERCICIOS = "https://yuhonas.github.io/free-exercise-db/exercises"
@@ -30,6 +38,27 @@ BASE_IMAGENS_EXERCICIOS = "https://yuhonas.github.io/free-exercise-db/exercises"
 SEGREDO_JWT = os.getenv("FITZPRO_SEGREDO", "desenvolvimento-trocar-em-producao")
 ALGORITMO_JWT = "HS256"
 HORAS_DE_SESSAO = 12
+
+# ---------- termos de uso e privacidade ----------
+#
+# Espelhado em frontend/src/features/legal/documentos.js — o texto é do front e
+# o registro é do back, então são dois lugares e mantê-los iguais é disciplina.
+#
+# Qual texto está publicado agora. Sobe a cada alteração, inclusive as de
+# ortografia — é o que faz o registro dizer com exatidão o que a pessoa viu.
+VERSAO_DOS_TERMOS = "2026-08-13"
+
+# A versão mais antiga que ainda vale como consentimento. Quem aceitou algo
+# anterior a isto passa pela tela de reaceite ao entrar.
+#
+# Separada da de cima porque são perguntas diferentes: "o que está publicado" e
+# "o que exige novo consentimento". Se fossem a mesma, corrigir uma vírgula
+# interromperia todo mundo com um modal — e aceite frequente é aceite que
+# ninguém lê, o que faz o registro deixar de valer justamente por ser demais.
+#
+# Só sobe em mudança material: dado novo, finalidade nova, compartilhamento
+# novo, alteração de direitos ou de regra relevante.
+VERSAO_MINIMA_ACEITA = "2026-08-13"
 
 # ---------- e-mail ----------
 #

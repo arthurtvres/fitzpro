@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { api } from "../../api/index.js";
+import { personalPodeEditar } from "./regras.js";
 import Avatar from "../../components/Avatar.jsx";
 import Modal from "../../components/Modal.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
@@ -436,9 +437,11 @@ function AlunoCard({
 
         {menuAberto === aluno.id && (
           <div className="menu-card">
-            <button type="button" onClick={() => aoEditar(aluno)}>
-              <Edit3 size={14} /> Editar aluno
-            </button>
+            {personalPodeEditar(aluno) && (
+              <button type="button" onClick={() => aoEditar(aluno)}>
+                <Edit3 size={14} /> Editar aluno
+              </button>
+            )}
             {aluno.ativo && (
               <>
                 <button type="button" onClick={() => aoCriarTreino(aluno)}>

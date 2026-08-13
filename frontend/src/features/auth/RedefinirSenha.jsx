@@ -44,7 +44,7 @@ export default function RedefinirSenha({ tema, token, aoEntrar, aoVoltar }) {
     <div className="tela-login">
       <div className="cartao-login">
         <div className="marca-login">
-          <img src={tema === "dark" ? "/fitzpro.png" : "/fitzprologin.png"} alt="FitzPro" />
+          <img src={tema === "dark" ? "/fitzprologo.png" : "/fitzprologin.png"} alt="FitzPro" />
         </div>
 
         <h1>Criar nova senha</h1>

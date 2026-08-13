@@ -6,9 +6,11 @@ from app.models.usuario import (
     UsuarioAtualizacao,
     UsuarioCriacao,
     cartao_de_contato,
+    e_menor,
     idade_de,
     normalizar_telefone,
     publico,
+    resumo,
 )
 from app.models.avaliacao import Avaliacao, AvaliacaoCriacao, imc
 from app.models.execucao_exercicio import (

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { api } from "../../api/index.js";
+import AceiteDeTermos from "../legal/AceiteDeTermos.jsx";
 
 // Espelha TAMANHO_MINIMO_SENHA do backend.
 const TAMANHO_MINIMO = 8;
@@ -65,7 +66,7 @@ export default function AceitarConvite({ tema, token, aoEntrar, aoVoltar }) {
     <div className="tela-login">
       <div className="cartao-login">
         <div className="marca-login">
-          <img src={tema === "dark" ? "/fitzpro.png" : "/fitzprologin.png"} alt="FitzPro" />
+          <img src={tema === "dark" ? "/fitzprologo.png" : "/fitzprologin.png"} alt="FitzPro" />
         </div>
 
         {carregando ? (
@@ -133,17 +134,7 @@ export default function AceitarConvite({ tema, token, aoEntrar, aoVoltar }) {
                 )}
               </div>
 
-              <label className="aceite-termos">
-                <input
-                  type="checkbox"
-                  checked={aceitou}
-                  onChange={(e) => setAceitou(e.target.checked)}
-                />
-                <span>
-                  Li e aceito os <a href="/termos">termos de uso</a> e a{" "}
-                  <a href="/privacidade">política de privacidade</a>.
-                </span>
-              </label>
+              <AceiteDeTermos marcado={aceitou} aoMarcar={setAceitou} />
 
               <button
                 type="submit"

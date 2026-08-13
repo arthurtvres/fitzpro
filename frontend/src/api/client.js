@@ -1,4 +1,25 @@
-const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+/**
+ * Onde a API mora.
+ *
+ * Em produção o padrão é **string vazia** — ou seja, a mesma origem de onde a
+ * página foi servida. É o arranjo que o backend passou a suportar: ele serve o
+ * build do front e responde à API no mesmo endereço, o que resolve o fallback
+ * de SPA e faz o CORS deixar de existir.
+ *
+ * Em desenvolvimento o Vite serve em 5173 e o uvicorn em 8000, então o padrão
+ * aponta para o segundo. `VITE_API_URL` continua vencendo os dois, para quem
+ * hospedar API e front separados.
+ *
+ * A checagem é `=== undefined`, e não `||`: com `||`, definir
+ * `VITE_API_URL=` (vazio, pedindo mesma origem) cairia no default e voltaria a
+ * chamar o 127.0.0.1 — que é justamente o erro difícil de enxergar em produção.
+ */
+const BASE_URL =
+  import.meta.env.VITE_API_URL === undefined
+    ? import.meta.env.DEV
+      ? "http://127.0.0.1:8000"
+      : ""
+    : import.meta.env.VITE_API_URL;
 const CHAVE_TOKEN = "fitzpro:token";
 
 export const guardarToken = (token) => localStorage.setItem(CHAVE_TOKEN, token);

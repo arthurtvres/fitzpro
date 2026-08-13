@@ -18,7 +18,7 @@ from sqlmodel import Session, select
 
 from app.core.dependencias import personal_atual, tenant_de
 from app.db.session import get_session
-from app.models import ExecucaoExercicio, Papel, Treino, TreinoExercicio, Usuario, publico
+from app.models import ExecucaoExercicio, Papel, Treino, TreinoExercicio, Usuario, resumo
 from app.services import catalogo, desempenho, progressao
 
 router = APIRouter(prefix="/painel", tags=["painel"])
@@ -85,7 +85,7 @@ def resumo_do_personal(
 
         linhas.append(
             {
-                "aluno": publico(aluno),
+                "aluno": resumo(aluno),
                 "previstos": previstos,
                 "feitos": len(do_aluno),
                 "percentual": desempenho.percentual_ou_zero(len(do_aluno), previstos),

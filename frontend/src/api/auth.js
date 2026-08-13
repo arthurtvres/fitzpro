@@ -54,6 +54,13 @@ export const auth = {
     return resposta.usuario;
   },
 
+  /**
+   * Registra o aceite da versão vigente dos termos.
+   *
+   * Sem corpo: não há o que escolher. Devolve o usuário já sem a pendência.
+   */
+  aceitarTermos: () => requisitar("/auth/aceitar-termos", comCorpo("POST", {})),
+
   /** Restaura a sessão a partir do token guardado; erro = token inválido. */
   eu: () => requisitar("/auth/eu"),
 

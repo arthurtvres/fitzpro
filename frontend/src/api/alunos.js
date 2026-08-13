@@ -27,6 +27,18 @@ export const alunos = {
    */
   reenviarConvite: (id) => requisitar(`/usuarios/${id}/convite`, { method: "POST" }),
 
+  /**
+   * Anotações privadas do personal sobre o aluno.
+   *
+   * Rota própria e não um campo do cadastro: a resposta de `publico()` vai para
+   * o próprio aluno em `/auth/eu`, então a nota não pode viajar nela.
+   */
+  observacoes: {
+    ler: (id) => requisitar(`/usuarios/${id}/observacoes`),
+    salvar: (id, texto) =>
+      requisitar(`/usuarios/${id}/observacoes`, comCorpo("PUT", { texto })),
+  },
+
   avaliacoes: {
     listar: (alunoId) => requisitar(`/alunos/${alunoId}/avaliacoes`),
     criar: (alunoId, dados) =>

@@ -12,7 +12,7 @@ from app.models import (
     TipoAgendamento,
     Treino,
     Usuario,
-    publico,
+    resumo,
 )
 
 router = APIRouter(prefix="/agendamentos", tags=["agendamentos"])
@@ -61,7 +61,7 @@ def serializar(agendamento: Agendamento, session: Session) -> dict:
     treino = session.get(Treino, agendamento.treino_id) if agendamento.treino_id else None
     return {
         **agendamento.model_dump(),
-        "aluno": publico(aluno) if aluno else None,
+        "aluno": resumo(aluno) if aluno else None,
         "treino": treino.model_dump() if treino else None,
     }
 

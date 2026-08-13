@@ -1,4 +1,5 @@
 import secrets
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
@@ -11,6 +12,9 @@ from app.core.dependencias import (
 )
 from app.core.seguranca import conferir_senha, gerar_hash
 from app.db.session import get_session
+from sqlmodel import SQLModel
+
+from app.core import config
 from app.models import (
     FinalidadeDoToken,
     Papel,
@@ -19,11 +23,18 @@ from app.models import (
     UsuarioAtualizacao,
     UsuarioCriacao,
     cartao_de_contato,
+    e_menor,
     publico,
+    resumo,
 )
 from app.services import convite
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
+
+# Nota privada e nao um documento: cabe um paragrafo de contexto ("joelho
+# direito, evitar agachamento profundo"), nao o historico inteiro. O limite
+# existe porque a coluna e TEXT e aceitaria qualquer coisa sem ele.
+TAMANHO_MAXIMO_OBSERVACOES = 5_000
 
 def gerenciavel_ou_404(usuario_id: int, logado: Usuario, session: Session) -> Usuario:
     """
@@ -57,7 +68,9 @@ def listar_usuarios(
         consulta = consulta.where(Usuario.papel == papel)
     if not incluir_inativos:
         consulta = consulta.where(Usuario.ativo)
-    return [publico(u) for u in session.exec(consulta).all()]
+    # `resumo` e nao `publico`: e uma lista, e o cadastro completo de cada
+    # aluno (CPF, endereco, nascimento) nao tem uso em tela nenhuma daqui.
+    return [resumo(u) for u in session.exec(consulta).all()]
 
 @router.post("", status_code=201)
 def criar_usuario(
@@ -67,6 +80,20 @@ def criar_usuario(
 ):
     email = dados.email.strip().lower()
     garantir_email_livre(email, session)
+
+    # Menor de idade so entra com a declaracao de que ha autorizacao dos pais
+    # (LGPD, art. 14). A checagem e aqui, e nao so na tela: sem ela o dialogo do
+    # formulario seria enfeite, contornavel por qualquer chamada direta a API.
+    agora = datetime.now(timezone.utc)
+    menor = e_menor(dados.data_nascimento)
+    if menor and not dados.autorizacao_responsavel:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Aluno menor de idade precisa de autorizacao de um dos pais "
+                "ou do responsavel legal."
+            ),
+        )
 
     # O dono sai de quem está logado, nunca do corpo: aceitar personal_id do
     # cliente deixaria qualquer um cadastrar aluno na conta alheia.
@@ -88,6 +115,15 @@ def criar_usuario(
             "senha_hash": gerar_hash(senha_inicial),
             "papel": Papel.ALUNO,
             "personal_id": tenant_de(logado),
+            "autorizacao_responsavel_em": agora if menor else None,
+            # Cadastro completo pelo personal (com senha, sem convite): o aceite
+            # e registrado aqui, porque nao havera primeiro acesso onde pedi-lo.
+            # Pelo convite o aceite continua sendo do proprio aluno — e por isso
+            # que `aceitou_termos` deixou de servir como marca de "assumiu a
+            # conta"; quem faz esse papel agora e `primeiro_acesso_em`.
+            "aceitou_termos": not por_convite,
+            "termos_aceitos_em": None if por_convite else agora,
+            "termos_versao": None if por_convite else config.VERSAO_DOS_TERMOS,
         },
     )
 
@@ -118,9 +154,63 @@ def reenviar_convite(
         raise HTTPException(status_code=400, detail="So faz sentido para aluno")
     if not aluno.ativo:
         raise HTTPException(status_code=400, detail="Aluno inativo")
+    if aluno.primeiro_acesso_em:
+        # Convite serve para o primeiro acesso. Depois dele o aluno ja tem
+        # senha, e quem esquece usa a recuperacao — que e dele, nao do personal.
+        raise HTTPException(
+            status_code=400,
+            detail="Este aluno ja ativou a conta; o convite nao se aplica mais.",
+        )
 
     convite.enviar(aluno, logado, session)
     return {"detail": "Convite reenviado."}
+
+class Observacoes(SQLModel):
+    texto: str | None = None
+
+@router.get("/{usuario_id}/observacoes")
+def ler_observacoes(
+    usuario_id: int,
+    session: Session = Depends(get_session),
+    logado: Usuario = Depends(personal_atual),
+):
+    """
+    As anotações do personal sobre um aluno dele. **Só o personal.**
+
+    Rota própria, e não um campo em `publico()`, porque a resposta de `publico`
+    vai para o próprio aluno em `/auth/eu`. Aqui o `personal_atual` já barra o
+    aluno com 403, e `aluno_do_tenant` barra o personal do concorrente com 404.
+    """
+    aluno = gerenciavel_ou_404(usuario_id, logado, session)
+    return {"texto": aluno.observacoes or ""}
+
+@router.put("/{usuario_id}/observacoes")
+def salvar_observacoes(
+    usuario_id: int,
+    dados: Observacoes,
+    session: Session = Depends(get_session),
+    logado: Usuario = Depends(personal_atual),
+):
+    """Escreve a anotação. Texto em branco apaga, e isso é intencional."""
+    aluno = gerenciavel_ou_404(usuario_id, logado, session)
+
+    texto = (dados.texto or "").strip()
+    if len(texto) > TAMANHO_MAXIMO_OBSERVACOES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "A observação passou de "
+                f"{TAMANHO_MAXIMO_OBSERVACOES} caracteres."
+            ),
+        )
+
+    # Vazio vira None, e não string vazia: "nunca escreveu" e "apagou o que
+    # tinha" acabam no mesmo lugar, e ter dois jeitos de dizer "não há nota"
+    # faria toda leitura precisar testar os dois.
+    aluno.observacoes = texto or None
+    session.add(aluno)
+    session.commit()
+    return {"texto": aluno.observacoes or ""}
 
 # Precisa vir antes de /{usuario_id}, senão "meu-personal" é lido como um id.
 @router.get("/meu-personal")
@@ -164,26 +254,69 @@ def atualizar_usuario(
     logado: Usuario = Depends(usuario_atual),
 ):
     """
-    O personal edita a si mesmo e aos alunos dele; o aluno, só a si mesmo.
+    Cada um edita o próprio cadastro. O personal, só antes do primeiro acesso.
 
-    Era `personal_atual`, o que deixava o aluno sem como corrigir o próprio
-    cadastro. Quem separa os casos é `gerenciavel_ou_404`: para o aluno logado,
-    qualquer id que não seja o dele já cai em 404.
+    O personal cadastra o aluno para poder convidá-lo — mas, assim que o aluno
+    entra e assume a conta, o cadastro passa a ser dele. Nome, telefone, foto e
+    data de nascimento são dados da pessoa, e quem corrige um dado pessoal é o
+    titular. Isso também tira do personal a possibilidade de trocar o e-mail de
+    login de alguém que já usa a conta.
+
+    A janela antes do primeiro acesso continua aberta de propósito: se o
+    personal errou o e-mail, o convite não chega, o aluno não entra — e sem
+    essa janela ninguém poderia consertar, porque só o aluno editaria e ele não
+    tem como fazer login. `aceitou_termos` é a marca de que ele assumiu a conta.
     """
     usuario = gerenciavel_ou_404(usuario_id, logado, session)
+
+    editando_outro = logado.id != usuario.id
+    if editando_outro and usuario.papel == Papel.ALUNO and usuario.primeiro_acesso_em:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Este aluno já ativou a conta e agora é ele quem mantém o "
+                "próprio cadastro. Peça a ele para atualizar em Minha conta."
+            ),
+        )
 
     # Telefone é exigência do cadastro de aluno, não do perfil do personal —
     # por isso a checagem é aqui, onde se sabe o papel de quem está sendo
     # editado, e não no schema, que serve aos dois casos.
     if usuario.papel == Papel.ALUNO and not dados.telefone:
         raise HTTPException(status_code=400, detail="Informe o telefone do aluno")
+    if usuario.papel == Papel.ALUNO and not dados.data_nascimento:
+        raise HTTPException(
+            status_code=400, detail="Informe a data de nascimento do aluno")
+
+    # Editar a data para uma de menor exigiria a autorizacao que a criacao pede.
+    # Vale so quando quem edita e o personal: o aluno e o proprio titular, e
+    # nao teria como declarar autorizacao a respeito de si mesmo.
+    if (
+        editando_outro
+        and usuario.papel == Papel.ALUNO
+        and e_menor(dados.data_nascimento)
+        and not usuario.autorizacao_responsavel_em
+        and not dados.autorizacao_responsavel
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Aluno menor de idade precisa de autorizacao de um dos pais "
+                "ou do responsavel legal."
+            ),
+        )
 
     email = dados.email.strip().lower()
     garantir_email_livre(email, session, ignorar_id=usuario_id)
 
+    if dados.autorizacao_responsavel and not usuario.autorizacao_responsavel_em:
+        usuario.autorizacao_responsavel_em = datetime.now(timezone.utc)
+
     # Papel e dono ficam de fora: o corpo do PUT não promove ninguém a personal
-    # nem transfere um aluno para outra conta.
-    campos = dados.model_dump(exclude={"papel"})
+    # nem transfere um aluno para outra conta. `autorizacao_responsavel` também:
+    # é flag de entrada e vira data acima — se entrasse aqui, o SQLModel
+    # tentaria escrever uma coluna que não existe.
+    campos = dados.model_dump(exclude={"papel", "autorizacao_responsavel"})
     usuario.sqlmodel_update(campos, update={"email": email})
 
     session.add(usuario)
@@ -198,8 +331,26 @@ def trocar_senha(
     session: Session = Depends(get_session),
     logado: Usuario = Depends(usuario_atual),
 ):
-    """O personal redefine a de um aluno seu; cada um troca a sua informando a atual."""
+    """
+    Cada um troca a sua informando a atual. O personal só mexe na de um aluno
+    que ainda não ativou a conta.
+
+    A trava é a mesma de `atualizar_usuario`, e aqui ela pesa mais: definir a
+    senha de alguém é poder entrar como essa pessoa. Enquanto o aluno não
+    assumiu a conta isso é suporte legítimo — foi o personal quem criou o
+    acesso. Depois, deixa de ser: o caminho passa a ser "esqueci minha senha",
+    que manda o link para a caixa do aluno e não para a do personal.
+    """
     usuario = gerenciavel_ou_404(usuario_id, logado, session)
+
+    if logado.id != usuario.id and usuario.papel == Papel.ALUNO and usuario.primeiro_acesso_em:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Este aluno já ativou a conta. Peça a ele para usar "
+                "\"Esqueci minha senha\" na tela de entrada."
+            ),
+        )
 
     if logado.id == usuario_id:
         # Trocar a própria senha pede a atual mesmo sendo personal: sem isso um

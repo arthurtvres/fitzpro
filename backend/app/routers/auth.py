@@ -17,9 +17,37 @@ from app.models import (
     publico,
 )
 from app.services import email as servico_email
+from app.services import termos as servico_termos
 from app.services import token_acesso
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+def com_pendencia(usuario: Usuario) -> dict:
+    """
+    O usuário logado, mais o aviso de que há termos a reaceitar.
+
+    Só nas respostas sobre a **própria** pessoa (login e `/eu`): é o que o front
+    usa para trancar a interface. Fora de `publico()` de propósito — `publico`
+    também descreve outras pessoas, e "os termos deste aluno estão pendentes"
+    não é coisa que o personal precise saber por essa via.
+    """
+    return {**publico(usuario), "termos_pendentes": servico_termos.pendente(usuario)}
+
+def marcar_primeiro_acesso(usuario: Usuario, session: Session) -> None:
+    """
+    Carimba a primeira entrada de um aluno — a marca de que ele assumiu a conta.
+
+    Chamada nos tres pontos por onde se entra: login, aceite de convite e
+    redefinicao de senha (estes dois devolvem sessao sem passar pelo login).
+    Esquecer um deles deixaria o personal editando o cadastro de alguem que ja
+    usa a conta, que e justamente o que a separacao entre este campo e
+    `aceitou_termos` existe para impedir.
+    """
+    if usuario.papel != Papel.ALUNO or usuario.primeiro_acesso_em:
+        return
+    usuario.primeiro_acesso_em = datetime.now(timezone.utc)
+    session.add(usuario)
+    session.commit()
 
 # Curto de propósito: é o mínimo que impede "123". Uma política mais séria
 # (maiúscula, número, lista de senhas vazadas) cabe quando houver por que —
@@ -68,10 +96,12 @@ def login(dados: Credenciais, session: Session = Depends(get_session)):
     if not usuario.ativo:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Conta inativa")
 
+    marcar_primeiro_acesso(usuario, session)
+
     return {
         "access_token": criar_token(usuario.id, usuario.papel.value),
         "token_type": "bearer",
-        "usuario": publico(usuario),
+        "usuario": com_pendencia(usuario),
     }
 
 @router.post("/registrar", status_code=201)
@@ -113,6 +143,7 @@ def registrar(dados: Cadastro, session: Session = Depends(get_session)):
         # UTC: o servidor pode rodar em outro fuso que o navegador, e a hora do
         # aceite é registro, não exibição.
         termos_aceitos_em=datetime.now(timezone.utc),
+        termos_versao=config.VERSAO_DOS_TERMOS,
     )
 
     session.add(novo)
@@ -203,6 +234,7 @@ def redefinir_senha(
     session.add(usuario)
     session.commit()
     session.refresh(usuario)
+    marcar_primeiro_acesso(usuario, session)
 
     return {
         "access_token": criar_token(usuario.id, usuario.papel.value),
@@ -278,9 +310,11 @@ def aceitar_convite(dados: AceiteDoConvite, session: Session = Depends(get_sessi
     aluno.senha_hash = gerar_hash(dados.senha)
     aluno.aceitou_termos = True
     aluno.termos_aceitos_em = datetime.now(timezone.utc)
+    aluno.termos_versao = config.VERSAO_DOS_TERMOS
     session.add(aluno)
     session.commit()
     session.refresh(aluno)
+    marcar_primeiro_acesso(aluno, session)
 
     return {
         "access_token": criar_token(aluno.id, aluno.papel.value),
@@ -291,4 +325,18 @@ def aceitar_convite(dados: AceiteDoConvite, session: Session = Depends(get_sessi
 @router.get("/eu")
 def eu(usuario: Usuario = Depends(usuario_atual)):
     """Quem é o dono do token — o front usa para restaurar a sessão."""
-    return publico(usuario)
+    return com_pendencia(usuario)
+
+@router.post("/aceitar-termos")
+def aceitar_nova_versao(
+    session: Session = Depends(get_session),
+    logado: Usuario = Depends(usuario_atual),
+):
+    """
+    Registra o aceite da versão vigente. Vale para personal e para aluno.
+
+    Sem corpo: não há o que escolher. Quem chega aqui já passou pela tela que
+    mostra os documentos, e o único ato possível é concordar — oferecer "depois"
+    seria fingir que o aceite não é condição para o serviço.
+    """
+    return com_pendencia(servico_termos.registrar(logado, session))

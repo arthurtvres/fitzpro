@@ -55,6 +55,49 @@ def normalizar_telefone(valor: str | None) -> str | None:
 
     return digitos
 
+def normalizar_cpf(valor: str | None) -> str | None:
+    """
+    Guarda só os 11 dígitos, e recusa CPF que não fecha a conta.
+
+    Mesma regra do telefone — formatar é trabalho da tela, o banco guarda o
+    número —, mais a checagem dos dígitos verificadores. Sem ela, um erro de
+    digitação vira um CPF que parece válido e só é descoberto quando alguém
+    precisa dele para valer.
+    """
+    if not valor or not valor.strip():
+        return None
+
+    digitos = re.sub(r"\D", "", valor)
+    if len(digitos) != 11:
+        raise ValueError("Informe um CPF com 11 dígitos.")
+
+    # 111.111.111-11 e afins passam na conta dos verificadores, mas não são CPF
+    # de ninguém — são o preenchimento de quem só quer sair do campo.
+    if digitos == digitos[0] * 11:
+        raise ValueError("Informe um CPF válido.")
+
+    for posicao in (9, 10):
+        peso_inicial = posicao + 1
+        soma = sum(
+            int(digitos[i]) * (peso_inicial - i) for i in range(posicao)
+        )
+        resto = (soma * 10) % 11
+        esperado = 0 if resto == 10 else resto
+        if esperado != int(digitos[posicao]):
+            raise ValueError("Informe um CPF válido.")
+
+    return digitos
+
+def normalizar_cep(valor: str | None) -> str | None:
+    """Oito dígitos, sem hífen. '01310-100' e '01310100' viram o mesmo dado."""
+    if not valor or not valor.strip():
+        return None
+
+    digitos = re.sub(r"\D", "", valor)
+    if len(digitos) != 8:
+        raise ValueError("Informe um CEP com 8 dígitos, ex.: 01310-100.")
+    return digitos
+
 class UsuarioBase(SQLModel):
     """Informações principais, compartilhadas por entrada e saída."""
 
@@ -81,6 +124,16 @@ class UsuarioBase(SQLModel):
     @classmethod
     def validar_telefone(cls, valor: str | None) -> str | None:
         return normalizar_telefone(valor)
+
+    @field_validator("cpf")
+    @classmethod
+    def validar_cpf(cls, valor: str | None) -> str | None:
+        return normalizar_cpf(valor)
+
+    @field_validator("cep")
+    @classmethod
+    def validar_cep(cls, valor: str | None) -> str | None:
+        return normalizar_cep(valor)
 
     @field_validator("foto_url")
     @classmethod
@@ -110,6 +163,18 @@ class UsuarioCriacao(UsuarioBase):
     senha: str | None = None
     telefone: str
 
+    # Obrigatória aqui, e não em `UsuarioBase`, pela mesma razão do telefone: é
+    # regra do aluno. E virou obrigatória quando passou a existir verificação de
+    # idade — sem a data não dá para saber se o cadastro precisa de autorização
+    # dos responsáveis, e "não informado" viraria a forma de contornar a regra.
+    data_nascimento: date
+
+    # Declaração de que um dos pais autorizou, exigida quando a data de
+    # nascimento indica menor de 18. Entra como flag e sai como data: o que
+    # interessa guardar é **quando** a declaração foi feita, e um booleano
+    # sozinho não prova nada depois (LGPD, art. 14).
+    autorizacao_responsavel: bool = False
+
     @field_validator("telefone")
     @classmethod
     def exigir_telefone(cls, valor: str | None) -> str:
@@ -117,6 +182,14 @@ class UsuarioCriacao(UsuarioBase):
         if not numero:
             raise ValueError("Informe o telefone do aluno.")
         return numero
+
+    @field_validator("data_nascimento")
+    @classmethod
+    def validar_nascimento(cls, valor: date) -> date:
+        """Data no futuro daria idade negativa e passaria pela regra do menor."""
+        if valor > date.today():
+            raise ValueError("Informe uma data de nascimento válida.")
+        return valor
 
 class UsuarioAtualizacao(UsuarioBase):
     """
@@ -127,6 +200,10 @@ class UsuarioAtualizacao(UsuarioBase):
     aluno editando a si mesmo. Só o primeiro exige telefone, e quem sabe qual é
     o caso é a rota, que conhece o papel do alvo — o schema não conhece.
     """
+
+    # Só de entrada, como em `UsuarioCriacao`: editar a data de nascimento para
+    # uma de menor exige a mesma declaração que o cadastro exige.
+    autorizacao_responsavel: bool = False
 
 class Usuario(UsuarioBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
@@ -149,15 +226,54 @@ class Usuario(UsuarioBase, table=True):
     # Nulas nas contas criadas antes destes campos existirem.
     quantidade_alunos: FaixaDeAlunos | None = None
 
-    # O aceite dos termos e a hora em que ele aconteceu. A data importa tanto
-    # quanto o "sim": provar aceite sem saber de qual versão dos termos, e
-    # quando, não vale muita coisa.
+    # O aceite dos termos: se, quando e **de qual versão**. Os três juntos, e
+    # não só o booleano — provar que alguém concordou sem saber com qual texto
+    # não vale nada num pedido de titular ou numa disputa. Nulo nas contas
+    # criadas antes de o versionamento existir, que é informação verdadeira:
+    # não se sabe mesmo qual texto elas viram.
     aceitou_termos: bool = Field(default=False)
     termos_aceitos_em: datetime | None = None
+    termos_versao: str | None = None
+
+    # Quando o aluno entrou pela primeira vez — a marca de que ele assumiu a
+    # conta. **Separado de `aceitou_termos` de propósito.** Os dois eram a mesma
+    # coisa enquanto o único caminho para o aceite era o primeiro acesso; desde
+    # que o personal pode cadastrar com senha e aceitar em nome do aluno, deixam
+    # de ser. É este campo, e não o aceite, que decide se o personal ainda pode
+    # editar o cadastro: sem essa separação ele perderia o acesso no instante em
+    # que cadastrasse alguém que talvez nunca faça login.
+    primeiro_acesso_em: datetime | None = None
+
+    # Declaração do personal de que há autorização dos responsáveis, para aluno
+    # menor de idade. Nula quando não se aplica.
+    autorizacao_responsavel_em: datetime | None = None
+
+    # ---------- anotações do personal sobre o aluno ----------
+    # Privadas: são o caderno do profissional, não um recado. Ficam **fora** de
+    # `UsuarioBase` de propósito, como `senha_hash` e `personal_id` — assim não
+    # há corpo de PUT que as escreva, e o aluno, que agora é dono do próprio
+    # cadastro, não as apaga sem querer ao salvar o perfil. Quem lê e escreve é
+    # uma rota própria, com `personal_atual`.
+    observacoes: str | None = Field(default=None, sa_column=Column(Text))
 
 class TrocaDeSenha(SQLModel):
     senha_atual: str | None = None  # o PERSONAL pode redefinir a de um aluno
     senha_nova: str
+
+# Idade a partir da qual a pessoa aceita os termos por conta propria. Abaixo
+# disso o art. 14 da LGPD exige consentimento de um dos pais ou do responsavel.
+MAIORIDADE = 18
+
+def e_menor(data_nascimento: date | None) -> bool:
+    """
+    Menor de idade, pela data informada.
+
+    Data ausente devolve False: nao da para afirmar que alguem e menor sem
+    saber a idade, e tratar "nao informado" como menor travaria todo cadastro
+    em que a data e opcional — que e o caso aqui.
+    """
+    idade = idade_de(data_nascimento)
+    return idade is not None and idade < MAIORIDADE
 
 def idade_de(data_nascimento: date | None) -> int | None:
     if not data_nascimento:
@@ -167,10 +283,50 @@ def idade_de(data_nascimento: date | None) -> int | None:
     return hoje.year - data_nascimento.year - (0 if faz_anos else 1)
 
 def publico(usuario: Usuario) -> dict:
-    """Usuário como ele sai da API: sem hash de senha e com a idade calculada."""
-    dados = usuario.model_dump(exclude={"senha_hash"})
+    """
+    Usuário como ele sai da API: sem hash de senha e com a idade calculada.
+
+    `observacoes` também fica de fora, e este é o ponto: `publico` é o que o
+    **próprio aluno** recebe em `/auth/eu`. Sem esta exclusão, a anotação
+    privada do personal apareceria na resposta que vai para o aluno — sem
+    aparecer em tela nenhuma, e por isso sem ninguém notar.
+    """
+    dados = usuario.model_dump(exclude={"senha_hash", "observacoes"})
     dados["idade"] = idade_de(usuario.data_nascimento)
     return dados
+
+def resumo(usuario: Usuario) -> dict:
+    """
+    O usuário como ele aparece numa **lista**: o cartão, não o cadastro.
+
+    Existe porque `publico` devolve o modelo inteiro — 25 campos hoje — e as
+    telas de lista usam nove. Sem esta separação, CPF, CEP, logradouro, número,
+    complemento, bairro, nascimento, sexo e os campos de aceite de termos
+    viajavam em toda listagem e em cada linha do painel, para telas que não
+    mostram nada disso.
+
+    **Lista explícita, e não `publico` com exclusões**, pela mesma razão do
+    `cartao_de_contato`: com lista negra, campo novo do modelo vaza por padrão
+    e alguém precisa lembrar de bloqueá-lo. Foi assim que CPF e endereço
+    acabaram aqui. Com lista branca, campo novo só aparece de propósito.
+
+    `foto_url` fica porque as listas mostram avatar. Ele é base64 e domina o
+    tamanho da resposta — o ganho deste recorte é de privacidade, não de bytes.
+    """
+    return {
+        "id": usuario.id,
+        "nome": usuario.nome,
+        "email": usuario.email,
+        "telefone": usuario.telefone,
+        "foto_url": usuario.foto_url,
+        "ativo": usuario.ativo,
+        "objetivo": usuario.objetivo,
+        "idade": idade_de(usuario.data_nascimento),
+        # Operacionais, não pessoais: dizem se o aluno já assumiu a conta, e é
+        # o que decide se a lista oferece "editar" e "reenviar convite".
+        "aceitou_termos": usuario.aceitou_termos,
+        "primeiro_acesso_em": usuario.primeiro_acesso_em,
+    }
 
 def cartao_de_contato(usuario: Usuario) -> dict:
     """
