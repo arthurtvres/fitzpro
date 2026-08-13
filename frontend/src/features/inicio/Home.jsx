@@ -14,15 +14,7 @@ import { api } from "../../api/index.js";
 import Badge from "../../components/Badge.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
-import { DIAS } from "../planos/config.js";
-
-const semAcento = (texto) =>
-  texto?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase() ?? "";
-
-function diaDeHoje() {
-  const indice = (new Date().getDay() + 6) % 7;
-  return DIAS[indice];
-}
+import { diaDeHoje, mesmoDia, rotulo as rotuloDoDia } from "../../utils/dias.js";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -105,7 +97,7 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
   const precisamAtencao = linhas.filter((l) => !l.completo);
   const hoje = diaDeHoje();
   const treinosDeHoje = useMemo(
-    () => treinos.filter((t) => semAcento(t.dia_semana) === semAcento(hoje)),
+    () => treinos.filter((t) => mesmoDia(t.dia_semana, hoje)),
     [treinos, hoje]
   );
   const treinosDoAlunoAgenda = treinos.filter(

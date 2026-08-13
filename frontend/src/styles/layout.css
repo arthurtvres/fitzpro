@@ -59,6 +59,17 @@
   align-items: center;
   gap: var(--e-2);
 }
+.botao-tema {
+  width: 36px;
+  height: 36px;
+  border-color: var(--borda);
+  background: var(--superficie-2);
+  color: var(--texto);
+}
+.botao-tema:hover:not(:disabled) {
+  border-color: var(--acento);
+  color: var(--acento-texto);
+}
 
 /* Só aparece quando a sidebar vira drawer. */
 .botao-menu {
@@ -155,7 +166,7 @@
 /* Marca o grupo que contém a página atual. */
 .grupo-titulo.tem-ativo,
 .grupo-titulo.tem-ativo .icone {
-  color: #fff;
+  color: var(--sobre-acento);
 }
 
 /* Atalho (sem subitens): quando é a tela atual, vira pílula azul — mesmo
@@ -163,7 +174,7 @@
 .grupo-titulo.atalho.ativo,
 .grupo-titulo.atalho.ativo .icone {
   background: var(--acento-solido);
-  color: #fff;
+  color: var(--sobre-acento);
 }
 .grupo-titulo.atalho.ativo:hover:not(:disabled) {
   background: var(--acento-solido);
@@ -197,7 +208,7 @@
 }
 .grupo-itens .item.ativo {
   background: var(--acento-solido);
-  color: #fff;
+  color: var(--sobre-acento);
   font-weight: 600;
 }
 
@@ -235,7 +246,7 @@
   .fundo-drawer {
     position: fixed;
     inset: 0;
-    background: rgba(23, 26, 31, 0.45);
+    background: var(--fundo-overlay);
     z-index: 20;
   }
 }

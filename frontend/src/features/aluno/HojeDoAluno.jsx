@@ -1,26 +1,44 @@
-import { CalendarCheck, Dumbbell, Mail, Phone, Salad, Sunrise } from "lucide-react";
-
-import Avatar from "../../components/Avatar.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
-import { formatarTelefone } from "../../utils/telefone.js";
-import { DIAS } from "../planos/config.js";
+import CalendarioDaSemana from "./home/CalendarioDaSemana.jsx";
+import CartaoTreinoDeHoje from "./home/CartaoTreinoDeHoje.jsx";
+import CartoesDaSemana from "./home/CartoesDaSemana.jsx";
+import {
+  CartaoEvolucaoCarga,
+  CartaoEvolucaoCorporal,
+  CartaoPersonal,
+  CartaoPlanoAlimentar,
+  CartaoRecorde,
+  CartaoUltimoTreino,
+} from "./home/CartoesDeEvolucao.jsx";
 
 /**
- * O dia do aluno: o que treinar hoje, e o que existe no resto da semana.
+ * A Home do aluno, organizada em torno de execução.
  *
- * Tudo aqui é derivado do que a API já respondeu — nada de métrica inventada.
- * "Hoje" sai do `dia_semana` do treino, que é um campo real; enquanto não
- * existir modelo de agendamento com horário, não há horário para mostrar.
+ * Antes era um painel de contadores — "treinos na semana: 3", "dias com treino:
+ * 2" — que não usava o recurso mais valioso do sistema: o que o aluno de fato
+ * fez. E o card do personal ocupava o topo, informação que ele já sabe.
+ *
+ * A hierarquia agora responde às perguntas na ordem em que elas aparecem:
+ *
+ *   1. o que eu faço hoje, e como foi da última vez
+ *   2. como está a semana, sou consistente, quanto levantei
+ *   3. onde estou no calendário
+ *   4. minha carga está subindo? como foi o último treino?
+ *   5. e o corpo? e a dieta?
+ *   6. quem é meu personal
+ *
+ * Este componente não busca nada: tudo vem do `/progressao/resumo`, uma
+ * requisição só, montada no servidor. Ele é composição pura.
  */
 export default function HojeDoAluno({
-  treinos,
-  dietas,
-  personal,
+  resumo,
   carregando,
-  aoAbrirTreinos,
+  aoIniciarTreino,
+  aoAbrirTreino,
   aoAbrirDietas,
+  aoAbrirEvolucao,
 }) {
-  if (carregando) {
+  if (carregando || !resumo) {
     return (
       <div className="painel">
         <Skeleton quantidade={3} />
@@ -28,137 +46,34 @@ export default function HojeDoAluno({
     );
   }
 
-  // getDay(): 0 = domingo. DIAS começa na segunda, daí o deslocamento.
-  const hoje = DIAS[(new Date().getDay() + 6) % 7];
-  const doDia = treinos.filter((t) => t.dia_semana === hoje);
-  const outros = treinos.filter((t) => t.dia_semana !== hoje);
-
   return (
-    <div className="aluno-hoje">
-      {personal && <CartaoDoPersonal personal={personal} />}
+    <div className="aluno-home">
+      <CartaoPersonal personal={resumo.personal} />
 
-      <section className="painel destaque-hoje">
-        <header>
-          <Sunrise size={18} aria-hidden="true" />
-          <div>
-            <h2>Hoje é {hoje}</h2>
-            <p>
-              {doDia.length === 0
-                ? "Nenhum treino marcado para hoje. Dia de descanso."
-                : doDia.length === 1
-                  ? "Você tem 1 treino para hoje."
-                  : `Você tem ${doDia.length} treinos para hoje.`}
-            </p>
-          </div>
-        </header>
+      <div className="dupla-cartoes">
+        <CartaoPlanoAlimentar dieta={resumo.dieta} aoAbrir={aoAbrirDietas} />
+        <CartaoUltimoTreino treino={resumo.ultimo_treino} aoAbrir={aoAbrirTreino} />
+      </div>
 
-        {doDia.length > 0 && (
-          <ul className="lista-treino-hoje">
-            {doDia.map((treino) => (
-              <li key={treino.id}>
-                <span className="icone-treino" aria-hidden="true">
-                  <Dumbbell size={16} />
-                </span>
-                <div>
-                  <strong>{treino.nome}</strong>
-                  <span>
-                    {treino.total_exercicios === 1
-                      ? "1 exercício"
-                      : `${treino.total_exercicios} exercícios`}
-                    {treino.descricao ? ` · ${treino.descricao}` : ""}
-                  </span>
-                </div>
-                <button type="button" className="primario" onClick={aoAbrirTreinos}>
-                  Ver treino
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <CartaoRecorde recorde={resumo.recorde} />
 
-      <div className="cartoes-resumo-aluno">
-        <CartaoResumo
-          icone={<Dumbbell size={16} />}
-          titulo="Treinos na semana"
-          valor={treinos.length}
-          apoio={
-            outros.length > 0
-              ? `${outros.length} em outros dias`
-              : "Nenhum em outro dia"
-          }
-          aoAbrir={aoAbrirTreinos}
-          rotuloAcao="Ver todos"
-        />
-        <CartaoResumo
-          icone={<Salad size={16} />}
-          titulo="Plano alimentar"
-          valor={dietas.length}
-          apoio={
-            dietas.length === 0
-              ? "Seu personal ainda não montou"
-              : "Toque para ver as refeições"
-          }
-          aoAbrir={dietas.length > 0 ? aoAbrirDietas : undefined}
-          rotuloAcao="Ver dieta"
-        />
-        <CartaoResumo
-          icone={<CalendarCheck size={16} />}
-          titulo="Dias com treino"
-          valor={new Set(treinos.map((t) => t.dia_semana)).size}
-          apoio="de 7 dias da semana"
-        />
+      <CartaoTreinoDeHoje
+        treinos={resumo.hoje.treinos}
+        aoIniciar={aoIniciarTreino}
+        aoAbrir={aoAbrirTreino}
+      />
+
+      <CartoesDaSemana
+        semana={resumo.semana}
+        consistencia={resumo.consistencia}
+      />
+
+      <CalendarioDaSemana semana={resumo.semana} />
+
+      <div className="dupla-cartoes">
+        <CartaoEvolucaoCarga carga={resumo.carga_destaque} aoAbrir={aoAbrirEvolucao} />
+        <CartaoEvolucaoCorporal corpo={resumo.corpo} aoAbrir={aoAbrirEvolucao} />
       </div>
     </div>
-  );
-}
-
-/**
- * Quem treina este aluno, com o contato.
- *
- * O e-mail e o telefone são links de verdade (`mailto:` e `tel:`) porque o
- * motivo de mostrar o contato é usá-lo — no celular, tocar já liga.
- */
-function CartaoDoPersonal({ personal }) {
-  return (
-    <section className="painel cartao-personal">
-      <Avatar usuario={personal} tamanho={48} />
-
-      <div className="info">
-        <span className="rotulo">Seu personal</span>
-        <strong>{personal.nome}</strong>
-
-        <div className="contatos">
-          <a href={`mailto:${personal.email}`}>
-            <Mail size={13} aria-hidden="true" />
-            {personal.email}
-          </a>
-          {personal.telefone && (
-            <a href={`tel:+55${personal.telefone}`}>
-              <Phone size={13} aria-hidden="true" />
-              {formatarTelefone(personal.telefone)}
-            </a>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CartaoResumo({ icone, titulo, valor, apoio, aoAbrir, rotuloAcao }) {
-  return (
-    <article className="painel cartao-resumo-aluno">
-      <span className="icone-resumo" aria-hidden="true">
-        {icone}
-      </span>
-      <strong className="valor">{valor}</strong>
-      <span className="titulo">{titulo}</span>
-      <span className="apoio">{apoio}</span>
-      {aoAbrir && (
-        <button type="button" className="link" onClick={aoAbrir}>
-          {rotuloAcao}
-        </button>
-      )}
-    </article>
   );
 }

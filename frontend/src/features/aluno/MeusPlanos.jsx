@@ -17,7 +17,14 @@ import DetalhePlano from "../planos/DetalhePlano.jsx";
  * Abre em tela cheia, e não em modal como no painel do personal: aqui isto é o
  * conteúdo principal, e boa parte do uso é no celular durante o treino.
  */
-export default function MeusPlanos({ tipo, itens, carregando, aoErrar }) {
+export default function MeusPlanos({
+  tipo,
+  itens,
+  carregando,
+  aoErrar,
+  aoRegistrar,
+  aoVerHistorico,
+}) {
   const config = tipo === "treinos" ? CONFIG_TREINO : CONFIG_DIETA;
   const [aberto, setAberto] = useState(null);
 
@@ -38,7 +45,14 @@ export default function MeusPlanos({ tipo, itens, carregando, aoErrar }) {
         <button type="button" className="link voltar-plano" onClick={() => setAberto(null)}>
           <ArrowLeft size={15} /> Voltar
         </button>
-        <DetalhePlano config={config} item={aberto} aoErrar={aoErrar} />
+        <DetalhePlano
+          config={config}
+          item={aberto}
+          aoErrar={aoErrar}
+          modoExecucao
+          aoRegistrar={aoRegistrar}
+          aoVerHistorico={aoVerHistorico}
+        />
       </section>
     );
   }
@@ -81,10 +95,17 @@ export default function MeusPlanos({ tipo, itens, carregando, aoErrar }) {
 
 function subtitulo(tipo, item) {
   if (tipo !== "treinos") {
+    if (item.refeicoes_concluidas_hoje > 0) {
+      return `${item.refeicoes_concluidas_hoje} de ${item.total_refeicoes} refeições hoje · ${item.calorias_consumidas_hoje} kcal`;
+    }
     return item.calorias ? `${item.calorias} kcal por dia` : "Plano alimentar";
   }
 
   const exercicios =
     item.total_exercicios === 1 ? "1 exercício" : `${item.total_exercicios} exercícios`;
-  return [item.dia_semana, exercicios].filter(Boolean).join(" · ");
+  const feitos =
+    item.concluidos_hoje > 0
+      ? `${item.concluidos_hoje} de ${item.total_exercicios} feitos hoje`
+      : null;
+  return [item.dia_semana, feitos ?? exercicios].filter(Boolean).join(" · ");
 }

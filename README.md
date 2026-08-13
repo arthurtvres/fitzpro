@@ -42,9 +42,14 @@ funções — e todo router passa por elas:
 | `tenant_de(usuario)` | O tenant a que alguém pertence: para o personal, ele mesmo; para o aluno, o dono |
 | `aluno_do_tenant(id, logado, session)` | O único caminho até um aluno. Junta as três perguntas — existe, é ALUNO, é seu |
 
-Treino, dieta, avaliação e agendamento não têm dono próprio: o dono é o do aluno. Por
-isso cada router tem um `buscar_ou_404` que resolve o registro e depois passa o
-`aluno_id` dele por `aluno_do_tenant`.
+Treino, dieta, avaliação, agendamento e execução não têm dono próprio: o dono é o do
+aluno. Por isso cada router tem um `buscar_ou_404` que resolve o registro e depois passa
+o `aluno_id` dele por `aluno_do_tenant`.
+
+**A única exceção à regra "escrita só pelo personal"** são as rotas de execução, e ela é
+segura pelo mesmo caminho: o aluno escreve, mas só depois de o `buscar_ou_404` do treino
+ou da dieta ter confirmado que aquilo é dele. Nenhuma lógica de isolamento nova — ver
+"Progressão".
 
 ## Estrutura
 
@@ -53,7 +58,7 @@ FitzPro/
 ├── backend/
 │   ├── alembic/
 │   │   ├── env.py           # aponta para o metadata do SQLModel e a URL do config
-│   │   └── versions/        # 4 migrations (ver "Banco e migrations")
+│   │   └── versions/        # 6 migrations (ver "Banco e migrations")
 │   ├── alembic.ini
 │   ├── app/
 │   │   ├── main.py          # cria o app, CORS, registra os routers, lifespan
@@ -63,15 +68,24 @@ FitzPro/
 │   │   │   └── dependencias.py  # quem está logado, de que tenant, e o que pode
 │   │   ├── db/
 │   │   │   └── session.py   # engine, get_session, `alembic upgrade head` no startup
-│   │   ├── models/          # Usuario, Avaliacao, Treino, TreinoExercicio, Dieta, Agendamento
-│   │   ├── routers/         # auth, usuarios, avaliacoes, treinos, dietas, exercicios, agendamentos
+│   │   ├── models/          # Usuario, Avaliacao, Treino, TreinoExercicio, Dieta,
+│   │   │                    # Agendamento, SessaoTreino, ExecucaoExercicio,
+│   │   │                    # ExecucaoRefeicao
+│   │   ├── routers/         # auth, usuarios, avaliacoes, treinos, dietas, exercicios,
+│   │   │                    # agendamentos, execucoes, progressao
 │   │   ├── seed.py          # personal + 4 alunos demo com treinos, dieta e avaliações
 │   │   ├── services/
-│   │   │   └── catalogo.py  # catálogo em memória (busca, filtros, PT)
+│   │   │   ├── catalogo.py  # catálogo em memória (busca, filtros, PT)
+│   │   │   ├── dias.py      # dia da semana canônico (ver "dia_semana")
+│   │   │   ├── plano_alimentar.py  # lê as refeições de dentro do JSON da dieta
+│   │   │   ├── series.py    # séries realizadas e o volume que sai delas
+│   │   │   ├── sessao.py    # abrir, resolver e fechar sessão de treino
+│   │   │   ├── desempenho.py       # semana, consistência, volume, calendário
+│   │   │   └── progressao.py       # histórico de carga, "pronto para subir", recorde
 │   │   └── data/
 │   │       └── exercises.json  # 873 exercícios do free-exercise-db (1 MB)
 │   ├── tests/
-│   │   └── teste_isolamento.py # 37 asserções de isolamento entre tenants
+│   │   └── teste_isolamento.py # 108 asserções: isolamento, permissões, execução e sessão
 │   ├── requirements.txt
 │   └── fitzpro.db           # gerado no primeiro start (fora do git)
 ├── frontend/                # SPA React + Vite (ver seção "Frontend")
@@ -136,6 +150,8 @@ alembic downgrade -1                        # volta uma
 | `c9320d108c2f` | `personal_id` — o tenant. Adota os alunos que já existiam, dando-os ao personal mais antigo |
 | `38ae877c9498` | Cadastro: telefone, porte da carteira, aceite de termos |
 | `138206c4723c` | Remove `apps_atuais` |
+| `a73159822f8b` | `execucaoexercicio` e `execucaorefeicao` — o registro do que foi feito |
+| `0f684accd538` | `sessaotreino`, colunas de volume, e `dia_semana` normalizado. Tem 3 backfills |
 
 Duas coisas que o autogenerate **não** faz sozinho e precisam de revisão manual:
 
@@ -237,11 +253,80 @@ A prescrição de um exercício do catálogo dentro de um treino.
 | `treino_id` | int? | obrigatório quando o tipo é TREINO; validado contra o aluno |
 | `titulo` `observacao` | str | opcionais |
 
+### SessaoTreino
+Uma ida à academia: um treino, num dia, com hora de início e fim.
+
+| Campo | Tipo | Observação |
+| --- | --- | --- |
+| `aluno_id` | int | |
+| `treino_id` | int? | **anulável** + `treino_nome` copiado ao lado: "Último treino: Costas + Bíceps" sobrevive ao personal apagar o treino |
+| `data` | date | coluna própria, **não** derivada de `iniciada_em` — toda agregação é por dia e entra em índice, e derivar de UTC faria quem treina às 22h cair no dia seguinte |
+| `iniciada_em` / `finalizada_em` | datetime | UTC |
+| `duracao_segundos` | int? | denormalizado. **Nulo = desconhecida** (sessão abandonada ou retroativa da migration), não zero |
+| `implicita` | bool | `false` = apertou "Iniciar treino"; `true` = só foi marcando |
+
+Existe porque duração virou requisito — e resolve de quebra a limitação de o mesmo
+treino só poder ser feito uma vez por dia. Sessão aberta há mais de 4h é fechada
+preguiçosamente, sem job, por quem passar por `resolver`.
+
+### ExecucaoExercicio
+Um exercício dado como feito, num dia. **O registro é fato imutável do passado; a
+prescrição é intenção mutável do presente** — por isso a linha aponta para a prescrição
+*e* copia dela.
+
+| Campo | Tipo | Observação |
+| --- | --- | --- |
+| `id` | int | |
+| `aluno_id` | int | sai de `treino.aluno_id`, **nunca** do corpo |
+| `data` | date | default hoje; futuro é recusado com 400 |
+| `carga_kg` | float? | o que o aluno de fato levantou |
+| `observacao` | str? | |
+| `treino_id` `treino_exercicio_id` | int? | **anuláveis**: apagar a prescrição desvincula, não apaga |
+| `exercicio_id` | str | id do catálogo, copiado — é ele que responde "quanto levantei da última vez" |
+| `series_prescritas` `repeticoes_prescritas` `carga_prescrita_kg` | — | o alvo vigente **naquele dia** |
+| `sessao_id` | int? | a que sessão pertence. É a chave natural nova |
+| `series_realizadas` | str? | JSON `[{"reps":10,"carga_kg":77.5}]` — o "10 · 9 · 8" da tela |
+| `series_feitas` `repeticoes_totais` | int | |
+| `volume_kg` | float? | **denormalizado**: somar a semana é a pergunta cara, e somar JSON exigiria `json.loads` linha a linha |
+| `volume_estimado` | bool | `true` quando as séries vieram do preenchimento automático |
+| `registrado_por_id` | int | o aluno, ou o personal ao lado dele |
+| `registrado_em` | datetime | UTC |
+
+Chave natural **`(aluno, sessão, prescrição)`**, com unique: marcar duas vezes atualiza,
+não duplica; dois treinos iguais no mesmo dia são duas sessões e duas linhas.
+
+A idempotência **não** vem do índice — no SQLite nulo não colide. Vem de o servidor
+nunca gravar com `sessao_id` nulo: `services/sessao.resolver` resolve a sessão explícita,
+a aberta do dia, a última do dia, ou cria uma implícita, nessa ordem.
+
+Só existe **um ponto de escrita** dos campos de volume, `services/series.consolidar` — é
+o que mantém o JSON e a coluna denormalizada em acordo. `carga_kg` passou a ser o
+**máximo das séries**, que é o que deixou `avaliar()`, `pronto_para_subir` e o gráfico
+funcionando sem reescrita.
+
+**Por que copiar o alvo:** sem esse retrato, "bateu o alvo" mudaria de resposta
+retroativamente a cada edição da carga, e o aviso "pronto para subir" acenderia por causa
+de uma edição do personal, não de um esforço do aluno.
+
+### ExecucaoRefeicao
+Uma refeição dada como consumida, num dia. Mesma forma, com `dieta_id` (anulável),
+`refeicao_id` (o id de dentro do JSON) e o snapshot `refeicao_nome`, `refeicao_horario`,
+`calorias`, `proteinas_g`, `carboidratos_g`, `gorduras_g`.
+
+**Aqui o snapshot não é luxo.** Diferente do exercício, que aponta para um catálogo
+estático e sempre resolvível, a refeição é identificada por um id gerado no navegador,
+dentro de uma coluna de texto que `PUT /dietas/{id}` sobrescreve inteira. Sem a cópia,
+"você consumiu 1.480 kcal na terça" viraria zero assim que o personal editasse o plano.
+
+*Consequência aceita:* o numerador (kcal consumidas) é sempre verdadeiro, mas o
+denominador de um dia antigo — quantas refeições o plano tinha — não é recuperável. Por
+isso o percentual só vale para o plano vigente.
+
 ---
 
 ## Endpoints
 
-37 rotas. Só `POST /auth/login`, `POST /auth/registrar` e `GET /` dispensam token.
+52 rotas. Só `POST /auth/login`, `POST /auth/registrar` e `GET /` dispensam token.
 
 ### Raiz
 | Método | Rota | Descrição |
@@ -322,6 +407,47 @@ Mesmas rotas e comportamento dos treinos, trocando `dia_semana` por `calorias`.
 | GET | `/exercicios/filtros` | valores disponíveis para os selects, com rótulo em português |
 | GET | `/exercicios/{id}` | detalhe: instruções passo a passo e as duas fotos |
 
+### Execução — registrar o que foi feito
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| POST | `/treinos/{id}/sessoes` | "Iniciar treino". Fecha a que estiver aberta — ninguém está em duas academias |
+| POST | `/treinos/{id}/sessoes/{sid}/finalizar` | fecha, calcula a duração e devolve os recordes da sessão |
+| DELETE | `/treinos/{id}/sessoes/{sid}` | cancela; **400** se já tiver exercício registrado |
+| GET | `/treinos/{id}/progresso?data=&sessao_id=` | o treino do dia: feito, faltando, séries, volume e a carga da última vez |
+| PUT | `/treinos/{id}/exercicios/{item_id}/execucao` | marca o exercício como feito |
+| DELETE | `/treinos/{id}/exercicios/{item_id}/execucao?data=` | desmarca |
+| GET | `/dietas/{id}/progresso?data=` | refeições do dia + `calorias_consumidas` vs `calorias_meta` |
+| PUT | `/dietas/{id}/refeicoes/{refeicao_id}/execucao` | marca a refeição como consumida |
+| DELETE | `/dietas/{id}/refeicoes/{refeicao_id}/execucao?data=` | desmarca |
+
+É `PUT` na chave natural `(item, dia)` e não `POST` + `DELETE /{id}`: o controle na tela é
+uma caixa de marcar, e checkbox é idempotente — o front não precisa guardar id de execução
+para desmarcar.
+
+### Progressão — ler o histórico
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| GET | `/alunos/{id}/progressao/treinos` | uma linha por prescrição: prescrita × última × melhor + `pronto_para_subir` |
+| GET | `/alunos/{id}/progressao/exercicios/{exercicio_id}` | a série do exercício, por mês, com as últimas execuções e as reps por série |
+| GET | `/alunos/{id}/progressao/resumo?data=` | **tudo o que a Home do aluno mostra**, numa requisição |
+
+Só leitura. Nenhuma rota daqui altera prescrição.
+
+`/resumo` é um endpoint e não vários porque a Home é uma tela só, carregada de uma vez,
+num celular na academia: N endpoints seriam N round-trips, N `aluno_do_tenant` e a mesma
+janela semanal recalculada N vezes — todos os cards derivam do **mesmo** array de sessões.
+Seção sem dado vira `null`, não uma requisição que falha. Custa ~10 queries, todas
+limitadas, nenhuma crescendo com o número de exercícios da tela.
+
+Blocos da resposta: `hoje.treinos[]` (com `ultima_vez`), `semana.dias[7]`
+(`estado ∈ feito|hoje|previsto|perdido|vazio`), `consistencia`, `volume`
+(`semana`, `anterior`, `variacao_percentual`), `carga_destaque`, `ultimo_treino`,
+`corpo`, `dieta`, `recorde` e `personal`.
+
+**Todo bloco de volume carrega a procedência**, nunca um número solto:
+`{total_kg, estimado, execucoes_detalhadas, execucoes_estimadas, execucoes_sem_volume}`.
+Um total meio estimado exibido como exato é pior do que nenhum total — daí o `≈` na tela.
+
 ### Permissões
 
 | Ação | PERSONAL | ALUNO |
@@ -332,6 +458,9 @@ Mesmas rotas e comportamento dos treinos, trocando `dia_semana` por `calorias`.
 | Editar o próprio cadastro e trocar a própria senha | sim | sim |
 | Ver o cadastro de outro usuário | só dos seus alunos | **404**, nem colegas nem o personal |
 | Ver quem é o seu personal | — | sim, via `/usuarios/meu-personal` |
+| Registrar/desmarcar execução de exercício ou refeição | dos alunos dele | **só as próprias** |
+| Ver progresso do dia e histórico de carga | dos alunos dele | só o dele |
+| Alterar a prescrição a partir da sugestão | sim | **403** |
 | Consultar o catálogo de exercícios | sim | sim |
 
 `GET /treinos`, `/dietas` e `/agendamentos` ignoram o `?aluno_id=` quando quem pede é um
@@ -355,6 +484,66 @@ aluno: a listagem é forçada para o id dele.
 - Adicionar exercício valida o id no catálogo → **404** `"Exercício não encontrado"`.
 - Apagar um treino apaga as prescrições dele: o SQLite não cascateia por padrão.
 
+### Progressão: como a carga sobe
+
+O aluno registra o **exercício inteiro** como feito (não série a série), com carga usada e
+observação opcionais. Disso saem duas coisas:
+
+1. **Progresso do dia** — "3 de 8 exercícios", "2 de 4 refeições · 1.130 de 2.000 kcal".
+2. **Evolução de carga** — o aluno vê "última vez: 77,5 kg"; o personal vê a série e um
+   aviso **"pronto para subir"**.
+
+`pronto_para_subir` é derivado em [services/progressao.py](backend/app/services/progressao.py),
+sem coluna e sem job: o aluno bateu a carga prescrita nas **2 últimas** sessões. A sequência
+conta a partir da mais recente e **quebra no primeiro tropeço** — uma sessão abaixo do alvo
+zera o contador, que é o que um treinador espera.
+
+**O alvo é a carga, e só ela.** `repeticoes` é texto livre no modelo (cabe `"8-12"` e
+`"até a falha"`), então comparar reps feitas com prescritas exigiria um parser que erra em
+silêncio. Carga é float, e é o número que o personal muda quando decide progredir.
+
+**Volume = Σ(carga × reps), com a procedência junto.** Marcar continua sendo **um toque**:
+sem `series` no corpo, o servidor preenche a partir do prescrito e marca
+`volume_estimado`. Quem detalha série a série ganha volume exato. Faixa de repetições
+conta pelo **piso** (`"8-12"` → 8) — estimativa nunca infla. `"até a falha"` e `"45s"` não
+viram número nenhum: a execução fica sem volume e é contada à parte, porque inventar seria
+pior que não ter.
+
+**Recorde pessoal** é derivado, sem coluna, como o `pronto_para_subir`: carga ≥ anterior
+**+ 0,5 kg** (granularidade de anilha, mata ruído de float) **e** ≥ **3 execuções
+anteriores**. O piso é o que impede a primeira semana do app disparar troféu em toda
+linha, que é como esse tipo de feature morre. Aparece em três lugares e só: ao finalizar
+a sessão, num card da Home se for dos últimos 7 dias, e como marcador no gráfico.
+
+**Nada muda sozinho.** O sistema sinaliza; quem altera a prescrição é o personal, pelo
+formulário que já existe. Uma carga que sobe automaticamente tira dele o controle do que
+prescreveu — e ele é quem sabe se o aluno bateu o alvo com técnica ou empurrando com o corpo.
+
+**Apagar a prescrição apaga o plano, nunca o passado.** `deletar_treino`,
+`remover_exercicio` e `deletar_dieta` desvinculam as execuções (`SET NULL`) em vez de
+apagá-las: se o personal reorganizar um treino, o histórico de carga do aluno — justamente
+o dado que a feature existe para produzir — não pode ir junto.
+
+### `dia_semana`: canônico na escrita
+
+`Treino.dia_semana` sempre foi string livre, e o dado sujou — `"terça"` do seed convivia
+com `"terca"` dos testes. A Home do personal comparava com um normalizador e a do aluno
+com `==` estrito, então **um treino salvo com o acento "errado" aparecia para o personal e
+sumia para o aluno** (o filtro por dia em `ViewPlanos` tinha o mesmo problema).
+
+Agora o banco guarda sempre a forma sem acento: um `field_validator` em `TreinoCriacao`
+normaliza na escrita e recusa dia desconhecido com 422, e a migration `0f684accd538`
+converteu o que já existia. Quem exibe usa `dias.ROTULOS`; no front, o mesmo normalizador
+vive em [utils/dias.js](frontend/src/utils/dias.js) e serve às três telas.
+
+Não virou enum SQL: o SQLite não tem, e seria um CHECK travando migração futura.
+
+**O backend passou a ler o JSON do plano alimentar.** É o acoplamento mais caro desta
+feature: [services/plano_alimentar.py](backend/app/services/plano_alimentar.py) espelha
+[dietaPlano.js](frontend/src/features/planos/dietaPlano.js), e mudar um lado exige mudar o
+outro. O campo `versao`, gravado desde sempre e nunca lido, finalmente ganhou uso: formato
+mais novo do que o backend entende é ignorado, em vez de lido pela metade.
+
 ### Segurança
 - Senha guardada como hash **bcrypt** ([core/seguranca.py](backend/app/core/seguranca.py));
   o texto puro nunca é salvo nem devolvido.
@@ -372,8 +561,9 @@ cd backend
 PYTHONPATH=. python tests/teste_isolamento.py     # sai com código 1 se algo falhar
 ```
 
-37 asserções cobrindo o isolamento entre dois personais, as permissões do aluno e as
-regras do cadastro. Não usa pytest nem httpx (nenhum dos dois está instalado): chama as
+108 asserções cobrindo o isolamento entre dois personais, as permissões do aluno, as
+regras do cadastro, o registro de execução, o ciclo de vida da sessão, o cálculo de
+volume e a detecção de recorde. Não usa pytest nem httpx (nenhum dos dois está instalado): chama as
 funções de rota diretamente, que é onde a lógica de tenant vive.
 
 ### O catálogo de exercícios
@@ -416,11 +606,12 @@ frontend/
     │   ├── client.js           # fetch, token, erro do FastAPI, montarQuery
     │   ├── auth.js  alunos.js  treinos.js  dietas.js
     │   ├── exercicios.js  agendamentos.js  perfil.js
+    │   ├── execucoes.js  progressao.js
     │   └── index.js            # exporta o objeto `api` — os componentes importam daqui
     ├── config/navegacao.js     # menu do personal
     ├── components/             # genéricos
     │   ├── Sidebar.jsx  Header.jsx  Modal.jsx
-    │   ├── Avatar.jsx  CampoFoto.jsx
+    │   ├── Avatar.jsx  CampoFoto.jsx  BarraProgresso.jsx
     │   └── Badge.jsx  Skeleton.jsx  Vazio.jsx
     ├── features/
     │   ├── auth/               # Login, CriarConta
@@ -433,6 +624,7 @@ frontend/
     │   │                       # FormularioPlano, FormularioDieta, config.js, dietaPlano.js
     │   ├── treinos/            # DetalheTreino, ItemPrescricao, FormularioPrescricao
     │   ├── perfil/             # MeuPerfil — serve personal e aluno
+    │   ├── progressao/         # HistoricoCarga (sparkline SVG), PainelProgressao
     │   └── exercicios/         # CatalogoExercicios, DetalheExercicio
     ├── utils/
     │   ├── imagem.js           # redimensiona foto de perfil (256px) e de evolução (1024px)
@@ -473,7 +665,7 @@ no `App.jsx` e no `aoNavegar` da sidebar.
 ### Navegação do aluno
 
 ```
-Hoje            → treino do dia, cartão do personal e resumo da semana
+Hoje            → treino de hoje, semana, consistência, carga, evolução e dieta
 Meus treinos    → lista; abre com séries × reps, carga e as instruções do catálogo
 Minha dieta     → o plano alimentar, refeição por refeição
 Minha evolução  → métricas da última medição vs. a primeira, e o histórico com fotos
@@ -481,13 +673,42 @@ Exercícios      → o catálogo, para consultar execução
 Minha conta     → dados e troca de senha
 ```
 
+### A Home do aluno é sobre execução
+
+Ela girava em torno de contadores — "treinos na semana: 3", "dias com treino: 2" — que não
+usavam o dado mais valioso do sistema: o que o aluno **fez**. A hierarquia agora responde
+às perguntas na ordem em que elas aparecem:
+
+1. **Treino de hoje** — nome, progresso, e "última vez: 4 exercícios · 14 séries · 51 min
+   · 4.475 kg". A última vez fica logo abaixo porque é ela que ancora a decisão de carga.
+2. **Esta semana · Consistência · Carga total**, com a variação contra a semana anterior.
+3. **Sua semana** — os 7 dias com estado, montado **no servidor**: "previsto" depende de
+   comparar `dia_semana` normalizado, e foi essa comparação, feita no cliente, que
+   produziu o bug de um treino sumir da tela.
+4. **Evolução de carga** e **último treino**.
+5. **Evolução corporal** e **plano alimentar**.
+
+Tudo vem de `/progressao/resumo` — uma requisição. `HojeDoAluno` não busca nada, é
+composição pura dos cards em `features/aluno/home/`.
+
+O gráfico é o `Sparkline` de `components/`, extraído do `HistoricoCarga` onde nascera como
+função local. Ele ganhou `escalaTemporal`: a versão original distribuía os pontos por
+**índice**, então três meses de intervalo ocupavam a mesma largura que dois dias. O default
+é `false` para a extração ter sido um refactor idêntico; só as telas novas ligam.
+
 A `Sidebar` é a mesma dos dois apps: recebe a lista de navegação por prop
 ([features/aluno/navegacao.js](frontend/src/features/aluno/navegacao.js)), em vez de ter um
 `if` por papel.
 
-**O aluno só lê.** As telas de treino e dieta reusam `DetalhePlano` — o mesmo componente
-que o personal vê no modal do aluno, que para treino delega ao `DetalheTreino` em
-`somenteLeitura`. A evolução é tela própria: o `PainelAvaliacoes` do personal existe para
+**O aluno lê o plano e registra o que fez.** As telas de treino e dieta reusam
+`DetalhePlano` — o mesmo componente que o personal vê no modal do aluno, que para treino
+delega ao `DetalheTreino` em `somenteLeitura`. A prop `modoExecucao` é **ortogonal** a
+`somenteLeitura`: liga as caixas de marcar e o histórico sem reabrir a edição. O aluno usa
+as duas juntas; o personal pode usar só `modoExecucao` para registrar ao lado dele na
+academia.
+
+Marcar é otimista com rollback, igual ao reordenar que já existia: quem está na academia
+com o celular na mão não deve esperar a rede para ver o toque valer. A evolução é tela própria: o `PainelAvaliacoes` do personal existe para
 *registrar* medições, e o aluno quer *acompanhar* a dele.
 
 Na evolução, as setas de variação **não** são coloridas por padrão. Perder peso é bom para
@@ -601,11 +822,10 @@ Os schemas do `/openapi.json` podem gerar tipos TypeScript automaticamente
 
 ### Produto
 
-- [ ] Histórico de execução: marcar treino como realizado, carga e reps reais, gráficos, PRs.
-      É o que dá ao aluno motivo para abrir o app duas vezes, e o dado que frequência,
-      relatórios e faltas consomem depois
 - [ ] Tela de agenda — o backend de agendamentos está pronto e testado; o front só usa
       `listar` e `criar` dentro da Home, e o aluno não vê os horários dele
+- [ ] Painel do personal com o mesmo salto que a Home do aluno teve: hoje ele vê
+      "pronto para subir" numa aba, mas não frequência, volume nem aderência dos alunos
 - [ ] Exercícios próprios do personal, além do catálogo (hoje ele é somente leitura)
 - [ ] Duplicar treino/dieta, templates, copiar entre alunos
 
@@ -613,8 +833,13 @@ Os schemas do `/openapi.json` podem gerar tipos TypeScript automaticamente
 
 - [ ] Paginação nas listagens
 - [ ] `response_model` explícito nas rotas
-- [ ] Migrar os testes para pytest em arquivos separados — 37 asserções num script só já
-      está no limite
+- [ ] Migrar os testes para pytest em arquivos separados — 108 asserções num script só
+      passou bem do limite
 - [ ] Avatar em base64 volta em toda listagem (~1 MB com 50 alunos). Quando incomodar, a
       saída é upload de arquivo servindo URL, que o navegador cacheia
 - [ ] Fotos de avaliação salvas antes do redimensionamento seguem em resolução cheia
+- [ ] `date.today()` roda no fuso do servidor, e agora convive com `iniciada_em` em UTC.
+      O front manda `data` explícita, mas um aluno marcando 23h/01h em outro fuso ainda
+      pode cair no dia errado
+- [ ] `/progressao/resumo` é a rota mais cara do sistema, sem cache. Tudo bem no tamanho
+      atual (~50 sessões por aluno em 12 semanas); vira problema com anos de histórico

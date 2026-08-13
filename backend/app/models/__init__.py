@@ -11,6 +11,14 @@ from app.models.usuario import (
     publico,
 )
 from app.models.avaliacao import Avaliacao, AvaliacaoCriacao, imc
+from app.models.execucao_exercicio import (
+    ExecucaoExercicio,
+    ExecucaoExercicioCriacao,
+    ExecucaoExercicioEntrada,
+    SerieRealizada,
+)
+from app.models.execucao_refeicao import ExecucaoRefeicao, ExecucaoRefeicaoCriacao
+from app.models.sessao_treino import SessaoTreino, SessaoTreinoCriacao
 from app.models.agendamento import Agendamento, AgendamentoCriacao, TipoAgendamento
 from app.models.treino import Treino, TreinoCriacao
 from app.models.treino_exercicio import TreinoExercicio, TreinoExercicioCriacao

@@ -7,6 +7,7 @@ import AreaDoAluno from "./features/aluno/AreaDoAluno.jsx";
 import CriarConta from "./features/auth/CriarConta.jsx";
 import Login from "./features/auth/Login.jsx";
 import Avatar from "./components/Avatar.jsx";
+import BotaoTema from "./components/BotaoTema.jsx";
 import Header from "./components/Header.jsx";
 import Modal from "./components/Modal.jsx";
 import Sidebar from "./components/Sidebar.jsx";
@@ -41,6 +42,13 @@ export default function App() {
   const [exercicioDetalhado, setExercicioDetalhado] = useState(null);
   const [menuAberto, setMenuAberto] = useState(false);
   const [erro, setErro] = useState(null);
+  // Lê o que o script inline do index.html já decidiu, em vez de recalcular:
+  // com `?? "light"`, quem não tem preferência salva e usa o sistema no escuro
+  // veria a tela nascer escura e clarear logo depois — o efeito abaixo desfaria
+  // a decisão do script.
+  const [tema, setTema] = useState(
+    () => document.documentElement.dataset.tema ?? "light"
+  );
 
   const carregarAlunos = useCallback(async () => {
     setCarregando(true);
@@ -68,6 +76,16 @@ export default function App() {
     quandoSessaoExpirar(() => setLogado(null));
   }, []);
 
+  useEffect(() => {
+    document.documentElement.dataset.tema = tema;
+    localStorage.setItem("fitzpro-tema", tema);
+    // A barra do navegador no celular acompanha — senão fica branca por cima
+    // da tela escura. Os valores espelham `--fundo` de tokens.css.
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", tema === "dark" ? "#0f1217" : "#f8f9fa");
+  }, [tema]);
+
   // Só o personal tem lista de alunos; para o aluno essa chamada daria 403.
   useEffect(() => {
     if (logado?.papel === "PERSONAL") carregarAlunos();
@@ -90,6 +108,10 @@ export default function App() {
     setErro(null);
     setMenuAberto(false);
     setRota(novaRota);
+  }
+
+  function alternarTema() {
+    setTema((atual) => (atual === "dark" ? "light" : "dark"));
   }
 
   // ---------- alunos ----------
@@ -445,16 +467,28 @@ export default function App() {
   }
   if (!logado) {
     return telaAuth === "criar" ? (
-      <CriarConta aoEntrar={setLogado} aoVoltar={() => setTelaAuth("login")} />
+      <CriarConta
+        tema={tema}
+        aoEntrar={setLogado}
+        aoVoltar={() => setTelaAuth("login")}
+      />
     ) : (
-      <Login aoEntrar={setLogado} aoCriarConta={() => setTelaAuth("criar")} />
+      <Login tema={tema} aoEntrar={setLogado} aoCriarConta={() => setTelaAuth("criar")} />
     );
   }
 
   // O aluno tem um app próprio, não o painel do personal com botões escondidos:
   // as tarefas são outras. Tudo abaixo daqui é o painel de quem gerencia.
   if (logado.papel === "ALUNO") {
-    return <AreaDoAluno aluno={logado} aoSair={sair} aoAtualizarPerfil={setLogado} />;
+    return (
+      <AreaDoAluno
+        aluno={logado}
+        tema={tema}
+        aoAlternarTema={alternarTema}
+        aoSair={sair}
+        aoAtualizarPerfil={setLogado}
+      />
+    );
   }
 
   const { titulo, subtitulo, acoes } = cabecalho();
@@ -496,6 +530,7 @@ export default function App() {
           subtitulo={subtitulo}
           aoAbrirMenu={() => setMenuAberto(true)}
         >
+          <BotaoTema tema={tema} aoAlternar={alternarTema} />
           {acoes}
         </Header>
 

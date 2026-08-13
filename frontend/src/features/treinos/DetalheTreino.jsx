@@ -13,9 +13,10 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Dumbbell, Plus } from "lucide-react";
+import { Dumbbell, Play, Plus, Square, Trophy } from "lucide-react";
 
 import { api } from "../../api/index.js";
+import BarraProgresso from "../../components/BarraProgresso.jsx";
 import Modal from "../../components/Modal.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
@@ -24,8 +25,20 @@ import DetalheExercicio from "../exercicios/DetalheExercicio.jsx";
 import FormularioPrescricao from "./FormularioPrescricao.jsx";
 import ItemPrescricao from "./ItemPrescricao.jsx";
 
-export default function DetalheTreino({ treino, aoErrar, somenteLeitura = false }) {
+export default function DetalheTreino({
+  treino,
+  aoErrar,
+  somenteLeitura = false,
+  // Modo execução: mostra as caixas de marcar e o histórico de carga. É
+  // ortogonal a `somenteLeitura` — o aluno usa as duas juntas, e o personal
+  // pode usar só esta para registrar ao lado dele na academia.
+  modoExecucao = false,
+  aoRegistrar,
+  aoVerHistorico,
+}) {
   const [itens, setItens] = useState([]);
+  const [progresso, setProgresso] = useState(null);
+  const [recordes, setRecordes] = useState([]);
   const [carregando, setCarregando] = useState(true);
   // Fluxo de adicionar: catálogo -> prescrição do exercício escolhido.
   const [escolhendo, setEscolhendo] = useState(false);
@@ -41,15 +54,97 @@ export default function DetalheTreino({ treino, aoErrar, somenteLeitura = false 
   useEffect(() => {
     let cancelado = false;
     setCarregando(true);
-    api.treinos.exercicios
-      .listar(treino.id)
-      .then((lista) => !cancelado && setItens(lista))
+
+    // Em modo execução, `/progresso` já devolve a prescrição, o que foi feito e
+    // o histórico de cada exercício — uma requisição no lugar de três.
+    const buscar = modoExecucao
+      ? api.execucoes.treino.progresso(treino.id).then((resposta) => {
+          if (cancelado) return;
+          setProgresso(resposta);
+          setItens(resposta.itens);
+        })
+      : api.treinos.exercicios
+          .listar(treino.id)
+          .then((lista) => !cancelado && setItens(lista));
+
+    buscar
       .catch((e) => !cancelado && aoErrar(e.message))
       .finally(() => !cancelado && setCarregando(false));
+
     return () => {
       cancelado = true;
     };
-  }, [treino.id, aoErrar]);
+  }, [treino.id, modoExecucao, aoErrar]);
+
+  /** Abre a sessão — o cronômetro do treino começa aqui. */
+  async function iniciar() {
+    try {
+      const resposta = await api.execucoes.treino.sessoes.iniciar(treino.id);
+      setProgresso(resposta);
+      setItens(resposta.itens);
+      aoErrar(null);
+    } catch (e) {
+      aoErrar(e.message);
+    }
+  }
+
+  /**
+   * Fecha a sessão e mostra o que ela produziu.
+   *
+   * O recorde aparece aqui e não em outro lugar: é o momento em que a conquista
+   * aconteceu. Fora daqui, só um card discreto na Home.
+   */
+  async function finalizar() {
+    try {
+      const resposta = await api.execucoes.treino.sessoes.finalizar(
+        treino.id,
+        progresso.sessao.id
+      );
+      setProgresso((atual) => ({ ...atual, ...resposta.resumo, sessao: resposta.sessao }));
+      setRecordes(resposta.recordes ?? []);
+      aoRegistrar?.(resposta.resumo);
+      aoErrar(null);
+    } catch (e) {
+      aoErrar(e.message);
+    }
+  }
+
+  /**
+   * Marca ou desmarca um exercício.
+   *
+   * Otimista com rollback, igual ao `persistirOrdem`: a caixa muda na hora,
+   * porque quem está na academia com o celular na mão não deve esperar a rede
+   * para ver o toque valer; se a API recusar, volta ao que era.
+   */
+  async function alternarExecucao(item) {
+    const marcando = !item.concluido;
+    const anterior = itens;
+
+    setItens((atual) =>
+      atual.map((i) => (i.id === item.id ? { ...i, concluido: marcando } : i))
+    );
+
+    try {
+      const sessao_id = progresso?.sessao?.id;
+      const resposta = marcando
+        ? // Sem carga informada, repete a última registrada — e, na falta dela,
+          // a prescrita. É o palpite certo na esmagadora maioria das vezes, e o
+          // aluno corrige pelo histórico quando não for. As séries o servidor
+          // preenche a partir do prescrito; o volume vem marcado como estimado.
+          await api.execucoes.treino.marcar(treino.id, item.id, {
+            carga_kg: item.historico?.ultima_carga_kg ?? item.carga_kg ?? null,
+            sessao_id,
+          })
+        : await api.execucoes.treino.desmarcar(treino.id, item.id, { sessao_id });
+
+      setProgresso((atual) => ({ ...atual, ...resposta.progresso }));
+      aoRegistrar?.(resposta.progresso);
+      aoErrar(null);
+    } catch (e) {
+      setItens(anterior);
+      aoErrar(e.message);
+    }
+  }
 
   function escolherDoCatalogo(exercicio) {
     setEscolhendo(false);
@@ -147,6 +242,64 @@ export default function DetalheTreino({ treino, aoErrar, somenteLeitura = false 
           )}
         </div>
 
+        {recordes.length > 0 && (
+          <div className="aviso-recorde">
+            <span className="icone" aria-hidden="true">
+              <Trophy size={16} />
+            </span>
+            <div>
+              <strong>
+                {recordes.length === 1
+                  ? "Novo recorde pessoal"
+                  : `${recordes.length} novos recordes`}
+              </strong>
+              {recordes.map((r) => (
+                <span key={r.exercicio_id}>
+                  {r.exercicio?.nome ?? r.exercicio_id} · {r.carga_kg} kg
+                  <em> (antes {r.anterior_kg} kg)</em>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {modoExecucao && progresso && progresso.total > 0 && (
+          <div className="barra-sessao">
+            <BarraProgresso
+              className="progresso-treino"
+              valor={progresso.concluidos}
+              total={progresso.total}
+              rotulo={
+                progresso.concluidos >= progresso.total
+                  ? "Treino concluído"
+                  : "Exercícios de hoje"
+              }
+            />
+
+            <div className="acoes-sessao">
+              {progresso.volume_kg != null && (
+                <span className="volume-sessao">
+                  {progresso.volume_estimado ? "≈ " : ""}
+                  {new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(
+                    progresso.volume_kg
+                  )}{" "}
+                  kg de volume
+                </span>
+              )}
+
+              {progresso.sessao?.em_andamento ? (
+                <button type="button" className="primario" onClick={finalizar}>
+                  <Square size={14} /> Finalizar treino
+                </button>
+              ) : (
+                <button type="button" onClick={iniciar}>
+                  <Play size={14} /> Iniciar treino
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {treino.descricao && (
           <div className="bloco-detalhe compacto">
             <span>Observações</span>
@@ -186,6 +339,8 @@ export default function DetalheTreino({ treino, aoErrar, somenteLeitura = false 
                     }
                     aoRemover={somenteLeitura ? undefined : remover}
                     aoMover={somenteLeitura ? undefined : mover}
+                    aoAlternar={modoExecucao ? alternarExecucao : undefined}
+                    aoVerHistorico={modoExecucao ? aoVerHistorico : undefined}
                   />
                 ))}
               </ol>

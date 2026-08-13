@@ -48,7 +48,7 @@ button:disabled {
 button.primario {
   background: var(--acento-solido);
   border-color: var(--acento-solido);
-  color: #fff;
+  color: var(--sobre-acento);
   font-weight: 600;
 }
 button.primario:hover:not(:disabled) {
@@ -113,7 +113,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--acento);
-  box-shadow: 0 0 0 3px rgba(22, 139, 255, 0.18);
+  box-shadow: var(--anel-foco);
 }
 textarea {
   resize: vertical;

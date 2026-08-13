@@ -17,6 +17,7 @@ import Modal from "../../components/Modal.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
 import { DIAS } from "./config.js";
+import { mesmoDia } from "../../utils/dias.js";
 import DetalhePlano from "./DetalhePlano.jsx";
 import { lerPlanoAlimentar } from "./dietaPlano.js";
 import ListaPlanos from "./ListaPlanos.jsx";
@@ -508,7 +509,8 @@ function TreinosPage({
         treino.nome.toLowerCase().includes(termo) ||
         aluno.toLowerCase().includes(termo);
       const bateAluno = filtroAluno === "" || String(treino.aluno_id) === filtroAluno;
-      const bateDia = filtroDia === "" || treino.dia_semana === filtroDia;
+      // Comparar com `===` perdia treinos gravados com outra grafia.
+      const bateDia = filtroDia === "" || mesmoDia(treino.dia_semana, filtroDia);
       const bateStatus =
         filtroStatus === "" ||
         (filtroStatus === "completo" && status === "completo") ||

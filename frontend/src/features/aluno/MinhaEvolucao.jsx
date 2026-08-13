@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, LineChart, Minus } from "lucide-react";
+import { ArrowDown, ArrowUp, Dumbbell, LineChart, Minus } from "lucide-react";
 
 import { api } from "../../api/index.js";
 import Modal from "../../components/Modal.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
 import { CAMPOS_AVALIACAO, lerFotos } from "../alunos/PainelAvaliacoes.jsx";
+import EvolucaoDoExercicio from "../progressao/EvolucaoDoExercicio.jsx";
 
 const formatarData = (iso) => iso.split("-").reverse().join("/");
 
@@ -24,6 +25,8 @@ export default function MinhaEvolucao({ aluno, aoErrar }) {
   const [itens, setItens] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [aberta, setAberta] = useState(null);
+  const [cargas, setCargas] = useState([]);
+  const [exercicioAberto, setExercicioAberto] = useState(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -38,6 +41,19 @@ export default function MinhaEvolucao({ aluno, aoErrar }) {
     };
   }, [aluno.id, aoErrar]);
 
+  // As cargas vêm de outra rota e falham em silêncio: a evolução física é o
+  // conteúdo principal desta tela e não pode sumir se a progressão falhar.
+  useEffect(() => {
+    let cancelado = false;
+    api.progressao
+      .treinos(aluno.id)
+      .then((r) => !cancelado && setCargas(r.itens.filter((i) => i.total_execucoes > 0)))
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, [aluno.id]);
+
   if (carregando) {
     return (
       <section className="painel">
@@ -46,7 +62,13 @@ export default function MinhaEvolucao({ aluno, aoErrar }) {
     );
   }
 
-  if (itens.length === 0) {
+  const temAvaliacoes = itens.length > 0;
+  // A API já devolve da mais recente para a mais antiga.
+  const atual = itens[0];
+  const primeira = itens[itens.length - 1];
+  const temHistorico = itens.length > 1;
+
+  if (!temAvaliacoes && cargas.length === 0) {
     return (
       <section className="painel">
         <Vazio icone={LineChart}>
@@ -57,13 +79,9 @@ export default function MinhaEvolucao({ aluno, aoErrar }) {
     );
   }
 
-  // A API já devolve da mais recente para a mais antiga.
-  const atual = itens[0];
-  const primeira = itens[itens.length - 1];
-  const temHistorico = itens.length > 1;
-
   return (
     <div className="aluno-evolucao">
+      {temAvaliacoes && (
       <section className="painel">
         <h2 className="titulo-secao">Onde você está</h2>
         <p className="apoio-secao">
@@ -101,7 +119,40 @@ export default function MinhaEvolucao({ aluno, aoErrar }) {
           />
         </div>
       </section>
+      )}
 
+      {cargas.length > 0 && (
+        <section className="painel">
+          <h2 className="titulo-secao">Suas cargas</h2>
+          <p className="apoio-secao">
+            O que você vem levantando. Toque para ver a evolução de cada exercício.
+          </p>
+
+          <ul className="lista-cargas-aluno">
+            {cargas.map((item) => (
+              <li key={item.treino_exercicio_id}>
+                <button
+                  type="button"
+                  onClick={() => setExercicioAberto(item.exercicio_id)}
+                >
+                  <span className="icone-treino" aria-hidden="true">
+                    <Dumbbell size={16} />
+                  </span>
+                  <span className="info">
+                    <strong>{item.exercicio?.nome ?? item.exercicio_id}</strong>
+                    <span>
+                      última {item.ultima_carga_kg} kg · melhor{" "}
+                      {item.melhor_carga_kg} kg · {item.total_execucoes} sessões
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {temAvaliacoes && (
       <section className="painel">
         <h2 className="titulo-secao">Histórico</h2>
         <p className="apoio-secao">
@@ -135,6 +186,16 @@ export default function MinhaEvolucao({ aluno, aoErrar }) {
           })}
         </ul>
       </section>
+      )}
+
+      {exercicioAberto && (
+        <EvolucaoDoExercicio
+          alunoId={aluno.id}
+          exercicioId={exercicioAberto}
+          aoFechar={() => setExercicioAberto(null)}
+          aoErrar={aoErrar}
+        />
+      )}
 
       {aberta && (
         <Modal

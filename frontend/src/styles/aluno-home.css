@@ -1,0 +1,528 @@
+/* ---------- Home do aluno, orientada a execução ---------- */
+
+.aluno-home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+
+/* Duas colunas que viram uma no celular — a maior parte do uso é lá. */
+.dupla-cartoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e-4);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .dupla-cartoes {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- treino de hoje: o card que manda na tela ---------- */
+
+.cartao-hoje {
+  border-color: var(--acento);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+.cartao-hoje .etiqueta {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--acento-texto);
+  margin-bottom: var(--e-2);
+}
+.cartao-hoje .titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+}
+.cartao-hoje h2 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+.cartao-hoje .titulo span {
+  font-size: 13px;
+  color: var(--texto-fraco);
+}
+.cartao-hoje .ultima-vez {
+  padding: var(--e-3);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+}
+.cartao-hoje .ultima-vez .rotulo {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-fraco);
+  margin-bottom: 2px;
+}
+.cartao-hoje .ultima-vez .numeros {
+  font-size: 13px;
+  font-weight: 500;
+}
+.acoes-hoje {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  flex-wrap: wrap;
+}
+.acoes-hoje .primario {
+  flex: 1;
+  min-width: 180px;
+  justify-content: center;
+  padding: 11px;
+}
+.cartao-hoje.vazio {
+  flex-direction: row;
+  align-items: center;
+}
+.cartao-hoje.vazio h2 {
+  font-size: 16px;
+}
+.cartao-hoje.vazio p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--texto-fraco);
+}
+.icone-descanso {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+  color: var(--texto-fraco);
+  flex-shrink: 0;
+}
+
+/* ---------- os três números da semana ---------- */
+
+.cartoes-semana {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--e-3);
+}
+.cartao-metrica {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cartao-metrica .icone {
+  color: var(--acento);
+  margin-bottom: var(--e-1);
+}
+.cartao-metrica .rotulo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-fraco);
+}
+.cartao-metrica .valor {
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.cartao-metrica .apoio {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+.cartao-metrica .apoio.positiva {
+  color: var(--sucesso-texto);
+}
+.cartao-metrica .extra {
+  margin-top: var(--e-1);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--alerta-texto, var(--texto-fraco));
+}
+
+/* ---------- calendário da semana ---------- */
+
+.grade-semana {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--e-1);
+  margin: 0 0 var(--e-4);
+  padding: 0;
+  position: relative;
+}
+.grade-semana::before {
+  content: "";
+  position: absolute;
+  left: calc(100% / 14);
+  right: calc(100% / 14);
+  top: 34px;
+  height: 2px;
+  background: var(--borda);
+  z-index: 0;
+}
+.grade-semana .dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+.grade-semana .sigla {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--texto-fraco);
+}
+.grade-semana .marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--raio-pilula);
+  border: 1px solid var(--borda);
+  background: var(--superficie);
+  color: var(--texto-fraco);
+}
+.grade-semana .legenda {
+  font-size: 10px;
+  color: var(--texto-fraco);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+/* Feito é o único estado que ganha cor cheia: é a recompensa visual da tela. */
+.grade-semana .feito .marca {
+  background: var(--sucesso);
+  border-color: var(--sucesso);
+  color: var(--sobre-sucesso);
+}
+.grade-semana .feito .legenda {
+  color: var(--sucesso-texto);
+  font-weight: 600;
+}
+.grade-semana .hoje .marca {
+  border-color: var(--acento);
+  border-width: 2px;
+  color: var(--acento);
+}
+.grade-semana .previsto .marca {
+  border-style: dashed;
+}
+/* Perdido é discreto de propósito: informa sem repreender. */
+.grade-semana .perdido .marca {
+  color: var(--erro);
+  border-color: var(--erro);
+  opacity: 0.55;
+}
+.grade-semana .vazio .marca {
+  opacity: 0.4;
+}
+
+/* ---------- evolução, último treino, corpo, dieta ---------- */
+
+.numero-destaque {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-2);
+  margin-bottom: var(--e-3);
+}
+.numero-destaque strong {
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.numero-destaque strong em {
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--texto-fraco);
+}
+.numero-destaque span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-fraco);
+}
+.numero-destaque span.positiva {
+  color: var(--sucesso-texto);
+}
+
+.numeros-treino {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-2);
+  margin: 0 0 var(--e-3);
+  padding: 0;
+}
+.numeros-treino strong {
+  display: block;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.numeros-treino span {
+  font-size: 11px;
+  color: var(--texto-fraco);
+}
+.cartao-ultimo-treino .numeros-treino strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 24px;
+}
+.cartao-ultimo-treino .numeros-treino strong svg {
+  color: var(--acento);
+  flex-shrink: 0;
+}
+.cartao-ultimo-treino .numeros-treino span {
+  font-size: 13px;
+}
+
+.linhas-corpo {
+  list-style: none;
+  margin: 0 0 var(--e-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.linhas-corpo li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-2);
+  font-size: 13px;
+}
+.linhas-corpo li > span:first-child {
+  flex: 1;
+  color: var(--texto-fraco);
+}
+.linhas-corpo strong {
+  font-size: 15px;
+}
+.linhas-corpo em {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-fraco);
+  min-width: 58px;
+  text-align: right;
+}
+.linhas-corpo em.positiva {
+  color: var(--sucesso-texto);
+}
+
+/* ---------- recorde: um card, sem confete ---------- */
+
+.cartao-recorde {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  border-color: var(--alerta);
+  background: var(--alerta-suave);
+}
+.cartao-recorde .icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--raio-pilula);
+  background: var(--alerta);
+  color: var(--sobre-alerta);
+  flex-shrink: 0;
+}
+.cartao-recorde strong {
+  display: block;
+  font-size: 14px;
+}
+.cartao-recorde span {
+  display: block;
+  font-size: 13px;
+}
+.cartao-recorde em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+/* ---------- evolução de um exercício ---------- */
+
+.eixo-meses {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e-1);
+  margin: 0 0 var(--e-4);
+  padding: 0;
+}
+.eixo-meses li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+.eixo-meses span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-fraco);
+}
+.eixo-meses strong {
+  font-size: 12px;
+}
+
+.lista-execucoes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lista-execucoes li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-3);
+  padding: 7px var(--e-2);
+  border-radius: var(--raio-controle);
+  font-size: 13px;
+}
+.lista-execucoes li:nth-child(odd) {
+  background: var(--superficie-2);
+}
+.lista-execucoes .data {
+  min-width: 48px;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+.lista-execucoes .carga {
+  min-width: 68px;
+}
+/* As reps por série são o dado que a carga sozinha não conta. */
+.lista-execucoes .reps {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.lista-execucoes .volume {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+/* ---------- sessão em andamento, na tela do treino ---------- */
+
+.barra-sessao {
+  margin-bottom: var(--e-4);
+}
+.acoes-sessao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-3);
+  margin-top: var(--e-3);
+  flex-wrap: wrap;
+}
+.volume-sessao {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-fraco);
+}
+
+.aviso-recorde {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-3);
+  padding: var(--e-3);
+  margin-bottom: var(--e-4);
+  border: 1px solid var(--alerta);
+  border-radius: var(--raio-controle);
+  background: var(--alerta-suave);
+}
+.aviso-recorde .icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--raio-pilula);
+  background: var(--alerta);
+  color: var(--sobre-alerta);
+  flex-shrink: 0;
+}
+.aviso-recorde strong {
+  display: block;
+  font-size: 14px;
+}
+.aviso-recorde span {
+  display: block;
+  font-size: 13px;
+}
+.aviso-recorde em {
+  font-style: normal;
+  color: var(--texto-fraco);
+}
+
+/* ---------- personal, agora pequeno e no fim ---------- */
+
+.cartao-personal.compacto {
+  align-items: center;
+  gap: var(--e-3);
+  padding: var(--e-3);
+}
+.cartao-personal.compacto .info {
+  flex: 1;
+  min-width: 0;
+}
+.cartao-personal.compacto strong {
+  font-size: 14px;
+}
+.cartao-personal.compacto .email-personal {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--acento-texto);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cartao-personal.compacto .contato-rapido {
+  display: flex;
+  justify-content: flex-end;
+  margin-left: auto;
+  min-width: fit-content;
+}
+.cartao-personal.compacto .contato-rapido a,
+.cartao-personal.compacto .contato-rapido span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--acento-texto);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cartao-personal.compacto .contato-rapido svg {
+  flex-shrink: 0;
+}
+@media (max-width: 620px) {
+  .cartao-personal.compacto {
+    flex-wrap: wrap;
+  }
+  .cartao-personal.compacto .contato-rapido {
+    justify-content: flex-start;
+    margin-left: 48px;
+    width: 100%;
+  }
+}

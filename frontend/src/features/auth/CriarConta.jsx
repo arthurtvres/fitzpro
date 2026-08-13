@@ -37,7 +37,7 @@ const VAZIO = {
  * existe porque errar o e-mail aqui é irreversível — sem recuperação de senha,
  * não há como reaver uma conta presa num endereço que não existe.
  */
-export default function CriarConta({ aoEntrar, aoVoltar }) {
+export default function CriarConta({ tema, aoEntrar, aoVoltar }) {
   const [dados, setDados] = useState(VAZIO);
   const [erros, setErros] = useState({});
   const [erroGeral, setErroGeral] = useState(null);
@@ -127,7 +127,7 @@ export default function CriarConta({ aoEntrar, aoVoltar }) {
     <div className="tela-login">
       <div className="cartao-login cartao-cadastro">
         <div className="marca-login">
-          <img src="/fitzprologin.png" alt="FitzPro" />
+          <img src={tema === "dark" ? "/fitzpro.png" : "/fitzprologin.png"} alt="FitzPro" />
         </div>
 
         <h1>Criar conta</h1>

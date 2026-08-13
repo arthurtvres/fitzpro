@@ -1,6 +1,9 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDown, ArrowUp, GripVertical, Pencil, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, GripVertical, History, Pencil, Trash2 } from "lucide-react";
+
+/** "2026-08-12" -> "12/08". A série de carga é sempre do ano corrente na prática. */
+const formatarData = (iso) => iso.split("-").reverse().slice(0, 2).join("/");
 
 /** Descreve a prescrição em uma linha: "4 × 8-12 · 60 kg · 90s". */
 export function resumirPrescricao(item) {
@@ -22,7 +25,13 @@ export default function ItemPrescricao({
   aoEditar,
   aoRemover,
   aoMover,
+  // Modo execução: `aoAlternar` ausente significa que a linha é só de consulta,
+  // mesma convenção das props acima.
+  aoAlternar,
+  aoVerHistorico,
 }) {
+  const concluido = Boolean(item.concluido);
+  const historico = item.historico;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
@@ -38,7 +47,9 @@ export default function ItemPrescricao({
     <li
       ref={setNodeRef}
       style={estilo}
-      className={`cartao${isDragging ? " arrastando" : ""}`}
+      className={`cartao${isDragging ? " arrastando" : ""}${
+        concluido ? " concluido" : ""
+      }`}
     >
       {aoMover && (
         <button
@@ -52,7 +63,7 @@ export default function ItemPrescricao({
         </button>
       )}
 
-      <span className="posicao">{indice + 1}</span>
+      {!aoAlternar && <span className="posicao">{indice + 1}</span>}
 
       {item.exercicio?.imagem && (
         <button
@@ -76,6 +87,22 @@ export default function ItemPrescricao({
           {item.exercicio?.equipamento_pt ? ` · ${item.exercicio.equipamento_pt}` : ""}
           {item.observacao ? ` — ${item.observacao}` : ""}
         </div>
+
+        {historico?.ultima_carga_kg != null && (
+          <button
+            type="button"
+            className="linha-historico"
+            onClick={() => aoVerHistorico?.(item)}
+            disabled={!aoVerHistorico}
+          >
+            <History size={12} aria-hidden="true" />
+            última vez: {historico.ultima_carga_kg} kg
+            {historico.ultima_data ? ` · ${formatarData(historico.ultima_data)}` : ""}
+            {item.carga_kg != null && historico.ultima_carga_kg > item.carga_kg && (
+              <span className="acima-do-alvo">acima do prescrito</span>
+            )}
+          </button>
+        )}
       </div>
 
       <div className="acoes">
@@ -110,6 +137,23 @@ export default function ItemPrescricao({
           </button>
         )}
       </div>
+
+      {aoAlternar && (
+        <label className="marcar-execucao">
+          <input
+            type="checkbox"
+            checked={concluido}
+            onChange={() => aoAlternar(item)}
+          />
+          <span className="rotulo-marcar">{concluido ? "Feito" : "Marcar"}</span>
+          <span className="caixa" aria-hidden="true">
+            <Check size={14} />
+          </span>
+          <span className="sr-apenas">
+            Marcar {item.exercicio?.nome ?? "exercício"} como feito
+          </span>
+        </label>
+      )}
     </li>
   );
 }

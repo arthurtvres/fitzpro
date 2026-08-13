@@ -1,9 +1,13 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.core.dependencias import aluno_do_tenant, personal_atual, tenant_de, usuario_atual
-from app.models import Dieta, DietaCriacao, Papel, Usuario
+from app.models import Dieta, DietaCriacao, ExecucaoRefeicao, Papel, Usuario
+from app.services import plano_alimentar, progressao
 
 router = APIRouter(prefix="/dietas", tags=["dietas"])
 
@@ -52,7 +56,37 @@ def listar_dietas(
     )
     if aluno_id is not None:
         consulta = consulta.where(Dieta.aluno_id == aluno_id)
-    return session.exec(consulta).all()
+    dietas = session.exec(consulta).all()
+
+    # Uma agregada para o que já foi consumido hoje, pelo mesmo motivo da
+    # contagem em `listar_treinos`: a tela "Hoje" não pode pedir dieta a dieta.
+    hoje = date.today()
+    feitas_hoje = dict(
+        session.exec(
+            select(ExecucaoRefeicao.dieta_id, func.count(ExecucaoRefeicao.id))
+            .where(ExecucaoRefeicao.data == hoje)
+            .group_by(ExecucaoRefeicao.dieta_id)
+        ).all()
+    )
+    calorias_hoje = dict(
+        session.exec(
+            select(ExecucaoRefeicao.dieta_id, func.sum(ExecucaoRefeicao.calorias))
+            .where(ExecucaoRefeicao.data == hoje)
+            .group_by(ExecucaoRefeicao.dieta_id)
+        ).all()
+    )
+
+    # Passa a devolver dicts, e não os objetos crus: nenhum campo some, e é o
+    # mesmo formato de `listar_treinos`.
+    return [
+        {
+            **dieta.model_dump(),
+            "total_refeicoes": len(plano_alimentar.refeicoes(dieta.descricao)),
+            "refeicoes_concluidas_hoje": feitas_hoje.get(dieta.id, 0),
+            "calorias_consumidas_hoje": calorias_hoje.get(dieta.id, 0) or 0,
+        }
+        for dieta in dietas
+    ]
 
 @router.post("")
 def criar_dieta(
@@ -100,6 +134,9 @@ def deletar_dieta(
     logado: Usuario = Depends(personal_atual),
 ):
     dieta = buscar_ou_404(dieta_id, logado, session)
+
+    # As refeições já consumidas continuam valendo no histórico do aluno.
+    progressao.desvincular_execucoes(session, dieta_id=dieta_id)
 
     session.delete(dieta)
     session.commit()

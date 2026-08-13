@@ -6,6 +6,7 @@ import Modal from "../../components/Modal.jsx";
 import { CONFIG_DIETA, CONFIG_TREINO } from "../planos/config.js";
 import DetalhePlano from "../planos/DetalhePlano.jsx";
 import PainelPlano from "../planos/PainelPlano.jsx";
+import PainelProgressao from "../progressao/PainelProgressao.jsx";
 import PainelAvaliacoes from "./PainelAvaliacoes.jsx";
 
 /**
@@ -64,10 +65,18 @@ export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino }) {
         >
           Avaliações
         </button>
+        <button
+          className={aba === "progressao" ? "ativa" : ""}
+          onClick={() => setAba("progressao")}
+        >
+          Progressão
+        </button>
       </div>
 
       {/* key força remontar ao trocar de aba/aluno, zerando formulário e lista */}
-      {aba === "avaliacoes" ? (
+      {aba === "progressao" ? (
+        <PainelProgressao key={`${aluno.id}-pr`} aluno={aluno} aoErrar={aoErrar} />
+      ) : aba === "avaliacoes" ? (
         <PainelAvaliacoes key={`${aluno.id}-av`} aluno={aluno} aoErrar={aoErrar} />
       ) : (
         <PainelPlano

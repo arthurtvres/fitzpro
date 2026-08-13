@@ -3,11 +3,13 @@ import { LogOut, X } from "lucide-react";
 
 import { api } from "../../api/index.js";
 import Avatar from "../../components/Avatar.jsx";
+import BotaoTema from "../../components/BotaoTema.jsx";
 import Header from "../../components/Header.jsx";
 import Sidebar from "../../components/Sidebar.jsx";
 import CatalogoExercicios from "../exercicios/CatalogoExercicios.jsx";
 import DetalheExercicio from "../exercicios/DetalheExercicio.jsx";
 import MeuPerfil from "../perfil/MeuPerfil.jsx";
+import EvolucaoDoExercicio from "../progressao/EvolucaoDoExercicio.jsx";
 import { NAVEGACAO_ALUNO } from "./navegacao.js";
 import HojeDoAluno from "./HojeDoAluno.jsx";
 import MeusPlanos from "./MeusPlanos.jsx";
@@ -23,43 +25,84 @@ import MinhaEvolucao from "./MinhaEvolucao.jsx";
  * O isolamento não depende desta tela: a API já força `aluno_id` para o id de
  * quem está logado. Aqui é só a interface que corresponde a essa permissão.
  */
-export default function AreaDoAluno({ aluno, aoSair, aoAtualizarPerfil }) {
+export default function AreaDoAluno({
+  aluno,
+  tema,
+  aoAlternarTema,
+  aoSair,
+  aoAtualizarPerfil,
+}) {
   const [rota, setRota] = useState("inicio/ver");
   const [menuAberto, setMenuAberto] = useState(false);
   const [erro, setErro] = useState(null);
   const [exercicioDetalhado, setExercicioDetalhado] = useState(null);
+  // O exercício cuja evolução de carga está aberta, vindo do "última vez".
+  const [cargaAberta, setCargaAberta] = useState(null);
 
   // Treinos e dietas ficam aqui: a tela de hoje e as de plano usam os mesmos
   // dados, e recarregar a cada navegação piscaria a tela sem necessidade.
   const [treinos, setTreinos] = useState([]);
   const [dietas, setDietas] = useState([]);
   const [personal, setPersonal] = useState(null);
+  // Tudo o que a Home mostra, numa chamada só.
+  const [resumo, setResumo] = useState(null);
   const [carregando, setCarregando] = useState(true);
+  // O treino aberto em modo execução, com a sessão em andamento.
+  const [emExecucao, setEmExecucao] = useState(null);
 
-  const carregar = useCallback(async () => {
-    setCarregando(true);
+  const carregar = useCallback(async ({ silencioso = false } = {}) => {
+    // Silencioso ao voltar de uma marcação: os números da listagem se atualizam
+    // sem o skeleton reaparecer por baixo do que o aluno acabou de tocar.
+    if (!silencioso) setCarregando(true);
     try {
       // A API ignora qualquer aluno_id vindo de um aluno logado e devolve só
       // o que é dele, então não passamos filtro nenhum.
-      const [meusTreinos, minhasDietas, meuPersonal] = await Promise.all([
+      const [meusTreinos, minhasDietas, meuPersonal, meuResumo] = await Promise.all([
         api.treinos.listar(),
         api.dietas.listar(),
         api.perfil.meuPersonal(),
+        // Falha em silêncio: a Home degrada para as listagens em vez de a área
+        // inteira do aluno virar uma tela de erro.
+        api.progressao.resumo(aluno.id).catch(() => null),
       ]);
       setTreinos(meusTreinos);
       setDietas(minhasDietas);
       setPersonal(meuPersonal);
+      setResumo(meuResumo);
       setErro(null);
     } catch (e) {
       setErro(e.message);
     } finally {
       setCarregando(false);
     }
-  }, []);
+  }, [aluno.id]);
+
+  const recarregarSilencioso = useCallback(
+    () => carregar({ silencioso: true }),
+    [carregar]
+  );
 
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  /**
+   * "Iniciar treino": abre a sessão e leva para a lista, onde o aluno marca.
+   *
+   * A sessão nasce aqui e não na tela de treino porque é a Home que tem o botão
+   * — e porque abrir uma sessão fecha a anterior, o que é decisão de nível de
+   * app, não de um card.
+   */
+  async function iniciarTreino(treino) {
+    try {
+      await api.execucoes.treino.sessoes.iniciar(treino.treino_id);
+      setEmExecucao(treino.treino_id);
+      await recarregarSilencioso();
+      navegar("treinos/ver");
+    } catch (e) {
+      setErro(e.message);
+    }
+  }
 
   function navegar(novaRota) {
     setErro(null);
@@ -111,6 +154,8 @@ export default function AreaDoAluno({ aluno, aoSair, aoAtualizarPerfil }) {
             itens={treinos}
             carregando={carregando}
             aoErrar={setErro}
+            aoRegistrar={recarregarSilencioso}
+            aoVerHistorico={(item) => setCargaAberta(item.exercicio_id)}
           />
         );
       case "dietas":
@@ -120,6 +165,7 @@ export default function AreaDoAluno({ aluno, aoSair, aoAtualizarPerfil }) {
             itens={dietas}
             carregando={carregando}
             aoErrar={setErro}
+            aoRegistrar={recarregarSilencioso}
           />
         );
       case "evolucao":
@@ -137,12 +183,12 @@ export default function AreaDoAluno({ aluno, aoSair, aoAtualizarPerfil }) {
       default:
         return (
           <HojeDoAluno
-            treinos={treinos}
-            dietas={dietas}
-            personal={personal}
+            resumo={resumo}
             carregando={carregando}
-            aoAbrirTreinos={() => navegar("treinos/ver")}
+            aoIniciarTreino={iniciarTreino}
+            aoAbrirTreino={() => navegar("treinos/ver")}
             aoAbrirDietas={() => navegar("dietas/ver")}
+            aoAbrirEvolucao={() => navegar("evolucao/ver")}
           />
         );
     }
@@ -187,7 +233,9 @@ export default function AreaDoAluno({ aluno, aoSair, aoAtualizarPerfil }) {
           titulo={titulo}
           subtitulo={subtitulo}
           aoAbrirMenu={() => setMenuAberto(true)}
-        />
+        >
+          <BotaoTema tema={tema} aoAlternar={aoAlternarTema} />
+        </Header>
 
         <div className="conteudo-corpo">
           {erro && (
@@ -200,6 +248,15 @@ export default function AreaDoAluno({ aluno, aoSair, aoAtualizarPerfil }) {
           )}
 
           {conteudo()}
+
+          {cargaAberta && (
+            <EvolucaoDoExercicio
+              alunoId={aluno.id}
+              exercicioId={cargaAberta}
+              aoFechar={() => setCargaAberta(null)}
+              aoErrar={setErro}
+            />
+          )}
 
           {exercicioDetalhado && (
             <DetalheExercicio

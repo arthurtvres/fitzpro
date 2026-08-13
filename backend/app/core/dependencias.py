@@ -54,6 +54,29 @@ def personal_atual(usuario: Usuario = Depends(usuario_atual)) -> Usuario:
         )
     return usuario
 
+def quem_registra(alvo: Usuario, logado: Usuario) -> Usuario:
+    """
+    Autoriza registrar execução em nome de `alvo`, e devolve quem registrou.
+
+    Esta é a **primeira escrita que um ALUNO faz** neste sistema — até aqui toda
+    rota de escrita exigia `personal_atual`. Ela é segura porque `alvo` nunca vem
+    do corpo: já saiu de `treino.aluno_id` (ou `dieta.aluno_id`) depois de passar
+    por `aluno_do_tenant`, que é quem barra o tenant alheio e também o colega de
+    tenant. Aqui só resta a regra que aquele caminho não cobre.
+
+    O personal pode registrar por um aluno dele — é o caso real, ele está ao lado
+    na academia — e isso não abre nada: o alcance dele já era esse. Quem apertou
+    o botão fica gravado em `registrado_por_id`.
+
+    Deliberadamente **não** existe um `aluno_atual` simétrico a `personal_atual`:
+    autorizar por papel daria falsa sensação de proteção e deixaria a checagem
+    que importa (é o treino dele?) para o corpo da rota — que é justamente o erro
+    que `aluno_do_tenant` foi criado para eliminar.
+    """
+    if not alvo.ativo:
+        raise HTTPException(status_code=400, detail="Aluno está inativo")
+    return logado
+
 def tenant_de(usuario: Usuario) -> int:
     """
     O tenant a que o usuário pertence.

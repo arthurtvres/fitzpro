@@ -43,6 +43,291 @@
   color: var(--erro-texto);
 }
 
+/* ---------- execução: marcar, progresso e histórico ---------- */
+
+/* Só para leitor de tela: o rótulo do checkbox, que visualmente é o ícone. */
+.sr-apenas {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * A caixa de marcar é grande de propósito (28px): o uso acontece na academia,
+ * de celular, muitas vezes com a mão suada. Alvo pequeno erra.
+ *
+ * Fica à direita da linha, no fim da leitura: primeiro se lê o que fazer, e só
+ * então se marca. `margin-left: auto` empurra para a borda sem depender da
+ * ordem dos irmãos, que muda conforme as ações disponíveis.
+ */
+.marcar-execucao {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex-shrink: 0;
+  margin-left: auto;
+  cursor: pointer;
+}
+.rotulo-marcar {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+/* O cartão alinha os filhos ao topo; a marcação acompanha a linha do título. */
+.cartao .marcar-execucao {
+  align-self: center;
+}
+.marcar-execucao input:checked ~ .rotulo-marcar {
+  color: var(--sucesso-texto);
+  font-weight: 600;
+}
+/* Rodapé da refeição: a marcação vem depois de tudo que se lê no cartão. */
+.rodape-refeicao {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--e-3);
+  padding-top: var(--e-3);
+  border-top: 1px solid var(--borda);
+}
+.marcar-execucao input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.marcar-execucao .caixa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--borda-forte);
+  border-radius: var(--raio-controle);
+  color: transparent;
+  transition: background var(--transicao), border-color var(--transicao),
+    color var(--transicao);
+}
+.marcar-execucao input:checked + .caixa {
+  background: var(--sucesso);
+  border-color: var(--sucesso);
+  color: var(--sobre-sucesso);
+}
+.marcar-execucao input:focus-visible + .caixa {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+/* Concluído fica discreto, não riscado: já foi feito, mas ainda é consulta. */
+.cartao.concluido,
+.refeicao-plano.concluida {
+  border-color: var(--sucesso);
+  background: var(--sucesso-suave);
+}
+
+.linha-historico {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 11px;
+  color: var(--texto-fraco);
+}
+.linha-historico:hover:not(:disabled) {
+  background: none;
+  color: var(--acento-texto);
+}
+.linha-historico:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.acima-do-alvo {
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: var(--raio-pilula);
+  background: var(--sucesso-suave);
+  color: var(--sucesso-texto);
+  font-weight: 600;
+}
+
+.progresso-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--texto-fraco);
+  margin-bottom: 6px;
+}
+.progresso-topo strong {
+  color: var(--texto);
+  font-size: 13px;
+}
+.barra-progresso {
+  height: 8px;
+  border-radius: var(--raio-pilula);
+  background: var(--superficie-2);
+  overflow: hidden;
+}
+.barra-progresso > span {
+  display: block;
+  height: 100%;
+  border-radius: var(--raio-pilula);
+  background: var(--acento-solido);
+  transition: width var(--transicao);
+}
+.barra-progresso.completa > span {
+  background: var(--sucesso);
+}
+.progresso-treino {
+  margin-bottom: var(--e-4);
+}
+.progresso-dieta {
+  margin-bottom: var(--e-4);
+}
+.calorias-do-dia {
+  margin: var(--e-2) 0 0;
+  font-size: 13px;
+  color: var(--texto-fraco);
+}
+.calorias-do-dia strong {
+  color: var(--texto);
+}
+
+/* A barra dentro da linha de treino do dia não pode empurrar o botão. */
+.lista-treino-hoje .progresso {
+  margin-top: 6px;
+  max-width: 260px;
+}
+
+/* Evolução de carga: números, sparkline e a lista de sessões. */
+.numeros-carga {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--e-3);
+  margin-bottom: var(--e-4);
+}
+.numeros-carga span {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+.numeros-carga strong {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+/* Altura fixa e largura fluida: o viewBox escala o desenho sozinho. */
+.sparkline {
+  width: 100%;
+  height: 90px;
+  display: block;
+  margin-bottom: var(--e-4);
+  overflow: visible;
+}
+.sparkline polyline {
+  fill: none;
+  stroke: var(--acento-solido);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.sparkline circle {
+  fill: var(--acento-solido);
+}
+.lista-pontos-carga {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lista-pontos-carga li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-2);
+  padding: 6px var(--e-2);
+  border-radius: var(--raio-controle);
+  font-size: 13px;
+}
+.lista-pontos-carga li:nth-child(odd) {
+  background: var(--superficie-2);
+}
+.lista-pontos-carga .data {
+  min-width: 52px;
+  color: var(--texto-fraco);
+  font-size: 12px;
+}
+.lista-pontos-carga .obs {
+  color: var(--texto-fraco);
+  font-size: 12px;
+}
+.selo-alvo {
+  padding: 1px 6px;
+  border-radius: var(--raio-pilula);
+  background: var(--sucesso-suave);
+  color: var(--sucesso-texto);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Painel de progressão do personal. */
+.painel-progressao .tabela tr.destacada {
+  background: var(--alerta-suave, var(--superficie-2));
+}
+.nota-progressao {
+  margin: var(--e-3) 0 0;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+/* Lista de cargas na evolução do aluno. */
+.lista-cargas-aluno {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.lista-cargas-aluno button {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--e-3);
+  background: none;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  color: inherit;
+}
+.lista-cargas-aluno button:hover {
+  border-color: var(--acento);
+  background: var(--superficie-2);
+}
+.lista-cargas-aluno .info {
+  min-width: 0;
+}
+.lista-cargas-aluno .info strong {
+  display: block;
+  font-size: 14px;
+}
+.lista-cargas-aluno .info span {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
 /* ---------- área do aluno ---------- */
 
 .aluno-hoje,
@@ -442,7 +727,7 @@
 .campo-telefone:focus-within {
   border-color: var(--acento);
   /* Mesmo anel dos campos normais, definido em base.css. */
-  box-shadow: 0 0 0 3px rgba(22, 139, 255, 0.18);
+  box-shadow: var(--anel-foco);
 }
 .campo-telefone .prefixo-pais {
   display: flex;
@@ -1460,7 +1745,7 @@
 }
 .dieta-card:hover {
   border-color: var(--borda-forte);
-  background: #fff;
+  background: var(--superficie);
 }
 .dieta-card-corpo {
   min-width: 0;
@@ -1580,7 +1865,7 @@
 }
 .treino-card:hover {
   border-color: var(--borda-forte);
-  background: #fff;
+  background: var(--superficie);
 }
 .treino-card.incompleto {
   border-left: 3px solid var(--alerta);
@@ -1659,7 +1944,7 @@
 .botao-montar:hover:not(:disabled) {
   background: var(--acento-solido);
   border-color: var(--acento-solido);
-  color: #fff;
+  color: var(--sobre-acento);
 }
 .botao-menu-card {
   width: 34px;
@@ -2568,7 +2853,7 @@ button.perigo:hover:not(:disabled) {
 .fundo-modal {
   position: fixed;
   inset: 0;
-  background: rgba(23, 26, 31, 0.45);
+  background: var(--fundo-overlay);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -2774,7 +3059,7 @@ button.perigo:hover:not(:disabled) {
   background: linear-gradient(
     90deg,
     var(--superficie-2) 25%,
-    #e9ecef 37%,
+    var(--brilho-skeleton) 37%,
     var(--superficie-2) 63%
   );
   background-size: 400% 100%;

@@ -9,6 +9,7 @@
   --superficie-2: #f2f4f6; /* hover e faixas sutis sobre o branco */
   --borda: #e7e9ec;
   --borda-forte: #d5d9df;
+  --brilho-skeleton: #e9ecef;
 
   /* Texto */
   --texto: #171a1f;
@@ -25,6 +26,15 @@
   /* Texto e link azul sobre fundo claro: 5.5:1 no branco, 4.9:1 no --acento-suave. */
   --acento-texto: #0a68c6;
   --acento-suave: #e8f3ff; /* fundo de item ativo, badge informativa */
+
+  /* A tinta que vai SOBRE cada preenchimento de marca.
+     Existe porque `#fff` estava escrito literal em oito lugares, e branco só
+     funciona sobre azul: sobre o verde dá 2.3:1 e sobre o âmbar 2.2:1 — abaixo
+     até do mínimo de 3:1 para ícone. Com tinta escura os mesmos preenchimentos
+     chegam a 6.2:1 e 6.6:1, sem perder o vigor da cor. */
+  --sobre-acento: #ffffff;
+  --sobre-sucesso: #06331a;
+  --sobre-alerta: #3d2600;
 
   /* Estado */
   --sucesso: #22c55e;
@@ -62,7 +72,58 @@
      o que flutua de verdade (modal, drawer, dropdown). */
   --sombra-flutuante: 0 10px 30px rgba(23, 26, 31, 0.14);
 
+  /* O anel de foco era escrito literal em dois arquivos, com o azul do tema
+     claro. Como token, ele acompanha o tema — no escuro o azul é outro. */
+  --anel-foco: 0 0 0 3px rgba(22, 139, 255, 0.18);
+  /* Véu atrás de modal e drawer. No claro é o tom de tinta da interface; no
+     escuro precisa ser mais preto e mais opaco, senão não separa nada. */
+  --fundo-overlay: rgba(23, 26, 31, 0.45);
+
   --transicao: 0.15s ease;
 
   color-scheme: light;
+}
+
+:root[data-tema="dark"] {
+  --fundo: #0f1217;
+  --superficie: #171b22;
+  --superficie-2: #202631;
+  --borda: #2b323d;
+  --borda-forte: #3a4350;
+  --brilho-skeleton: #2b3340;
+
+  --texto: #f3f5f7;
+  --texto-fraco: #a6afbd;
+
+  --acento: #4aa3ff;
+  /* Mantém o mesmo tom do tema claro, e não um azul mais aceso: este é o
+     preenchimento que carrega rótulo branco, e #238bf2 dava só 3.47:1 — o botão
+     primário do tema escuro nasceria reprovado. Contra o card ele ainda separa
+     em 3.7:1, que é o suficiente para uma superfície. */
+  --acento-solido: #0f74d9;
+  --acento-escuro: #1878d8;
+  --acento-texto: #7fc0ff;
+  --acento-suave: #122b44;
+
+  --sucesso: #22c55e;
+  --sucesso-suave: #12321f;
+  --sucesso-texto: #74d99a;
+  --alerta: #f59e0b;
+  --alerta-suave: #352711;
+  --alerta-texto: #f6c56f;
+  --erro: #ef4444;
+  --erro-suave: #3a171a;
+  --erro-texto: #ff9b9b;
+
+  --sidebar-fundo: #0a0c10;
+  --sidebar-texto: #f3f5f7;
+  --sidebar-texto-fraco: #98a1af;
+  --sidebar-hover: #171b22;
+  --sidebar-borda: #242a34;
+
+  --sombra-flutuante: 0 16px 36px rgba(0, 0, 0, 0.38);
+  --anel-foco: 0 0 0 3px rgba(74, 163, 255, 0.28);
+  --fundo-overlay: rgba(0, 0, 0, 0.62);
+
+  color-scheme: dark;
 }

@@ -14,10 +14,13 @@ from datetime import date, datetime, time, timedelta, timezone
 from sqlmodel import Session, select
 
 from app.core.seguranca import gerar_hash
+from app.services import dias, series
 from app.db.session import create_db_and_tables, engine
 from app.models import (
     Agendamento,
+    ExecucaoExercicio,
     FaixaDeAlunos,
+    SessaoTreino,
     Avaliacao,
     Dieta,
     Papel,
@@ -102,7 +105,7 @@ DEMO_ALUNOS = [
 DEMO_TREINOS = [
     (
         "Treino A - Inferiores",
-        "segunda",
+        dias.DIAS[0],  # segunda
         "Foco em quadriceps e gluteos.",
         [
             ("Barbell_Squat", 4, "6-8", 80, 120, "Subir carga se fechar tudo."),
@@ -113,7 +116,7 @@ DEMO_TREINOS = [
     ),
     (
         "Treino B - Superiores",
-        "quarta",
+        dias.DIAS[2],  # quarta
         "Empurrar e puxar em intensidade moderada.",
         [
             ("Barbell_Bench_Press_-_Medium_Grip", 4, "8-10", 55, 120, None),
@@ -307,6 +310,7 @@ def semear_demo(session: Session, personal: Usuario) -> int:
             )
 
     semear_agenda(session, personal, hoje)
+    semear_execucoes(session, personal, hoje)
     return criados
 
 
@@ -337,6 +341,135 @@ def semear_agenda(session: Session, personal: Usuario, hoje: date):
                 observacao="",
             )
         )
+
+
+SEMANAS_DE_HISTORICO = 6
+
+
+def semear_execucoes(session: Session, personal: Usuario, hoje: date):
+    """
+    Seis semanas de treinos feitos, para a Home do aluno ter o que mostrar.
+
+    Sem isto a tela nasce zerada — "0 kg esta semana", gráfico vazio, nenhuma
+    sequência — e nao ha como avaliar o desenho. O historico e desenhado para
+    exercitar os casos que a tela precisa cobrir:
+
+    - carga subindo ao longo das semanas, para o grafico e o "+7,5 kg";
+    - uma semana com falta, para a consistencia nao dar 100%;
+    - metade das sessoes detalhada e metade estimada, para o `≈` aparecer;
+    - a ultima sessao com carga acima de tudo, para produzir um recorde.
+    """
+    if session.exec(select(SessaoTreino)).first():
+        return  # idempotente, como o resto do seed
+
+    alunos = session.exec(
+        select(Usuario).where(
+            Usuario.papel == Papel.ALUNO,
+            Usuario.ativo == True,  # noqa: E712
+            Usuario.personal_id == personal.id,
+        )
+    ).all()
+
+    for indice_aluno, aluno in enumerate(alunos):
+        treinos = session.exec(select(Treino).where(Treino.aluno_id == aluno.id)).all()
+        if not treinos:
+            continue
+
+        # Até 0 = a semana corrente. Os dias que ainda não chegaram são pulados
+        # logo abaixo, mas os que já passaram entram — senão "esta semana" da
+        # Home nasceria zerada, que é justamente o card que se quer avaliar.
+        for semana in range(SEMANAS_DE_HISTORICO, -1, -1):
+            # Uma falta plantada: sem ela a consistencia daria 100% e o
+            # calendario nunca mostraria o estado "perdido".
+            if semana == 3 and indice_aluno == 0:
+                continue
+
+            for treino in treinos:
+                dia = _dia_da_semana_passada(hoje, treino.dia_semana, semana)
+                if dia >= hoje:
+                    continue
+
+                prescricoes = session.exec(
+                    select(TreinoExercicio)
+                    .where(TreinoExercicio.treino_id == treino.id)
+                    .order_by(TreinoExercicio.ordem)
+                ).all()
+                if not prescricoes:
+                    continue
+
+                inicio = datetime.combine(dia, time(19, 0), tzinfo=timezone.utc)
+                duracao = 45 + (semana % 3) * 6
+                sessao = SessaoTreino(
+                    aluno_id=aluno.id,
+                    treino_id=treino.id,
+                    treino_nome=treino.nome,
+                    data=dia,
+                    iniciada_em=inicio,
+                    finalizada_em=inicio + timedelta(minutes=duracao),
+                    duracao_segundos=duracao * 60,
+                    implicita=False,
+                    registrado_por_id=aluno.id,
+                )
+                session.add(sessao)
+                session.commit()
+                session.refresh(sessao)
+
+                # Semanas pares vao detalhadas, impares estimadas: e o que faz a
+                # tela exercitar os dois caminhos do volume.
+                detalhar = semana % 2 == 0
+
+                for prescricao in prescricoes:
+                    carga = _carga_da_semana(prescricao.carga_kg, semana)
+                    detalhe = None
+                    if detalhar and carga:
+                        alvo = series.reps_prescritas(prescricao.repeticoes) or 10
+                        detalhe = [
+                            {"reps": max(1, alvo - n), "carga_kg": carga}
+                            for n in range(prescricao.series)
+                        ]
+
+                    consolidado = series.consolidar(
+                        detalhe,
+                        series_prescritas=prescricao.series,
+                        repeticoes=prescricao.repeticoes,
+                        carga_prescrita=carga,
+                    )
+                    session.add(
+                        ExecucaoExercicio(
+                            data=dia,
+                            aluno_id=aluno.id,
+                            sessao_id=sessao.id,
+                            treino_id=treino.id,
+                            treino_exercicio_id=prescricao.id,
+                            exercicio_id=prescricao.exercicio_id,
+                            series_prescritas=prescricao.series,
+                            repeticoes_prescritas=prescricao.repeticoes,
+                            carga_prescrita_kg=prescricao.carga_kg,
+                            registrado_por_id=aluno.id,
+                            registrado_em=inicio,
+                            **consolidado,
+                        )
+                    )
+                session.commit()
+
+
+def _dia_da_semana_passada(hoje: date, dia_semana: str, semanas_atras: int) -> date:
+    """A data em que aquele dia da semana caiu, N semanas atrás."""
+    indice = dias.indice(dia_semana) or 0
+    inicio_atual = hoje - timedelta(days=hoje.weekday())
+    return inicio_atual - timedelta(weeks=semanas_atras) + timedelta(days=indice)
+
+
+def _carga_da_semana(carga_prescrita: float | None, semanas_atras: int) -> float | None:
+    """
+    Carga subindo com o tempo: quanto mais recente, mais peso.
+
+    A semana 0 fica **acima** da prescrita, o que produz um recorde pessoal —
+    e o card de PR da Home tem o que mostrar.
+    """
+    if carga_prescrita is None:
+        return None
+    return round(max(2.5, carga_prescrita - semanas_atras * 2.5), 1)
 
 
 if __name__ == "__main__":

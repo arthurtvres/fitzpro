@@ -3,9 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/fitzpro-top.png" />
-    <link rel="apple-touch-icon" href="/fitzpro-top.png" />
+    <link rel="icon" type="image/png" href="/fitzprotop2.png" />
+    <link rel="apple-touch-icon" href="/fitzprotop2.png" />
+    <!-- Pintado pelo script abaixo e mantido em dia pelo App: é a cor da barra
+         do navegador no celular. Sem isso ela fica branca sobre a tela escura. -->
+    <meta name="theme-color" content="#f8f9fa" />
     <title>FitzPro</title>
+    <script>
+      /*
+       * O tema precisa estar no <html> ANTES da primeira pintura.
+       *
+       * O App também aplica, mas dentro de um `useEffect` — que roda depois do
+       * primeiro paint. Só com ele, quem usa o tema escuro via um flash branco a
+       * cada recarga. Este bloco é inline e síncrono de propósito: um arquivo
+       * externo já seria tarde.
+       *
+       * A chave é a mesma que o App grava, e a falta dela cai no tema do sistema.
+       */
+      (function () {
+        try {
+          var salvo = localStorage.getItem("fitzpro-tema");
+          var prefereEscuro =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var tema = salvo || (prefereEscuro ? "dark" : "light");
+
+          document.documentElement.dataset.tema = tema;
+          document
+            .querySelector('meta[name="theme-color"]')
+            .setAttribute("content", tema === "dark" ? "#0f1217" : "#f8f9fa");
+        } catch (e) {
+          /* localStorage bloqueado (aba anônima com restrição): segue no claro. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

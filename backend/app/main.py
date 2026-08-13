@@ -5,7 +5,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import ORIGENS_PERMITIDAS, TITULO
 from app.db.session import create_db_and_tables
-from app.routers import agendamentos, auth, avaliacoes, dietas, exercicios, treinos, usuarios
+from app.routers import (
+    agendamentos,
+    auth,
+    avaliacoes,
+    dietas,
+    execucoes,
+    exercicios,
+    progressao,
+    treinos,
+    usuarios,
+)
 from app.services import catalogo
 
 @asynccontextmanager
@@ -31,6 +41,12 @@ app.include_router(avaliacoes.router)
 app.include_router(treinos.router)
 app.include_router(dietas.router)
 app.include_router(exercicios.router)
+
+# Depois de treinos e dietas: as rotas de execução estendem esses prefixos, e a
+# ordem mantém a disciplina de literal antes de paramétrica no nível do router.
+app.include_router(execucoes.router_treino)
+app.include_router(execucoes.router_dieta)
+app.include_router(progressao.router)
 
 @app.get("/")
 def read_root():

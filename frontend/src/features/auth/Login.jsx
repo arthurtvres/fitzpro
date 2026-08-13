@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { api } from "../../api/index.js";
 
-export default function Login({ aoEntrar, aoCriarConta }) {
+export default function Login({ tema, aoEntrar, aoCriarConta }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState(null);
@@ -24,7 +24,7 @@ export default function Login({ aoEntrar, aoCriarConta }) {
     <div className="tela-login">
       <div className="cartao-login">
         <div className="marca-login">
-          <img src="/fitzprologin.png" alt="FitzPro" />
+          <img src={tema === "dark" ? "/fitzpro.png" : "/fitzprologin.png"} alt="FitzPro" />
         </div>
 
         <h1>Entrar</h1>

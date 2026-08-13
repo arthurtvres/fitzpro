@@ -1,11 +1,21 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.services import catalogo
+from app.services import catalogo, progressao
 from app.db.session import get_session
 from app.core.dependencias import aluno_do_tenant, personal_atual, tenant_de, usuario_atual
-from app.models import Papel, Treino, TreinoCriacao, TreinoExercicio, TreinoExercicioCriacao, Usuario
+from app.models import (
+    ExecucaoExercicio,
+    Papel,
+    Treino,
+    TreinoCriacao,
+    TreinoExercicio,
+    TreinoExercicioCriacao,
+    Usuario,
+)
 
 router = APIRouter(prefix="/treinos", tags=["treinos"])
 
@@ -77,8 +87,23 @@ def listar_treinos(
         ).all()
     )
 
+    # Mesma ideia para o que já foi feito hoje: sem esta agregada, a tela "Hoje"
+    # do aluno pediria o progresso de cada treino separadamente.
+    hoje = date.today()
+    feitos_hoje = dict(
+        session.exec(
+            select(ExecucaoExercicio.treino_id, func.count(ExecucaoExercicio.id))
+            .where(ExecucaoExercicio.data == hoje)
+            .group_by(ExecucaoExercicio.treino_id)
+        ).all()
+    )
+
     return [
-        {**treino.model_dump(), "total_exercicios": contagens.get(treino.id, 0)}
+        {
+            **treino.model_dump(),
+            "total_exercicios": contagens.get(treino.id, 0),
+            "concluidos_hoje": feitos_hoje.get(treino.id, 0),
+        }
         for treino in treinos
     ]
 
@@ -132,6 +157,10 @@ def deletar_treino(
     logado: Usuario = Depends(personal_atual),
 ):
     treino = buscar_ou_404(treino_id, logado, session)
+
+    # Apagar a prescrição apaga o plano, nunca o passado: as execuções perdem o
+    # vínculo com o treino, mas continuam contando na evolução de carga do aluno.
+    progressao.desvincular_execucoes(session, treino_id=treino_id)
 
     # O SQLite não cascateia por padrão: sem isso as prescrições ficariam órfãs.
     for item in exercicios_do_treino(treino_id, session):
@@ -243,6 +272,9 @@ def remover_exercicio(
     item = session.get(TreinoExercicio, item_id)
     if not item or item.treino_id != treino_id:
         raise HTTPException(status_code=404, detail="Exercício não encontrado no treino")
+
+    # O histórico de carga deste exercício sobrevive à remoção da prescrição.
+    progressao.desvincular_execucoes(session, treino_exercicio_id=item_id)
 
     session.delete(item)
     session.commit()

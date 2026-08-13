@@ -1,4 +1,8 @@
-import { Edit3, User } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Check, Edit3, User } from "lucide-react";
+
+import { api } from "../../api/index.js";
+import BarraProgresso from "../../components/BarraProgresso.jsx";
 
 import { CONFIG_TREINO } from "./config.js";
 import { lerPlanoAlimentar } from "./dietaPlano.js";
@@ -19,13 +23,78 @@ const pluralRefeicoes = (total) =>
 const quantidadeDoAlimento = (alimento) =>
   [alimento.quantidade, alimento.unidade].filter(Boolean).join(" ");
 
-export default function DetalhePlano({ config, item, aluno, aoEditar, aoErrar }) {
-  if (config.chave === CONFIG_TREINO.chave) {
-    return <DetalheTreino treino={item} aoErrar={aoErrar} somenteLeitura />;
+export default function DetalhePlano({
+  config,
+  item,
+  aluno,
+  aoEditar,
+  aoErrar,
+  // Modo execução: cada refeição vira uma caixa de marcar e aparece o progresso
+  // do dia. Ausente = leitura, como no resto do projeto.
+  modoExecucao = false,
+  aoRegistrar,
+  aoVerHistorico,
+}) {
+  // Hooks antes de qualquer return: o ramo de treino sai cedo, mas as regras do
+  // React valem para o componente inteiro.
+  const ehDieta = config.chave !== CONFIG_TREINO.chave;
+  const [progresso, setProgresso] = useState(null);
+
+  const carregarProgresso = useCallback(() => {
+    if (!modoExecucao || !ehDieta) return;
+    api.execucoes.dieta
+      .progresso(item.id)
+      .then(setProgresso)
+      .catch((e) => aoErrar?.(e.message));
+  }, [modoExecucao, ehDieta, item.id, aoErrar]);
+
+  useEffect(carregarProgresso, [carregarProgresso]);
+
+  /** Otimista com rollback, mesmo contrato do treino. */
+  async function alternarRefeicao(refeicaoId, concluida) {
+    const anterior = progresso;
+    setProgresso((atual) =>
+      atual
+        ? {
+            ...atual,
+            itens: atual.itens.map((i) =>
+              i.id === refeicaoId ? { ...i, concluida: !concluida } : i
+            ),
+          }
+        : atual
+    );
+
+    try {
+      const resposta = concluida
+        ? await api.execucoes.dieta.desmarcar(item.id, refeicaoId)
+        : await api.execucoes.dieta.marcar(item.id, refeicaoId);
+      setProgresso((atual) => ({ ...atual, ...resposta.progresso }));
+      aoRegistrar?.(resposta.progresso);
+      aoErrar?.(null);
+    } catch (e) {
+      setProgresso(anterior);
+      aoErrar?.(e.message);
+    }
+  }
+
+  if (!ehDieta) {
+    return (
+      <DetalheTreino
+        treino={item}
+        aoErrar={aoErrar}
+        somenteLeitura
+        modoExecucao={modoExecucao}
+        aoRegistrar={aoRegistrar}
+        aoVerHistorico={aoVerHistorico}
+      />
+    );
   }
 
   const campoExtra = config.campoExtra;
   const plano = lerPlanoAlimentar(item.descricao);
+  const feitas = new Set(
+    (progresso?.itens ?? []).filter((i) => i.concluida).map((i) => i.id)
+  );
 
   if (plano) {
     const totalRefeicoes = plano.refeicoes.length;
@@ -56,6 +125,20 @@ export default function DetalhePlano({ config, item, aluno, aoEditar, aoErrar })
           </strong>
         </section>
 
+        {modoExecucao && progresso && progresso.total_refeicoes > 0 && (
+          <div className="progresso-dieta">
+            <BarraProgresso
+              valor={progresso.concluidas}
+              total={progresso.total_refeicoes}
+              rotulo="Refeições de hoje"
+            />
+            <p className="calorias-do-dia">
+              <strong>{formatarNumero(progresso.calorias_consumidas)}</strong> de{" "}
+              {formatarNumero(progresso.calorias_meta)} kcal consumidas
+            </p>
+          </div>
+        )}
+
         <div className="plano-macros plano-macros-modal">
           {!ausente(plano.proteinas) && (
             <div>
@@ -82,7 +165,12 @@ export default function DetalhePlano({ config, item, aluno, aoEditar, aoErrar })
         ) : (
           <div className="plano-refeicoes-modal">
             {plano.refeicoes.map((refeicao) => (
-              <section className="refeicao-plano refeicao-plano-modal" key={refeicao.id}>
+              <section
+                className={`refeicao-plano refeicao-plano-modal${
+                  feitas.has(refeicao.id) ? " concluida" : ""
+                }`}
+                key={refeicao.id}
+              >
                 <div className="refeicao-modal-topo">
                   <h3>
                     {refeicao.horario && <time>{refeicao.horario}</time>}
@@ -118,6 +206,26 @@ export default function DetalhePlano({ config, item, aluno, aoEditar, aoErrar })
                   <div className="observacao-plano">
                     <span>Observação</span>
                     <p>{refeicao.observacao}</p>
+                  </div>
+                )}
+
+                {modoExecucao && (
+                  <div className="rodape-refeicao">
+                    <label className="marcar-execucao">
+                      <input
+                        type="checkbox"
+                        checked={feitas.has(refeicao.id)}
+                        onChange={() =>
+                          alternarRefeicao(refeicao.id, feitas.has(refeicao.id))
+                        }
+                      />
+                      <span className="rotulo-marcar">
+                        {feitas.has(refeicao.id) ? "Consumida" : "Marcar como consumida"}
+                      </span>
+                      <span className="caixa" aria-hidden="true">
+                        <Check size={14} />
+                      </span>
+                    </label>
                   </div>
                 )}
               </section>
