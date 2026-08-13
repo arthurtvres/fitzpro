@@ -7,23 +7,28 @@ import { CONFIG_DIETA, CONFIG_TREINO } from "../planos/config.js";
 import DetalhePlano from "../planos/DetalhePlano.jsx";
 import PainelPlano from "../planos/PainelPlano.jsx";
 import PainelProgressao from "../progressao/PainelProgressao.jsx";
+import FichaDoAluno from "./FichaDoAluno.jsx";
 import PainelAvaliacoes from "./PainelAvaliacoes.jsx";
 
 /**
  * Conteúdo do modal do aluno: dados, situação e as abas de treinos e dietas.
  * Quem abre e fecha é o App; aqui não há wrapper de card — o modal já é um.
  */
-export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino }) {
-  const [aba, setAba] = useState("treinos");
+export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino, aoEditar }) {
+  // "Informações" e nao "treinos": abrir um aluno é, na maioria das vezes,
+  // lembrar quem é a pessoa ou achar o telefone dela. Montar treino tem porta
+  // própria — a ação "montar" no cartão do treino.
+  const [aba, setAba] = useState("informacoes");
   const [visualizando, setVisualizando] = useState(null);
 
   const config = aba === "treinos" ? CONFIG_TREINO : CONFIG_DIETA;
 
+  // Sem o objetivo: virou subtítulo do cabeçalho da página, logo acima desta
+  // linha. Repetir a mesma frase a 40px de distância só rouba espaço.
   const detalhes = [
     aluno.email,
     aluno.idade != null ? `${aluno.idade} anos` : null,
     aluno.altura_cm ? `${aluno.altura_cm} cm` : null,
-    aluno.objetivo || null,
   ].filter(Boolean);
 
   return (
@@ -47,6 +52,12 @@ export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino }) {
       )}
 
       <div className="abas">
+        <button
+          className={aba === "informacoes" ? "ativa" : ""}
+          onClick={() => setAba("informacoes")}
+        >
+          Informações
+        </button>
         <button
           className={aba === "treinos" ? "ativa" : ""}
           onClick={() => setAba("treinos")}
@@ -74,7 +85,9 @@ export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino }) {
       </div>
 
       {/* key força remontar ao trocar de aba/aluno, zerando formulário e lista */}
-      {aba === "progressao" ? (
+      {aba === "informacoes" ? (
+        <FichaDoAluno aluno={aluno} aoEditar={aoEditar} />
+      ) : aba === "progressao" ? (
         <PainelProgressao key={`${aluno.id}-pr`} aluno={aluno} aoErrar={aoErrar} />
       ) : aba === "avaliacoes" ? (
         <PainelAvaliacoes key={`${aluno.id}-av`} aluno={aluno} aoErrar={aoErrar} />

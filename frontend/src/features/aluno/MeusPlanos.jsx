@@ -5,6 +5,7 @@ import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
 import { CONFIG_DIETA, CONFIG_TREINO } from "../planos/config.js";
 import DetalhePlano from "../planos/DetalhePlano.jsx";
+import ListaDeTreinos from "./ListaDeTreinos.jsx";
 
 /**
  * Treinos ou dietas do aluno: lista e, ao escolher um, o conteúdo dele.
@@ -21,17 +22,26 @@ export default function MeusPlanos({
   tipo,
   itens,
   carregando,
+  aluno,
   aoErrar,
   aoRegistrar,
   aoVerHistorico,
 }) {
   const config = tipo === "treinos" ? CONFIG_TREINO : CONFIG_DIETA;
   const [aberto, setAberto] = useState(null);
+  // Muda ao voltar de um treino: força a lista a reler o estado de execução,
+  // senão quem acabou de finalizar veria "Iniciar treino" de novo.
+  const [voltas, setVoltas] = useState(0);
 
   // Trocar de seção pelo menu fecha o que estava aberto.
   useEffect(() => setAberto(null), [tipo]);
 
-  if (carregando) {
+  function fechar() {
+    setAberto(null);
+    setVoltas((n) => n + 1);
+  }
+
+  if (carregando && tipo !== "treinos") {
     return (
       <section className="painel">
         <Skeleton quantidade={3} />
@@ -42,7 +52,7 @@ export default function MeusPlanos({
   if (aberto) {
     return (
       <section className="painel">
-        <button type="button" className="link voltar-plano" onClick={() => setAberto(null)}>
+        <button type="button" className="link voltar-plano" onClick={fechar}>
           <ArrowLeft size={15} /> Voltar
         </button>
         <DetalhePlano
@@ -54,6 +64,19 @@ export default function MeusPlanos({
           aoVerHistorico={aoVerHistorico}
         />
       </section>
+    );
+  }
+
+  // Os treinos têm tela própria: cartão do dia em destaque, estado de execução
+  // e a ação principal. A lista genérica ficou só para as dietas.
+  if (tipo === "treinos") {
+    return (
+      <ListaDeTreinos
+        aluno={aluno}
+        aoAbrir={(cartao) => setAberto(itens.find((i) => i.id === cartao.id) ?? cartao)}
+        aoErrar={aoErrar}
+        recarregarEm={voltas}
+      />
     );
   }
 

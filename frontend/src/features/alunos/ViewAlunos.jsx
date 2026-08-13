@@ -442,10 +442,10 @@ function AlunoCard({
             {aluno.ativo && (
               <>
                 <button type="button" onClick={() => aoCriarTreino(aluno)}>
-                  <Dumbbell size={14} /> Criar treino
+                  <Dumbbell size={14} /> Prescrever treino
                 </button>
                 <button type="button" onClick={() => aoCriarDieta(aluno)}>
-                  <Salad size={14} /> Criar dieta
+                  <Salad size={14} /> Prescrever dieta
                 </button>
                 <button type="button" onClick={() => aoCriarAvaliacao(aluno)}>
                   <CalendarPlus size={14} /> Nova avaliação

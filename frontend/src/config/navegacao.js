@@ -19,6 +19,12 @@ export const NAVEGACAO = [
     rota: "inicio/ver",
   },
   {
+    chave: "acompanhamento",
+    rotulo: "Acompanhamento",
+    icone: "grafico",
+    rota: "acompanhamento/ver",
+  },
+  {
     chave: "alunos",
     rotulo: "Alunos",
     icone: "usuarios",
@@ -33,7 +39,7 @@ export const NAVEGACAO = [
     icone: "halter",
     itens: [
       { chave: "treinos/ver", rotulo: "Ver treinos" },
-      { chave: "treinos/criar", rotulo: "Criar treino" },
+      { chave: "treinos/criar", rotulo: "Prescrever treino" },
     ],
   },
   {
@@ -42,7 +48,7 @@ export const NAVEGACAO = [
     icone: "salada",
     itens: [
       { chave: "dietas/ver", rotulo: "Ver dietas" },
-      { chave: "dietas/criar", rotulo: "Criar dieta" },
+      { chave: "dietas/criar", rotulo: "Prescrever dieta" },
     ],
   },
   {
@@ -51,7 +57,7 @@ export const NAVEGACAO = [
     icone: "grafico",
     itens: [
       { chave: "avaliacoes/ver", rotulo: "Ver avaliações" },
-      { chave: "avaliacoes/criar", rotulo: "Criar avaliação" },
+      { chave: "avaliacoes/criar", rotulo: "Nova avaliação" },
     ],
   },
   {

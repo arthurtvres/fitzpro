@@ -4,7 +4,7 @@ import FormularioDieta from "./FormularioDieta.jsx";
 /**
  * Formulário de treino/dieta, usado em dois contextos:
  * - dentro do detalhe de um aluno (`alunoFixo`): sem seletor, aluno já definido;
- * - na tela "Criar treino/dieta" (`alunos`): com seletor de aluno.
+ * - na tela "Prescrever treino/dieta" (`alunos`): com seletor de aluno.
  *
  * Salvar fica com o pai — aqui só se monta o corpo da requisição.
  */
@@ -174,7 +174,7 @@ export default function FormularioPlano({
             ? "Salvando..."
             : item
               ? "Salvar alterações"
-              : `Adicionar ${config.singular}`}
+              : `Prescrever ${config.singular}`}
         </button>
       </div>
     </form>

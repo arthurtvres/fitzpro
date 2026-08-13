@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Hand, LogOut, X } from "lucide-react";
 
 import { api } from "./api/index.js";
@@ -9,16 +10,16 @@ import Login from "./features/auth/Login.jsx";
 import Avatar from "./components/Avatar.jsx";
 import BotaoTema from "./components/BotaoTema.jsx";
 import Header from "./components/Header.jsx";
-import Modal from "./components/Modal.jsx";
 import Sidebar from "./components/Sidebar.jsx";
-import DetalheAluno from "./features/alunos/DetalheAluno.jsx";
 import CriarAvaliacao from "./features/alunos/CriarAvaliacao.jsx";
 import FormularioAluno from "./features/alunos/FormularioAluno.jsx";
+import PaginaDoAluno from "./features/alunos/PaginaDoAluno.jsx";
 import ViewAlunos from "./features/alunos/ViewAlunos.jsx";
 import ViewAvaliacoes from "./features/alunos/ViewAvaliacoes.jsx";
 import CatalogoExercicios from "./features/exercicios/CatalogoExercicios.jsx";
 import DetalheExercicio from "./features/exercicios/DetalheExercicio.jsx";
 import Home from "./features/inicio/Home.jsx";
+import PainelDoPersonal from "./features/painel/PainelDoPersonal.jsx";
 import MeuPerfil from "./features/perfil/MeuPerfil.jsx";
 import { CONFIG_POR_CHAVE } from "./features/planos/config.js";
 import FormularioPlano from "./features/planos/FormularioPlano.jsx";
@@ -28,19 +29,27 @@ import DetalheTreino from "./features/treinos/DetalheTreino.jsx";
 export default function App() {
   // null = ninguém logado; undefined = ainda restaurando a sessão do token.
   const [logado, setLogado] = useState(lerToken() ? undefined : null);
-  const [rota, setRota] = useState("inicio/ver");
+
+  // A rota vive na URL. `rota` continua sendo a string "secao/pagina" que a
+  // sidebar e o `cabecalho()` sempre leram — só que derivada do endereço, e não
+  // guardada em estado. Trocar a fonte, e não o formato, é o que deixou o resto
+  // do arquivo praticamente intacto nesta migração.
+  const local = useLocation();
+  const irPara = useNavigate();
+  const rota = local.pathname.replace(/^\/+|\/+$/g, "") || "inicio/ver";
+  const setRota = (nova) => irPara(`/${nova}`);
   // Qual tela aparece para quem não está logado: entrar ou criar conta.
   const [telaAuth, setTelaAuth] = useState("login");
   // Sempre carregamos todos os alunos: as telas de treino/dieta precisam do nome
   // até dos inativos, e o filtro da lista é só de exibição.
   const [alunos, setAlunos] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [selecionado, setSelecionado] = useState(null);
   const [alunoEmEdicao, setAlunoEmEdicao] = useState(null);
   const [planoEmEdicao, setPlanoEmEdicao] = useState(null);
   const [treinoAberto, setTreinoAberto] = useState(null);
   const [exercicioDetalhado, setExercicioDetalhado] = useState(null);
   const [menuAberto, setMenuAberto] = useState(false);
+  const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
   const [erro, setErro] = useState(null);
   // Lê o que o script inline do index.html já decidiu, em vez de recalcular:
   // com `?? "light"`, quem não tem preferência salva e usa o sistema no escuro
@@ -96,7 +105,6 @@ export default function App() {
     setLogado(null);
     setTelaAuth("login");
     setAlunos([]);
-    setSelecionado(null);
     setRota("inicio/ver");
   }
 
@@ -122,11 +130,6 @@ export default function App() {
     setRota("alunos/criar");
   }
 
-  /** Reflete no painel de detalhe a versão nova do aluno selecionado. */
-  function sincronizarSelecionado(aluno) {
-    setSelecionado((atual) => (atual?.id === aluno.id ? aluno : atual));
-  }
-
   async function salvarAluno(dados) {
     try {
       if (alunoEmEdicao) {
@@ -134,15 +137,21 @@ export default function App() {
         setAlunos((atual) =>
           atual.map((a) => (a.id === atualizado.id ? atualizado : a))
         );
-        sincronizarSelecionado(atualizado);
         setAlunoEmEdicao(null);
-      } else {
-        const criado = await api.alunos.criar(dados);
-        setAlunos((atual) => [...atual, criado]);
-        setSelecionado(criado);
+        // Volta para a ficha de quem foi editado, e não para a lista: quase
+        // sempre se chega ao formulário a partir dela, e é lá que a alteração
+        // aparece. Salvar não deveria custar a navegação de volta.
+        setErro(null);
+        setRota(`alunos/${atualizado.id}`);
+        return;
       }
+
+      const criado = await api.alunos.criar(dados);
+      setAlunos((atual) => [...atual, criado]);
+      // Cadastrou: cai direto na ficha de quem acabou de criar, que é onde
+      // faltam treino e dieta.
       setErro(null);
-      setRota("alunos/ver");
+      setRota(`alunos/${criado.id}`);
     } catch (e) {
       setErro(e.message);
     }
@@ -153,7 +162,6 @@ export default function App() {
       await api.alunos.desativar(aluno.id);
       const inativo = { ...aluno, ativo: false };
       setAlunos((atual) => atual.map((a) => (a.id === aluno.id ? inativo : a)));
-      sincronizarSelecionado(inativo);
       if (alunoEmEdicao?.id === aluno.id) setAlunoEmEdicao(null);
       setErro(null);
     } catch (e) {
@@ -165,7 +173,6 @@ export default function App() {
     try {
       const reativado = await api.alunos.reativar(aluno.id);
       setAlunos((atual) => atual.map((a) => (a.id === reativado.id ? reativado : a)));
-      sincronizarSelecionado(reativado);
       setErro(null);
     } catch (e) {
       setErro(e.message);
@@ -182,16 +189,14 @@ export default function App() {
 
   function montarTreino(treino) {
     setTreinoAberto(treino);
-    setSelecionado(null); // fecha o modal do aluno, se veio de lá
     setErro(null);
     setRota("treinos/detalhe");
   }
 
-  /** Vindo da home: leva para a lista de alunos com o modal daquele aluno aberto. */
+  /** Home, acompanhamento, avaliações: todos levam para a página do aluno. */
   function abrirAluno(aluno) {
     setErro(null);
-    setRota("alunos/ver");
-    setSelecionado(aluno);
+    setRota(`alunos/${aluno.id}`);
   }
 
   /** Devolve false quando a API recusou, para o formulário não se limpar. */
@@ -216,6 +221,13 @@ export default function App() {
 
   const [secao, pagina] = rota.split("/");
   const config = CONFIG_POR_CHAVE[secao];
+  // /alunos/12 — "ver" e "criar" ja ocupam esse lugar, entao so numero conta.
+  const alunoIdDaRota =
+    secao === "alunos" && /^\d+$/.test(pagina ?? "") ? Number(pagina) : null;
+  // A lista costuma estar carregada; quando esta, a ficha aparece sem spinner.
+  const alunoDaRota = alunoIdDaRota
+    ? alunos.find((a) => a.id === alunoIdDaRota)
+    : null;
   const totalAtivos = alunos.filter((a) => a.ativo).length;
   const alunoDoTreino = treinoAberto
     ? alunos.find((a) => a.id === treinoAberto.aluno_id)
@@ -232,6 +244,14 @@ export default function App() {
           </>
         ),
         subtitulo: "O que está acontecendo hoje e o que precisa da sua atenção.",
+      };
+    }
+
+    if (secao === "acompanhamento") {
+      return {
+        titulo: "Acompanhamento",
+        subtitulo:
+          "Quem treinou, quem sumiu e onde dá para subir a carga — tudo de execução registrada.",
       };
     }
 
@@ -252,7 +272,7 @@ export default function App() {
 
     if (secao === "avaliacoes") {
       return {
-        titulo: pagina === "criar" ? "Criar avaliação" : "Avaliações",
+        titulo: pagina === "criar" ? "Nova avaliação" : "Avaliações",
         subtitulo:
           pagina === "criar"
             ? "Registre medidas, observações e acompanhe a evolução do aluno."
@@ -287,12 +307,16 @@ export default function App() {
       }
       if (pagina === "criar") {
         const editando = Boolean(planoEmEdicao);
+        const acaoNovo =
+          config.chave === "treinos" ? "Prescrever treino" : "Prescrever dieta";
         return {
-          titulo: `${editando ? "Editar" : "Criar"} ${config.singular}`,
+          titulo: editando ? `Editar ${config.singular}` : acaoNovo,
           subtitulo:
             alunos.length === 0
               ? "Cadastre um aluno antes — todo treino e dieta pertence a alguém."
-              : `Escolha o aluno e descreva ${config.artigoIndefinido} ${config.singular}.`,
+              : config.chave === "treinos"
+                ? "Escolha o aluno e prescreva um treino."
+                : "Escolha o aluno e prescreva uma dieta.",
         };
       }
       return {
@@ -308,7 +332,7 @@ export default function App() {
               className="primario"
               onClick={() => navegar("treinos/criar")}
             >
-              + Novo treino
+              + Prescrever treino
             </button>
           ) : (
             <button
@@ -316,9 +340,21 @@ export default function App() {
               className="primario"
               onClick={() => navegar("dietas/criar")}
             >
-              + Nova dieta
+              + Prescrever dieta
             </button>
           ),
+      };
+    }
+
+    if (alunoIdDaRota) {
+      return {
+        titulo: alunoDaRota?.nome ?? "Aluno",
+        subtitulo: alunoDaRota?.objetivo || "Ficha, treinos, dietas e evolução.",
+        acoes: (
+          <button type="button" onClick={() => navegar("alunos/ver")}>
+            <ArrowLeft size={15} /> voltar
+          </button>
+        ),
       };
     }
 
@@ -347,6 +383,16 @@ export default function App() {
       return (
         <Home
           alunos={alunos}
+          aoAbrirAluno={abrirAluno}
+          aoMontarTreino={montarTreino}
+          aoErrar={setErro}
+        />
+      );
+    }
+
+    if (secao === "acompanhamento") {
+      return (
+        <PainelDoPersonal
           aoAbrirAluno={abrirAluno}
           aoMontarTreino={montarTreino}
           aoErrar={setErro}
@@ -433,6 +479,19 @@ export default function App() {
       );
     }
 
+    if (alunoIdDaRota) {
+      return (
+        <PaginaDoAluno
+          key={alunoIdDaRota}
+          alunoId={alunoIdDaRota}
+          conhecido={alunoDaRota}
+          aoErrar={setErro}
+          aoMontarTreino={montarTreino}
+          aoEditar={editarAluno}
+        />
+      );
+    }
+
     if (pagina === "criar") {
       return (
         <section className="painel painel-formulario-aluno">
@@ -450,7 +509,7 @@ export default function App() {
         alunos={alunos}
         carregando={carregando}
         aoCriar={() => navegar("alunos/criar")}
-        aoSelecionar={setSelecionado}
+        aoSelecionar={abrirAluno}
         aoEditar={editarAluno}
         aoDesativar={desativarAluno}
         aoReativar={reativarAluno}
@@ -494,13 +553,15 @@ export default function App() {
   const { titulo, subtitulo, acoes } = cabecalho();
 
   return (
-    <div className="shell">
+    <div className={`shell${sidebarRecolhida ? " sidebar-recolhida" : ""}`}>
       {menuAberto && (
         <div className="fundo-drawer" onClick={() => setMenuAberto(false)} />
       )}
 
       <Sidebar
-        rotaAtiva={rota}
+        // A página de um aluno pertence à seção Alunos: sem isto o menu
+        // fecharia o grupo e apagaria o destaque ao abrir alguém.
+        rotaAtiva={alunoIdDaRota ? "alunos/ver" : rota}
         aoNavegar={navegar}
         resumo={
           <>
@@ -522,6 +583,8 @@ export default function App() {
         }
         aberta={menuAberto}
         aoFechar={() => setMenuAberto(false)}
+        recolhida={sidebarRecolhida}
+        aoAlternarRecolhida={() => setSidebarRecolhida((atual) => !atual)}
       />
 
       <main className="conteudo">
@@ -545,21 +608,6 @@ export default function App() {
           )}
 
           {renderizarConteudo()}
-
-          {/* O aluno abre em modal por cima da lista, que fica em largura total. */}
-          {selecionado && (
-            <Modal
-              titulo={selecionado.nome}
-              largo
-              aoFechar={() => setSelecionado(null)}
-            >
-              <DetalheAluno
-                aluno={selecionado}
-                aoErrar={setErro}
-                aoMontarTreino={montarTreino}
-              />
-            </Modal>
-          )}
 
           {/* Fora do renderizarConteudo: o detalhe do exercício abre por cima de
               qualquer tela (catálogo, treino em montagem). */}

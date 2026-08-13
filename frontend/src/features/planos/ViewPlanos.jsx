@@ -320,7 +320,7 @@ function DietasPage({
           <strong>Nenhuma dieta cadastrada</strong>
           <span>Crie um plano alimentar para começar a organizar as refeições do aluno.</span>
           <button type="button" className="primario" onClick={aoCriar}>
-            + Criar dieta
+            + Prescrever dieta
           </button>
         </Vazio>
       ) : dietasFiltradas.length === 0 ? (
@@ -613,7 +613,7 @@ function TreinosPage({
           <strong>Nenhum treino cadastrado</strong>
           <span>Crie o primeiro treino para começar a montar os exercícios dos seus alunos.</span>
           <button type="button" className="primario" onClick={aoCriar}>
-            + Criar treino
+            + Prescrever treino
           </button>
         </Vazio>
       ) : treinosFiltrados.length === 0 ? (

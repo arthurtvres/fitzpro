@@ -37,6 +37,7 @@ export default function HojeDoAluno({
   aoAbrirTreino,
   aoAbrirDietas,
   aoAbrirEvolucao,
+  aoAbrirPersonal,
 }) {
   if (carregando || !resumo) {
     return (
@@ -48,7 +49,7 @@ export default function HojeDoAluno({
 
   return (
     <div className="aluno-home">
-      <CartaoPersonal personal={resumo.personal} />
+      <CartaoPersonal personal={resumo.personal} aoAbrir={aoAbrirPersonal} />
 
       <div className="dupla-cartoes">
         <CartaoPlanoAlimentar dieta={resumo.dieta} aoAbrir={aoAbrirDietas} />

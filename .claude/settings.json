@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(c:/Users/CPU/FitzPro/venv/Scripts/python.exe -c ' *)",
+      "Bash(../venv/Scripts/uvicorn.exe app.main:app --port 8093)",
+      "Bash(curl -s http://127.0.0.1:8093/)",
+      "Bash(pkill -f 8093)",
+      "Bash(FITZPRO_DB_URL=sqlite:///__TRACKED_VAR__/e2e.db PYTHONPATH=. PYTHONIOENCODING=utf-8 ../venv/Scripts/python.exe -c ' *)",
+      "Bash(rm -f __TRACKED_VAR__/e2e.db)",
+      "Bash(FITZPRO_DB_URL=sqlite:///__TRACKED_VAR__/e2e.db ../venv/Scripts/python.exe -m app.seed)",
+      "Bash(rm -f __TRACKED_VAR__/painel.db)",
+      "Bash(FITZPRO_DB_URL=sqlite:///__TRACKED_VAR__/painel.db ../venv/Scripts/python.exe -m app.seed)",
+      "Bash(FITZPRO_DB_URL=sqlite:///__TRACKED_VAR__/painel.db PYTHONPATH=. PYTHONIOENCODING=utf-8 ../venv/Scripts/python.exe -c ' *)"
+    ]
+  }
+}

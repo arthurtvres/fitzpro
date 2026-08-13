@@ -12,6 +12,7 @@ from app.routers import (
     dietas,
     execucoes,
     exercicios,
+    painel,
     progressao,
     treinos,
     usuarios,
@@ -47,6 +48,7 @@ app.include_router(exercicios.router)
 app.include_router(execucoes.router_treino)
 app.include_router(execucoes.router_dieta)
 app.include_router(progressao.router)
+app.include_router(painel.router)
 
 @app.get("/")
 def read_root():

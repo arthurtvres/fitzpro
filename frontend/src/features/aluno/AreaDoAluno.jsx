@@ -12,6 +12,7 @@ import MeuPerfil from "../perfil/MeuPerfil.jsx";
 import EvolucaoDoExercicio from "../progressao/EvolucaoDoExercicio.jsx";
 import { NAVEGACAO_ALUNO } from "./navegacao.js";
 import HojeDoAluno from "./HojeDoAluno.jsx";
+import MeuPersonal from "./MeuPersonal.jsx";
 import MeusPlanos from "./MeusPlanos.jsx";
 import MinhaEvolucao from "./MinhaEvolucao.jsx";
 
@@ -34,6 +35,7 @@ export default function AreaDoAluno({
 }) {
   const [rota, setRota] = useState("inicio/ver");
   const [menuAberto, setMenuAberto] = useState(false);
+  const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
   const [erro, setErro] = useState(null);
   const [exercicioDetalhado, setExercicioDetalhado] = useState(null);
   // O exercício cuja evolução de carga está aberta, vindo do "última vez".
@@ -118,7 +120,9 @@ export default function AreaDoAluno({
       case "treinos":
         return {
           titulo: "Meus treinos",
-          subtitulo: "O que seu personal montou para você. Toque para ver os exercícios.",
+          // Sem "toque para ver os exercícios": o cartão já é obviamente
+          // clicável, e instrução de interface no subtítulo envelhece mal.
+          subtitulo: "Seu plano de treino atual.",
         };
       case "dietas":
         return {
@@ -137,6 +141,11 @@ export default function AreaDoAluno({
         };
       case "perfil":
         return { titulo: "Minha conta", titulo2: "", subtitulo: "Seus dados de acesso." };
+      case "personal":
+        return {
+          titulo: "Meu personal",
+          subtitulo: "Informações de contato de quem acompanha seus treinos.",
+        };
       default:
         return {
           titulo: `Olá, ${primeiroNome}`,
@@ -153,6 +162,7 @@ export default function AreaDoAluno({
             tipo="treinos"
             itens={treinos}
             carregando={carregando}
+            aluno={aluno}
             aoErrar={setErro}
             aoRegistrar={recarregarSilencioso}
             aoVerHistorico={(item) => setCargaAberta(item.exercicio_id)}
@@ -180,6 +190,8 @@ export default function AreaDoAluno({
         return (
           <MeuPerfil usuario={aluno} aoAtualizar={aoAtualizarPerfil} aoErrar={setErro} />
         );
+      case "personal":
+        return <MeuPersonal personal={personal ?? resumo?.personal} />;
       default:
         return (
           <HojeDoAluno
@@ -189,6 +201,7 @@ export default function AreaDoAluno({
             aoAbrirTreino={() => navegar("treinos/ver")}
             aoAbrirDietas={() => navegar("dietas/ver")}
             aoAbrirEvolucao={() => navegar("evolucao/ver")}
+            aoAbrirPersonal={() => navegar("personal/ver")}
           />
         );
     }
@@ -197,7 +210,7 @@ export default function AreaDoAluno({
   const { titulo, subtitulo } = cabecalho();
 
   return (
-    <div className="shell">
+    <div className={`shell${sidebarRecolhida ? " sidebar-recolhida" : ""}`}>
       {menuAberto && (
         <div className="fundo-drawer" onClick={() => setMenuAberto(false)} />
       )}
@@ -208,6 +221,8 @@ export default function AreaDoAluno({
         aoNavegar={navegar}
         aberta={menuAberto}
         aoFechar={() => setMenuAberto(false)}
+        recolhida={sidebarRecolhida}
+        aoAlternarRecolhida={() => setSidebarRecolhida((atual) => !atual)}
         resumo={
           <>
             <button

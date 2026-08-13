@@ -17,6 +17,16 @@ export const progressao = {
   resumo: (alunoId, data) =>
     requisitar(`/alunos/${alunoId}/progressao/resumo${montarQuery({ data })}`),
 
+  /**
+   * "Meus treinos" do aluno: o plano com o estado de execução de cada treino.
+   *
+   * Separado do `resumo` porque é outra tela, e trazer isto junto faria a Home
+   * pagar por dados que ela não mostra — mas pelo mesmo princípio dela, tudo o
+   * que a tela precisa vem numa requisição só.
+   */
+  meusTreinos: (alunoId, data) =>
+    requisitar(`/alunos/${alunoId}/progressao/meus-treinos${montarQuery({ data })}`),
+
   /** Uma linha por prescrição do aluno, com a sugestão de subir a carga. */
   treinos: (alunoId) => requisitar(`/alunos/${alunoId}/progressao/treinos`),
 

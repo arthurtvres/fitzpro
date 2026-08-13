@@ -3,6 +3,7 @@ import { agendamentos } from "./agendamentos.js";
 import { auth } from "./auth.js";
 import { dietas } from "./dietas.js";
 import { execucoes } from "./execucoes.js";
+import { painel } from "./painel.js";
 import { exercicios } from "./exercicios.js";
 import { perfil } from "./perfil.js";
 import { progressao } from "./progressao.js";
@@ -19,4 +20,5 @@ export const api = {
   perfil,
   execucoes,
   progressao,
+  painel,
 };

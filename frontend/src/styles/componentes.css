@@ -109,7 +109,12 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 2px solid var(--borda-forte);
+  /* `--texto-fraco` e não `--borda-forte`: a borda padrão dá 1.4:1 no claro e
+     1.7:1 no escuro, abaixo dos 3:1 que um limite de controle precisa. Uma
+     caixa de marcar que mal se enxerga é um problema sério justo aqui, que é o
+     controle principal do registro de treino. Com este token vai a 5.6:1 e
+     7.8:1, sem mexer no visual de todo input do app. */
+  border: 2px solid var(--texto-fraco);
   border-radius: var(--raio-controle);
   color: transparent;
   transition: background var(--transicao), border-color var(--transicao),
@@ -306,6 +311,7 @@
   gap: var(--e-3);
   width: 100%;
   text-align: left;
+  justify-content: flex-start;
   padding: var(--e-3);
   background: none;
   border: 1px solid var(--borda);
@@ -318,6 +324,8 @@
 }
 .lista-cargas-aluno .info {
   min-width: 0;
+  flex: 1;
+  text-align: left;
 }
 .lista-cargas-aluno .info strong {
   display: block;
@@ -512,6 +520,180 @@
   margin-bottom: var(--e-3);
 }
 
+/* ---------- meus treinos (aluno) ---------- */
+
+.meus-treinos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+
+/* O treino do dia. A hierarquia é o ponto da tela: sem este destaque, o treino
+   de hoje e o de quinta-feira competiriam pela mesma atenção. */
+.cartao-treino-hoje {
+  border-color: var(--acento);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.cartao-treino-hoje header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-2);
+}
+.cartao-treino-hoje .etiqueta {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--acento-texto);
+}
+.cartao-treino-hoje h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.25;
+}
+.cartao-treino-hoje .descricao {
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-fraco);
+}
+.cartao-treino-hoje .resumo {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--texto-fraco);
+}
+.cartao-treino-hoje .acao-treino {
+  align-self: flex-end;
+  margin-top: var(--e-2);
+}
+.acao-treino {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+/* Os nomes dos exercícios: contexto, não leitura — daí o corpo menor e o
+   `+N` em vez da lista inteira. */
+.previa-exercicios {
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-fraco);
+  line-height: 1.5;
+}
+.previa-exercicios .mais {
+  color: var(--texto-fraco);
+  font-weight: 500;
+}
+
+.estado-treino {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  /* O valor em texto cheio e o rótulo em fraco: sem essa diferença "Última vez"
+     e a data teriam o mesmo peso, e a data é o que se lê. */
+  color: var(--texto);
+}
+.estado-treino.sub {
+  color: var(--texto-fraco);
+  font-style: italic;
+}
+.estado-treino.concluido {
+  color: var(--sucesso-texto);
+  font-weight: 500;
+}
+.estado-treino.andamento {
+  display: block;
+}
+.estado-treino.andamento p {
+  margin: 0 0 4px;
+  color: var(--alerta-texto);
+  font-weight: 500;
+}
+.estado-treino .rotulo-estado {
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+/* Os outros treinos: mesma estrutura da lista antiga, mais uma coluna de dia. */
+.lista-treinos-aluno {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.lista-treinos-aluno button {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--e-3);
+  background: none;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  color: inherit;
+}
+.lista-treinos-aluno button:hover {
+  border-color: var(--acento);
+  background: var(--superficie-2);
+}
+.lista-treinos-aluno .info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.lista-treinos-aluno .info strong {
+  font-size: 14px;
+}
+.lista-treinos-aluno .info .resumo {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+.lista-treinos-aluno > li > button > svg:last-child {
+  color: var(--texto-fraco);
+  flex-shrink: 0;
+}
+.lista-treinos-aluno .titulo-secao {
+  margin-bottom: var(--e-3);
+}
+
+/* Um bloco por dia da semana. O dia virou título em vez de etiqueta na ponta
+   de cada linha: repetido em toda linha ele era ruído, e como título agrupa. */
+.grupo-dia + .grupo-dia {
+  margin-top: var(--e-4);
+}
+.titulo-dia {
+  margin: 0 0 var(--e-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--texto-fraco);
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+/* A régua ocupa o resto da linha e amarra o título ao bloco abaixo. */
+.titulo-dia::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--borda);
+}
+.meus-treinos .titulo-secao + .grupo-dia {
+  margin-top: var(--e-3);
+}
+
 /* Evolução: os números da última medição, com o quanto andaram. */
 .titulo-secao {
   font-size: 15px;
@@ -600,6 +782,109 @@
   margin: var(--e-3) 0 0;
   font-size: 13px;
   color: var(--texto-fraco);
+}
+
+/* ---------- painel do personal ---------- */
+
+.painel-personal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+/* A linha inteira do aluno abre o modal dele. */
+.celula-aluno {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+}
+.celula-aluno:hover {
+  background: none;
+  color: var(--acento-texto);
+}
+/* Sem o prefixo `.painel-personal`: a tabela de atividade agora aparece
+   tambem na Home, e a linha de quem sumiu tem que destacar nos dois lugares. */
+.tabela tr.destacada {
+  background: var(--erro-suave);
+}
+.tabela .progresso {
+  margin-top: 4px;
+  max-width: 90px;
+}
+
+/* "18 treinos concluidos · 5 alunos treinaram · 83% ativos" */
+.resumo-atividade {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-2);
+  margin: 0 0 var(--e-3);
+  color: var(--texto-fraco);
+  font-size: 0.875rem;
+}
+.resumo-atividade strong {
+  color: var(--texto);
+}
+.resumo-atividade [aria-hidden="true"] {
+  color: var(--borda);
+}
+
+.lista-sugestoes,
+.lista-sumidos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.lista-sugestoes li,
+.lista-sumidos li {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+}
+.lista-sugestoes .info,
+.lista-sumidos .info {
+  flex: 1;
+  min-width: 0;
+}
+.lista-sugestoes .info strong,
+.lista-sumidos .info strong {
+  display: block;
+  font-size: 14px;
+}
+.lista-sugestoes .info span,
+.lista-sumidos .info span {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+/* A carga prescrita fica riscada ao lado da que o aluno já levanta: a
+   comparação é o argumento inteiro da sugestão. */
+.lista-sugestoes .cargas {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.lista-sugestoes .prescrita {
+  color: var(--texto-fraco);
+  text-decoration: line-through;
+}
+.lista-sugestoes .seta {
+  color: var(--texto-fraco);
+}
+.lista-sugestoes .atual {
+  font-size: 15px;
+  color: var(--sucesso-texto);
 }
 
 /* Minha conta: dois cards empilhados, na mesma largura do formulário de aluno. */
@@ -1205,6 +1490,20 @@
   font-size: 12px;
   color: var(--texto-fraco);
 }
+/* Comparação com a semana anterior — só nos cards que têm o que comparar. */
+.metrica .tendencia {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--erro-texto);
+}
+.metrica .tendencia.positiva {
+  color: var(--sucesso-texto);
+}
 
 .grade-home {
   display: grid;
@@ -1430,6 +1729,101 @@
 }
 .resumo-aluno .meta {
   font-size: 12.5px;
+  color: var(--texto-fraco);
+}
+
+/* ---------- ficha do aluno (aba Informações) ---------- */
+
+.ficha-aluno {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+  align-items: flex-start;
+}
+.ficha-aluno section {
+  width: 100%;
+}
+.ficha-aluno h3 {
+  margin: 0 0 var(--e-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+.ficha-aluno .contatos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.ficha-aluno .contatos li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-2);
+  font-size: 14px;
+  min-width: 0;
+}
+.ficha-aluno .contatos svg {
+  color: var(--texto-fraco);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.ficha-aluno .contatos a {
+  color: var(--texto);
+  text-decoration: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ficha-aluno .contatos a:hover {
+  text-decoration: underline;
+}
+.ficha-aluno .contato-telefone {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.ficha-aluno .contatos .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--acento-texto);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Marca de terceiro (WhatsApp): 15px para bater com o x-height do rótulo ao
+   lado, e sem filtro de cor — o verde é o que faz a marca ser reconhecida. */
+.icone-marca {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+/* Rótulo em cima do valor: em duas colunas o par fica junto mesmo quando o
+   objetivo é uma frase longa e quebra em três linhas. */
+.ficha-aluno .dados-aluno {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--e-3);
+}
+.ficha-aluno .dados-aluno dt {
+  font-size: 12px;
+  color: var(--texto-fraco);
+  margin-bottom: 2px;
+}
+.ficha-aluno .dados-aluno dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto);
+}
+.ficha-aluno .dados-aluno dd.sub {
   color: var(--texto-fraco);
 }
 
@@ -2538,6 +2932,65 @@ button.perigo:hover:not(:disabled) {
   background: var(--acento);
 }
 
+@media (max-width: 980px) {
+  .dieta-editor-grid {
+    grid-template-columns: 1fr;
+  }
+  .resumo-dieta {
+    position: static;
+    order: -1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .formulario-dieta,
+  .dieta-editor-grid,
+  .dieta-editor-principal,
+  .lista-refeicoes-form {
+    min-width: 0;
+  }
+  .grade-dieta-plano,
+  .grade-dieta-macros,
+  .grade-refeicao-nutrientes,
+  .refeicao-topo,
+  .alimento-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .resumo-dieta {
+    padding: var(--e-3);
+  }
+  .resumo-dieta > strong {
+    font-size: 22px;
+  }
+  .refeicao-editor {
+    padding: var(--e-3);
+  }
+  .refeicao-topo {
+    align-items: stretch;
+  }
+  .refeicao-topo > input {
+    width: 100%;
+  }
+  .refeicao-menu {
+    justify-self: start;
+  }
+  .alimento-editor {
+    align-items: stretch;
+  }
+  .alimento-editor .remover-alimento {
+    justify-self: start;
+    margin-bottom: 0;
+  }
+  .botao-adicionar-refeicao,
+  .formulario-dieta .acoes-form button {
+    width: 100%;
+  }
+  .formulario-dieta .acoes-form {
+    flex-direction: column-reverse;
+  }
+}
+
 .plano-alimentar {
   display: flex;
   flex-direction: column;
@@ -2995,6 +3448,51 @@ button.perigo:hover:not(:disabled) {
 .alca:hover:not(:disabled) {
   background: none;
   color: var(--texto);
+}
+
+@media (max-width: 640px) {
+  .lista-prescricao .cartao {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: start;
+    gap: var(--e-2);
+  }
+  .lista-prescricao .alca,
+  .lista-prescricao .posicao,
+  .lista-prescricao .miniatura.pequena {
+    grid-row: 1;
+  }
+  .lista-prescricao .miniatura.pequena {
+    width: 52px;
+    min-width: 52px;
+  }
+  .lista-prescricao .corpo {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+  }
+  .lista-prescricao .cartao .titulo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--e-1);
+  }
+  .lista-prescricao .cartao .titulo .selo {
+    justify-self: start;
+    white-space: normal;
+  }
+  .lista-prescricao .acoes {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-content: flex-start;
+    padding-top: var(--e-2);
+    border-top: 1px solid var(--borda);
+  }
+  .lista-prescricao .marcar-execucao {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    justify-self: start;
+    margin-left: 0;
+  }
 }
 
 /* ---------- avisos e estados ---------- */

@@ -27,6 +27,18 @@ def intervalo_semana(dia: date) -> tuple[date, date]:
     inicio = dia - timedelta(days=dia.weekday())
     return inicio, inicio + timedelta(days=6)
 
+def intervalo_ultimos_dias(dia: date, dias: int = 7) -> tuple[date, date]:
+    """
+    Janela móvel terminando hoje — sete dias contando com o de hoje.
+
+    A tela do aluno usa `intervalo_semana` porque ela desenha um calendário: os
+    sete quadradinhos precisam ser segunda a domingo. A do personal não desenha
+    nada disso, e a semana-calendário atrapalha lá: numa segunda de manhã ela
+    mostra "0 treinos" para uma carteira inteira que treinou no sábado. Janela
+    móvel é a pergunta que o personal realmente faz — *andou alguém por aqui?*
+    """
+    return dia - timedelta(days=dias - 1), dia
+
 def treinos_do_aluno(aluno_id: int, session: Session) -> list[Treino]:
     return list(
         session.exec(select(Treino).where(Treino.aluno_id == aluno_id)).all()
@@ -79,6 +91,10 @@ def volume_no_intervalo(aluno_id: int, inicio: date, fim: date, session: Session
         "execucoes_detalhadas": (quantas or 0) - estimadas,
         "execucoes_sem_volume": sem_volume or 0,
     }
+
+def percentual_ou_zero(feitos: int, previstos: int) -> int:
+    """Sem treino prescrito não há percentual — e 0% acusaria quem não tem plano."""
+    return round(100 * feitos / previstos) if previstos else 0
 
 def variacao(atual: float, anterior: float) -> int | None:
     """Variação percentual. None quando não há base — divisão por zero não é 0%."""
@@ -275,6 +291,109 @@ def ultima_sessao_por_treino(
     for sessao in sessoes:
         mais_recentes.setdefault(sessao.treino_id, sessao)
     return mais_recentes
+
+# ---------- visão do personal: vários alunos de uma vez ----------
+#
+# Tudo aqui recebe uma LISTA de alunos e devolve um dicionário indexado por id.
+# É a diferença que importa: as funções acima respondem sobre um aluno, e
+# chamá-las num laço daria uma query por aluno na tela do personal.
+
+# Depois disso, o aluno não está "atrasado", está sumido — e é o número que o
+# personal precisa ver para ligar para alguém.
+DIAS_PARA_SUMIDO = 10
+
+def sessoes_por_aluno(
+    aluno_ids: list[int], inicio: date, fim: date, session: Session
+) -> dict[int, list[SessaoTreino]]:
+    """As sessões de todos os alunos no período, agrupadas. Uma query."""
+    if not aluno_ids:
+        return {}
+
+    agrupado: dict[int, list[SessaoTreino]] = {}
+    consulta = (
+        select(SessaoTreino)
+        .where(
+            SessaoTreino.aluno_id.in_(aluno_ids),
+            SessaoTreino.data >= inicio,
+            SessaoTreino.data <= fim,
+        )
+        .order_by(SessaoTreino.data)
+    )
+    for sessao in session.exec(consulta).all():
+        agrupado.setdefault(sessao.aluno_id, []).append(sessao)
+    return agrupado
+
+def treinos_por_aluno(aluno_ids: list[int], session: Session) -> dict[int, list[Treino]]:
+    """Os treinos prescritos de todos os alunos. Uma query."""
+    if not aluno_ids:
+        return {}
+
+    agrupado: dict[int, list[Treino]] = {}
+    for treino in session.exec(
+        select(Treino).where(Treino.aluno_id.in_(aluno_ids))
+    ).all():
+        agrupado.setdefault(treino.aluno_id, []).append(treino)
+    return agrupado
+
+def volume_por_aluno(
+    aluno_ids: list[int], inicio: date, fim: date, session: Session
+) -> dict[int, dict]:
+    """Volume e procedência de cada aluno no período. Uma query agregada."""
+    if not aluno_ids:
+        return {}
+
+    linhas = session.exec(
+        select(
+            ExecucaoExercicio.aluno_id,
+            func.coalesce(func.sum(ExecucaoExercicio.volume_kg), 0.0),
+            func.sum(case((ExecucaoExercicio.volume_estimado.is_(True), 1), else_=0)),
+        )
+        .where(
+            ExecucaoExercicio.aluno_id.in_(aluno_ids),
+            ExecucaoExercicio.data >= inicio,
+            ExecucaoExercicio.data <= fim,
+        )
+        .group_by(ExecucaoExercicio.aluno_id)
+    ).all()
+
+    return {
+        aluno_id: {"total_kg": round(total or 0, 2), "estimado": bool(estimadas)}
+        for aluno_id, total, estimadas in linhas
+    }
+
+def ultima_sessao_por_aluno(
+    aluno_ids: list[int], session: Session
+) -> dict[int, SessaoTreino]:
+    """A ida mais recente de cada aluno, de qualquer época. Uma query."""
+    if not aluno_ids:
+        return {}
+
+    mais_recentes: dict[int, SessaoTreino] = {}
+    consulta = (
+        select(SessaoTreino)
+        .where(SessaoTreino.aluno_id.in_(aluno_ids))
+        .order_by(SessaoTreino.data.desc(), SessaoTreino.iniciada_em.desc())
+    )
+    for sessao in session.exec(consulta).all():
+        mais_recentes.setdefault(sessao.aluno_id, sessao)
+    return mais_recentes
+
+def situacao(
+    hoje: date, previstos: int, feitos: int, ultima: SessaoTreino | None
+) -> str:
+    """
+    Como o aluno está — derivado, como a "situação" de plano que já existia.
+
+    A ordem das perguntas é a que um personal faria: primeiro "esse aluno existe
+    no meu radar?", depois "sumiu?", e só então "está cumprindo?".
+    """
+    if ultima is None:
+        return "sem_registro"
+    if (hoje - ultima.data).days > DIAS_PARA_SUMIDO:
+        return "sumido"
+    if previstos and feitos < previstos / 2:
+        return "atencao"
+    return "em_dia"
 
 def ultima_sessao(aluno_id: int, session: Session) -> SessaoTreino | None:
     """A última ida à academia, de qualquer treino."""

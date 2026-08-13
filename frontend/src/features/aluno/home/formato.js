@@ -31,6 +31,27 @@ export function minutos(segundos) {
 export const dataCurta = (iso) =>
   iso ? iso.split("-").reverse().slice(0, 2).join("/") : "—";
 
+const HORA = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+/**
+ * "Hoje, 08:42" · "Ontem" · "há 4 dias" · "nunca treinou".
+ *
+ * `dias` vem do servidor e não é recalculado aqui: é o mesmo número que decidiu
+ * a `situacao` da linha, e o navegador do personal pode estar em outro fuso que
+ * o do aluno. Duas contas de "quantos dias" na mesma linha acabam discordando.
+ *
+ * A hora só aparece hoje. Em "há 4 dias" ela não informa nada, e ocupa a coluna
+ * que o personal usa para bater o olho.
+ */
+export function quandoFoi(dias, momento) {
+  if (dias == null) return "nunca treinou";
+  if (dias === 0) {
+    return momento ? `Hoje, ${HORA.format(new Date(momento))}` : "Hoje";
+  }
+  if (dias === 1) return "Ontem";
+  return `há ${dias} dias`;
+}
+
 /** +7.5 -> "+7,5 kg"; a unidade é opcional. */
 export function delta(valor, unidade = "") {
   if (valor == null) return null;

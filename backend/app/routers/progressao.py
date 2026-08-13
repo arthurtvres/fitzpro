@@ -6,6 +6,7 @@ para o personal, não um comando: quem decide se a carga sobe é ele, que sabe s
 o aluno bateu o alvo com técnica ou empurrando com o corpo.
 """
 
+import statistics
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends
@@ -16,6 +17,7 @@ from app.core.dependencias import aluno_do_tenant, usuario_atual
 from app.db.session import get_session
 from app.models import (
     Avaliacao,
+    SessaoTreino,
     Dieta,
     ExecucaoExercicio,
     ExecucaoRefeicao,
@@ -31,6 +33,22 @@ from app.services import series as servico_series
 from app.services import sessao as servico_sessao
 
 router = APIRouter(prefix="/alunos/{aluno_id}/progressao", tags=["progressao"])
+
+# Duração estimada de um treino que nunca foi feito: nem toda tela pode
+# esperar o aluno criar histórico. Uma série leva a execução mais o descanso, e
+# o aquecimento não pertence a nenhuma delas. São chutes honestos, e a resposta
+# diz quando o número veio daqui em vez de vir do relógio (`estimada`).
+SEGUNDOS_POR_SERIE = 150
+SEGUNDOS_DE_AQUECIMENTO = 300
+
+# Quantas sessões passadas entram na mediana de duração. Poucas demais e uma ida
+# atípica domina; muitas demais e o número para de acompanhar o aluno que mudou
+# de ritmo. A mediana, e não a média, é o que impede uma sessão esquecida aberta
+# de inflar tudo.
+SESSOES_PARA_DURACAO = 5
+
+# Quantos exercícios aparecem no cartão antes do "+N".
+PREVIA_DE_EXERCICIOS = 3
 
 # Quantos dias um recorde continua sendo novidade na Home. Passado isso ele vira
 # só um número no histórico — troféu permanente vira ruído.
@@ -345,6 +363,168 @@ def progressao_dos_treinos(
         "total": len(itens),
         "prontos_para_subir": sum(1 for i in itens if i["pronto_para_subir"]),
         "itens": itens,
+    }
+
+@router.get("/meus-treinos")
+def meus_treinos(
+    aluno_id: int,
+    data: date | None = None,
+    session: Session = Depends(get_session),
+    logado: Usuario = Depends(usuario_atual),
+):
+    """
+    "Meus treinos" do aluno: o plano dele com o estado de execução de cada um.
+
+    A tela era um índice — nome, dia e contagem de exercícios, tudo o que o
+    personal cadastrou e nada do que o aluno fez. Todo o resto já existia no
+    banco (sessão, duração, séries, execuções); só não havia rota que juntasse.
+
+    Uma requisição, como no `/resumo` e pelo mesmo motivo: é uma tela só, num
+    celular, e todos os cartões derivam do mesmo punhado de consultas. São seis,
+    independentemente de quantos treinos o aluno tiver.
+    """
+    aluno_do_tenant(aluno_id, logado, session)
+    hoje = data or date.today()
+
+    servico_sessao.encerrar_abandonadas(aluno_id, session)
+    session.commit()
+
+    treinos = desempenho.treinos_do_aluno(aluno_id, session)
+    if not treinos:
+        return {"data": hoje, "dia_semana": servico_dias.do_dia(hoje), "treinos": []}
+
+    ids = [t.id for t in treinos]
+
+    # Uma query para as prescrições de todos os treinos: o cartão mostra os
+    # primeiros nomes e a soma de séries, e pedir por treino seria N+1 numa tela
+    # que existe justamente para listar vários.
+    prescricoes: dict[int, list[TreinoExercicio]] = {}
+    for item in session.exec(
+        select(TreinoExercicio)
+        .where(TreinoExercicio.treino_id.in_(ids))
+        .order_by(TreinoExercicio.ordem, TreinoExercicio.id)
+    ).all():
+        prescricoes.setdefault(item.treino_id, []).append(item)
+
+    # Idem para as sessões: uma varredura serve à "última vez", à mediana de
+    # duração e ao estado de hoje.
+    sessoes: dict[int, list[SessaoTreino]] = {}
+    for sessao in session.exec(
+        select(SessaoTreino)
+        .where(SessaoTreino.aluno_id == aluno_id, SessaoTreino.treino_id.in_(ids))
+        .order_by(SessaoTreino.data.desc(), SessaoTreino.id.desc())
+    ).all():
+        sessoes.setdefault(sessao.treino_id, []).append(sessao)
+
+    anteriores = {
+        treino_id: next((s for s in lista if s.data < hoje), None)
+        for treino_id, lista in sessoes.items()
+    }
+    resumos = desempenho.resumo_de_sessoes(
+        [s.id for s in anteriores.values() if s], session
+    )
+    feitos_hoje = _concluidos_por_treino(aluno_id, hoje, session)
+    aberta = servico_sessao.aberta_de(aluno_id, session)
+    dia_de_hoje = servico_dias.do_dia(hoje)
+
+    cartoes = []
+    for treino in treinos:
+        itens = prescricoes.get(treino.id, [])
+        total = len(itens)
+        concluidos = feitos_hoje.get(treino.id, 0)
+        anterior = anteriores.get(treino.id)
+
+        nomes = []
+        for item in itens[:PREVIA_DE_EXERCICIOS]:
+            resumo_ex = catalogo.resumo(item.exercicio_id)
+            nomes.append(resumo_ex["nome"] if resumo_ex else item.exercicio_id)
+
+        cartoes.append(
+            {
+                "id": treino.id,
+                "nome": treino.nome,
+                "descricao": treino.descricao,
+                "dia_semana": treino.dia_semana,
+                "e_de_hoje": treino.dia_semana == dia_de_hoje,
+                "total_exercicios": total,
+                "exercicios": nomes,
+                "estado": _estado_do_treino(
+                    total,
+                    concluidos,
+                    anterior,
+                    bool(aberta and aberta.treino_id == treino.id),
+                ),
+                "concluidos_hoje": concluidos,
+                "sessao_aberta_id": (
+                    aberta.id if aberta and aberta.treino_id == treino.id else None
+                ),
+                "duracao": _duracao_do_treino(sessoes.get(treino.id, []), itens),
+                "ultima_vez": (
+                    {
+                        "data": anterior.data,
+                        "duracao_segundos": anterior.duracao_segundos,
+                        **resumos.get(anterior.id, {}),
+                    }
+                    if anterior
+                    else None
+                ),
+            }
+        )
+
+    # O de hoje primeiro; depois os da semana em ordem de dia, para a lista ler
+    # como a semana do aluno e não como ordem de cadastro.
+    # `indice` devolve None para dia desconhecido — o validator normaliza na
+    # escrita, mas dado antigo pode escapar, e None não compara com int.
+    cartoes.sort(
+        key=lambda c: (
+            not c["e_de_hoje"],
+            servico_dias.indice(c["dia_semana"]) if servico_dias.indice(c["dia_semana"]) is not None else 7,
+        )
+    )
+    return {"data": hoje, "dia_semana": dia_de_hoje, "treinos": cartoes}
+
+def _estado_do_treino(
+    total: int, concluidos: int, anterior, sessao_aberta: bool
+) -> str:
+    """
+    Derivado, nunca coluna — como `pronto_para_subir` e `situacao`.
+
+    Guardar "em andamento" num campo exigiria recalcular toda vez que o aluno
+    desmarca um exercício ou o personal acrescenta um à prescrição. Contar na
+    hora é uma linha e nunca fica velho.
+
+    Sessão aberta conta como "em andamento" mesmo com zero exercícios marcados:
+    quem apertou Iniciar está na academia, e a tela não pode oferecer "Iniciar
+    treino" de novo — o segundo início fecharia a sessão que já está correndo.
+    """
+    if total and concluidos >= total:
+        return "concluido_hoje"
+    if concluidos > 0 or sessao_aberta:
+        return "em_andamento"
+    return "pendente" if anterior else "nunca"
+
+def _duracao_do_treino(sessoes: list, prescricoes: list) -> dict:
+    """
+    Quanto tempo esse treino leva: o relógio do aluno, ou o palpite.
+
+    Só entram sessões com `duracao_segundos` — as abandonadas fecham com nulo de
+    propósito, e incluí-las como zero puxaria a estimativa para baixo justamente
+    por causa dos dias em que o aluno esqueceu de finalizar.
+    """
+    medidas = [
+        s.duracao_segundos
+        for s in sessoes[:SESSOES_PARA_DURACAO]
+        if s.duracao_segundos
+    ]
+    if medidas:
+        return {"segundos": int(statistics.median(medidas)), "estimada": False}
+
+    series = sum(p.series or 0 for p in prescricoes)
+    if not series:
+        return {"segundos": None, "estimada": True}
+    return {
+        "segundos": SEGUNDOS_DE_AQUECIMENTO + series * SEGUNDOS_POR_SERIE,
+        "estimada": True,
     }
 
 @router.get("/exercicios/{exercicio_id}")

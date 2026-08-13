@@ -477,9 +477,20 @@
 /* ---------- personal, agora pequeno e no fim ---------- */
 
 .cartao-personal.compacto {
+  width: 100%;
   align-items: center;
   gap: var(--e-3);
   padding: var(--e-3);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transicao), background var(--transicao),
+    transform var(--transicao);
+}
+.cartao-personal.compacto:hover:not(:disabled) {
+  border-color: var(--acento);
+  background: var(--superficie-2);
+  transform: translateY(-1px);
 }
 .cartao-personal.compacto .info {
   flex: 1;
@@ -524,5 +535,85 @@
     justify-content: flex-start;
     margin-left: 48px;
     width: 100%;
+  }
+}
+
+.painel-personal-aluno {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: var(--e-5);
+}
+.personal-aluno-topo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding-bottom: var(--e-4);
+  margin-bottom: var(--e-4);
+  border-bottom: 1px solid var(--borda);
+}
+.personal-aluno-topo span {
+  display: block;
+  color: var(--texto-fraco);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.personal-aluno-topo h2 {
+  margin: 2px 0;
+  font-size: 22px;
+}
+.personal-aluno-topo p {
+  margin: 0;
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+.personal-aluno-dados {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-3);
+}
+.personal-aluno-dados div {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+  padding: var(--e-3);
+  min-width: 0;
+}
+.personal-aluno-dados dt {
+  margin-bottom: 5px;
+  color: var(--texto-fraco);
+  font-size: 12px;
+}
+.personal-aluno-dados dd {
+  margin: 0;
+  font-size: 14px;
+}
+.personal-aluno-dados a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  max-width: 100%;
+  color: var(--acento-texto);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.personal-aluno-dados a:hover {
+  text-decoration: underline;
+}
+.personal-aluno-dados .sub {
+  color: var(--texto-fraco);
+}
+
+@media (max-width: 620px) {
+  .painel-personal-aluno {
+    padding: var(--e-4);
+  }
+  .personal-aluno-topo {
+    align-items: flex-start;
+  }
+  .personal-aluno-dados {
+    grid-template-columns: 1fr;
   }
 }

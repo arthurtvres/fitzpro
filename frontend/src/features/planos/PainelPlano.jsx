@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 
 import FormularioPlano from "./FormularioPlano.jsx";
 import ListaPlanos from "./ListaPlanos.jsx";
 
 /**
- * Treinos ou dietas de um aluno específico, dentro do detalhe dele:
- * formulário em cima, lista embaixo, tudo já amarrado ao aluno.
+ * Treinos ou dietas de um aluno específico, dentro da página dele.
+ *
+ * **Lista primeiro, formulário sob demanda** — o mesmo arranjo de Avaliações.
+ * Antes o formulário ficava aberto no topo e a lista embaixo, o que funcionava
+ * mal em treino e péssimo em dieta: o formulário de dieta tem macros e refeições
+ * e ocupa a tela inteira, então abrir a aba de dietas *parecia* uma tela de
+ * prescrever, com a lista escondida abaixo da dobra. A pergunta ao abrir um
+ * aluno é "o que ele já tem?", não "o que vou criar agora".
  */
 export default function PainelPlano({
   config,
@@ -18,7 +25,11 @@ export default function PainelPlano({
 
   const [itens, setItens] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  // null = formulário fechado. Um item = editando; `true` = prescrevendo novo.
   const [emEdicao, setEmEdicao] = useState(null);
+  const aberto = emEdicao !== null;
+  const editando = aberto && emEdicao !== true ? emEdicao : null;
+  const rotuloPrescrever = `Prescrever ${config.singular}`;
 
   useEffect(() => {
     let cancelado = false;
@@ -44,16 +55,17 @@ export default function PainelPlano({
 
   async function salvar(corpo) {
     try {
-      if (emEdicao) {
-        const atualizado = await recurso.atualizar(emEdicao.id, corpo);
+      if (editando) {
+        const atualizado = await recurso.atualizar(editando.id, corpo);
         setItens((atual) =>
           atual.map((i) => (i.id === atualizado.id ? atualizado : i))
         );
-        setEmEdicao(null);
       } else {
         const criado = await recurso.criar(corpo);
         setItens((atual) => [...atual, criado]);
       }
+      // Fecha nos dois casos: prescreveu, o resultado é a linha nova na lista.
+      setEmEdicao(null);
       aoErrar(null);
       return true;
     } catch (erro) {
@@ -67,7 +79,7 @@ export default function PainelPlano({
     try {
       await recurso.deletar(item.id);
       setItens((atual) => atual.filter((i) => i.id !== item.id));
-      if (emEdicao?.id === item.id) setEmEdicao(null);
+      if (editando?.id === item.id) setEmEdicao(null);
       aoErrar(null);
     } catch (erro) {
       aoErrar(erro.message);
@@ -76,15 +88,29 @@ export default function PainelPlano({
 
   return (
     <>
-      <FormularioPlano
-        config={config}
-        item={emEdicao}
-        alunoFixo={aluno}
-        aoSalvar={salvar}
-        aoCancelar={emEdicao ? () => setEmEdicao(null) : undefined}
-      />
+      <div className="barra-acoes">
+        <h2 style={{ margin: 0 }}>
+          {config.chave === "treinos" ? "Treinos" : "Dietas"}
+        </h2>
+        {!aberto && (
+          <button type="button" className="primario" onClick={() => setEmEdicao(true)}>
+            <Plus size={15} /> {rotuloPrescrever}
+          </button>
+        )}
+      </div>
 
-      <hr className="divisor" />
+      {aberto && (
+        <>
+          <FormularioPlano
+            config={config}
+            item={editando}
+            alunoFixo={aluno}
+            aoSalvar={salvar}
+            aoCancelar={() => setEmEdicao(null)}
+          />
+          <hr className="divisor" />
+        </>
+      )}
 
       <ListaPlanos
         config={config}

@@ -4,6 +4,7 @@ Nao usa TestClient (o httpx nao esta instalado): chama as funcoes de rota
 diretamente, que e onde a logica de tenant vive.
 """
 
+import inspect
 import os
 import sys
 import tempfile
@@ -17,6 +18,7 @@ from fastapi import HTTPException  # noqa: E402
 from pydantic import ValidationError  # noqa: E402
 from sqlmodel import Session, select  # noqa: E402
 
+from app.core.dependencias import personal_atual  # noqa: E402
 from app.db.session import create_db_and_tables, engine  # noqa: E402
 from app.models import (  # noqa: E402
     AvaliacaoCriacao,
@@ -35,11 +37,12 @@ from app.models import (  # noqa: E402
     UsuarioAtualizacao,
     UsuarioCriacao,
 )
-from app.routers import auth, avaliacoes, dietas, execucoes, treinos, usuarios  # noqa: E402
+from app.routers import auth, avaliacoes, dietas, execucoes, painel, treinos, usuarios  # noqa: E402
 from app.routers import progressao as progressao_rotas  # noqa: E402
 from app.seed import plano_alimentar as plano_alimentar_json  # noqa: E402
 from app.seed import refeicoes_base  # noqa: E402
 from app.services import catalogo, dias, plano_alimentar, progressao  # noqa: E402
+from app.services import desempenho as desempenho_svc  # noqa: E402
 
 create_db_and_tables()
 # O catalogo e carregado no lifespan do app; aqui as rotas sao chamadas direto,
@@ -458,6 +461,43 @@ checar("aluno GET resumo do PERSONAL", 404,
 checar("personal GET resumo de aluno de OUTRO", 404,
        lambda: progressao_rotas.resumo_do_aluno(id_bruno, None, s, ana))
 
+print("\n== meus treinos ==")
+checar("aluno GET meus-treinos de si mesmo", "ok",
+       lambda: progressao_rotas.meus_treinos(id_ana, None, s, obj_aluno))
+checar("aluno GET meus-treinos do COLEGA", 404,
+       lambda: progressao_rotas.meus_treinos(aluno2["id"], None, s, obj_aluno))
+checar("aluno GET meus-treinos do PERSONAL", 404,
+       lambda: progressao_rotas.meus_treinos(ana.id, None, s, obj_aluno))
+checar("personal GET meus-treinos de aluno de OUTRO", 404,
+       lambda: progressao_rotas.meus_treinos(id_bruno, None, s, ana))
+
+meus = progressao_rotas.meus_treinos(id_ana, None, s, ana)
+cartoes = {c["nome"]: c for c in meus["treinos"]}
+ESTADOS = {"nunca", "pendente", "em_andamento", "concluido_hoje"}
+for descricao, condicao in [
+    # A rota varre os treinos do aluno; um vazamento aqui entregaria a
+    # prescricao inteira de outro personal.
+    ("so os treinos do proprio aluno",
+     all(c["id"] in {t.id for t in desempenho_svc.treinos_do_aluno(id_ana, s)}
+         for c in meus["treinos"])),
+    ("todo cartao tem estado valido",
+     all(c["estado"] in ESTADOS for c in meus["treinos"])),
+    ("a previa nao passa de 3 exercicios",
+     all(len(c["exercicios"]) <= 3 for c in meus["treinos"])),
+    ("a previa nunca excede o total",
+     all(len(c["exercicios"]) <= c["total_exercicios"] for c in meus["treinos"])),
+    # Duracao sem historico e palpite, e a resposta tem que dizer isso: um
+    # numero estimado exibido como medido e pior que numero nenhum.
+    ("duracao sempre declara a procedencia",
+     all(isinstance(c["duracao"]["estimada"], bool) for c in meus["treinos"])),
+    ("o treino de hoje vem primeiro",
+     [c["e_de_hoje"] for c in meus["treinos"]]
+     == sorted([c["e_de_hoje"] for c in meus["treinos"]], reverse=True)),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
 resumo = progressao_rotas.resumo_do_aluno(id_ana, None, s, ana)
 hoje_canonico = dias.do_dia(date.today())
 dia_de_hoje = [d for d in resumo["semana"]["dias"] if d["data"] == date.today()][0]
@@ -517,6 +557,49 @@ for descricao, condicao in [
     # +0,2 kg e ruido de digitacao, nao conquista.
     ("+0,2 kg nao e recorde",
      progressao.recordes_da_sessao(id_ana, sem_melhora["id"], s) == []),
+]:
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+    ok, falhas = ok + bool(condicao), falhas + (not condicao)
+
+print("\n== painel do personal ==")
+# O 403 do aluno mora em `personal_atual`, que e um Depends — chamar a funcao de
+# rota direto o pula. Entao sao duas assercoes: a barreira funciona, e o painel
+# esta atras DELA (e nao do `usuario_atual`, que deixaria o aluno entrar).
+checar("aluno barrado por personal_atual", 403, lambda: personal_atual(obj_aluno))
+guarda = inspect.signature(painel.resumo_do_personal).parameters["logado"].default
+assert guarda.dependency is personal_atual, "o painel saiu de tras do personal_atual"
+print("  [PASS] o painel depende de personal_atual")
+ok += 1
+checar("personal ve o proprio painel", "ok", lambda: painel.resumo_do_personal(None, s, ana))
+
+do_ana = painel.resumo_do_personal(None, s, ana)
+do_bruno = painel.resumo_do_personal(None, s, bruno)
+nomes_ana = {l["aluno"]["nome"] for l in do_ana["alunos"]}
+nomes_bruno = {l["aluno"]["nome"] for l in do_bruno["alunos"]}
+
+for descricao, condicao in [
+    # O painel varre a carteira inteira — se o filtro de tenant falhar aqui, o
+    # personal ve os alunos do concorrente numa tabela so.
+    ("painel so traz os alunos do proprio personal", nomes_ana.isdisjoint(nomes_bruno)),
+    ("a Ana nao ve o aluno do Bruno", "Aluno do Bruno" not in nomes_ana),
+    ("o Bruno nao ve os alunos da Ana", not (nomes_bruno & nomes_ana)),
+    ("sugestoes so do proprio tenant",
+     all(x["aluno_id"] in {l["aluno"]["id"] for l in do_ana["alunos"]}
+         for x in do_ana["sugestoes"])),
+    ("a janela e de 7 dias corridos",
+     do_ana["periodo"]["dias"] == 7
+     and (date.fromisoformat(str(do_ana["periodo"]["fim"]))
+          - date.fromisoformat(str(do_ana["periodo"]["inicio"]))).days == 6),
+    ("alunos_ativos bate com a lista",
+     do_ana["periodo"]["alunos_ativos"] == len(do_ana["alunos"])),
+    ("percentual_ativos e derivado, nao inventado",
+     do_ana["periodo"]["percentual_ativos"]
+     == desempenho_svc.percentual_ou_zero(do_ana["periodo"]["alunos_que_treinaram"],
+                                          do_ana["periodo"]["alunos_ativos"])),
+    ("nenhuma linha carrega volume", all("volume_kg" not in l for l in do_ana["alunos"])),
+    ("todo aluno tem situacao valida",
+     all(l["situacao"] in ("em_dia", "atencao", "sumido", "sem_registro")
+         for l in do_ana["alunos"])),
 ]:
     print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
     ok, falhas = ok + bool(condicao), falhas + (not condicao)

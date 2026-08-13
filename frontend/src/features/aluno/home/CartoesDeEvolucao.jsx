@@ -190,32 +190,30 @@ export function CartaoRecorde({ recorde }) {
  * cabeçalho de contexto, não conteúdo — o que ele veio buscar é o treino de
  * hoje, logo abaixo. O telefone vira link de conversa direto.
  */
-export function CartaoPersonal({ personal }) {
+export function CartaoPersonal({ personal, aoAbrir }) {
   if (!personal) return null;
 
   return (
-    <section className="painel cartao-personal compacto">
+    <button type="button" className="painel cartao-personal compacto" onClick={aoAbrir}>
       <Avatar usuario={personal} tamanho={36} />
       <div className="info">
         <span className="rotulo">Seu personal</span>
         <strong>{personal.nome}</strong>
-        <a className="email-personal" href={`mailto:${personal.email}`}>
-          {personal.email}
-        </a>
+        <span className="email-personal">{personal.email}</span>
       </div>
       <div className="contato-rapido">
         {personal.telefone ? (
-          <a href={`tel:+55${personal.telefone}`}>
+          <span>
             <MessageCircle size={22} aria-hidden="true" />
             {formatarTelefone(personal.telefone)}
-          </a>
+          </span>
         ) : (
           <span aria-label="Chat do personal">
             <MessageCircle size={22} aria-hidden="true" />
           </span>
         )}
       </div>
-    </section>
+    </button>
   );
 }
 

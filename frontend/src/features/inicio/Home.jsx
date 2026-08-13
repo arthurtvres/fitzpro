@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Activity,
   CalendarDays,
   ClipboardCheck,
   Dumbbell,
-  ListPlus,
+  Eye,
   Plus,
   Salad,
+  TrendingDown,
+  TrendingUp,
   TriangleAlert,
   Users,
 } from "lucide-react";
@@ -15,6 +18,15 @@ import Badge from "../../components/Badge.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
 import { diaDeHoje, mesmoDia, rotulo as rotuloDoDia } from "../../utils/dias.js";
+import AtividadeDosAlunos from "../painel/AtividadeDosAlunos.jsx";
+
+/** "3 de 4 alunos treinaram" — o denominador é o que dá sentido ao número. */
+function notaDaAtividade(painel) {
+  if (!painel) return "sem dados";
+  const { alunos_que_treinaram: treinaram, alunos_ativos: ativos } = painel.periodo;
+  if (!ativos) return "nenhum aluno ativo";
+  return `${treinaram} de ${ativos} ${ativos === 1 ? "aluno treinou" : "alunos treinaram"}`;
+}
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -47,7 +59,9 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
   const [treinos, setTreinos] = useState([]);
   const [dietas, setDietas] = useState([]);
   const [agenda, setAgenda] = useState([]);
-  const [totalExercicios, setTotalExercicios] = useState(null);
+  // A semana da carteira: quantas sessões aconteceram, e como isso compara
+  // com a semana passada.
+  const [painel, setPainel] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [formAgendaAberto, setFormAgendaAberto] = useState(false);
   const [agendamento, setAgendamento] = useState(novoAgendamento);
@@ -59,15 +73,17 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
     Promise.all([
       api.treinos.listar(),
       api.dietas.listar(),
-      api.exercicios.listar({ limite: 1 }),
       api.agendamentos.listar({ data: hojeISO() }),
+      // Falha em silêncio: os outros cards não podem sumir se a agregação da
+      // semana der problema.
+      api.painel.resumo().catch(() => null),
     ])
-      .then(([listaTreinos, listaDietas, catalogo, listaAgenda]) => {
+      .then(([listaTreinos, listaDietas, listaAgenda, resumoDaSemana]) => {
         if (cancelado) return;
         setTreinos(listaTreinos);
         setDietas(listaDietas);
-        setTotalExercicios(catalogo.total);
         setAgenda(listaAgenda);
+        setPainel(resumoDaSemana);
         aoErrar(null);
       })
       .catch((e) => !cancelado && aoErrar(e.message))
@@ -163,10 +179,14 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
       icone: Salad,
     },
     {
-      rotulo: "Catálogo",
-      valor: totalExercicios ?? "—",
-      nota: "exercícios disponíveis",
-      icone: ListPlus,
+      // Substituiu o contador do catálogo, que era o mesmo número para todo
+      // personal e não dizia nada sobre a carteira dele. Aqui é execução: são
+      // sessões que aconteceram, não treinos montados.
+      rotulo: `Treinos em ${painel?.periodo.dias ?? 7} dias`,
+      valor: painel?.periodo.sessoes ?? "—",
+      nota: notaDaAtividade(painel),
+      icone: Activity,
+      tendencia: painel?.periodo.variacao_percentual ?? null,
     },
   ];
 
@@ -175,7 +195,7 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
       <p className="data-hoje">{dataPorExtenso()}</p>
 
       <section className="grade-metricas">
-        {metricas.map(({ rotulo, valor, nota, icone: Icone }) => (
+        {metricas.map(({ rotulo, valor, nota, icone: Icone, tendencia }) => (
           <article key={rotulo} className="painel metrica">
             <span className="icone-metrica" aria-hidden="true">
               <Icone size={18} />
@@ -183,6 +203,16 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
             <span className="rotulo">{rotulo}</span>
             <strong className="valor">{carregando ? "—" : valor}</strong>
             <span className="nota">{carregando ? "carregando" : nota}</span>
+
+            {/* Só aparece onde faz sentido comparar: um contador de cadastro
+                não tem "semana passada". */}
+            {!carregando && tendencia != null && (
+              <span className={`tendencia${tendencia >= 0 ? " positiva" : ""}`}>
+                {tendencia >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                {tendencia > 0 ? "+" : ""}
+                {tendencia}% vs. período anterior
+              </span>
+            )}
           </article>
         ))}
       </section>
@@ -284,10 +314,12 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
                   {item.treino && (
                     <button
                       type="button"
-                      className="link destaque"
+                      className="link destaque icone"
                       onClick={() => aoMontarTreino(item.treino)}
+                      aria-label={`Abrir ${item.treino.nome}`}
+                      title="Abrir treino"
                     >
-                      abrir
+                      <Eye size={16} />
                     </button>
                   )}
                 </li>
@@ -327,8 +359,14 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
                     </div>
                   </div>
                   <div className="acoes">
-                    <button className="link" onClick={() => aoAbrirAluno(aluno)}>
-                      abrir
+                    <button
+                      type="button"
+                      className="link icone"
+                      onClick={() => aoAbrirAluno(aluno)}
+                      aria-label={`Abrir ${aluno.nome}`}
+                      title="Abrir aluno"
+                    >
+                      <Eye size={16} />
                     </button>
                   </div>
                 </li>
@@ -380,8 +418,14 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
                     <td>{t.length}</td>
                     <td>{d.length}</td>
                     <td className="acoes-celula">
-                      <button className="link" onClick={() => aoAbrirAluno(aluno)}>
-                        abrir
+                      <button
+                        type="button"
+                        className="link icone"
+                        onClick={() => aoAbrirAluno(aluno)}
+                        aria-label={`Abrir ${aluno.nome}`}
+                        title="Abrir aluno"
+                      >
+                        <Eye size={16} />
                       </button>
                     </td>
                   </tr>
@@ -389,6 +433,26 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
               </tbody>
             </table>
           </div>
+        )}
+      </section>
+
+      {/* Abaixo de "Alunos" de propósito: aquela tabela é sobre cadastro (tem
+          treino? tem dieta?), esta é sobre execução (apareceu?). Ler uma
+          depois da outra responde "montei o plano" e "o plano está rodando". */}
+      <section className="painel">
+        <div className="barra-acoes">
+          <h2 style={{ margin: 0 }}>Atividade dos alunos</h2>
+          <span className="filtro">últimos {painel?.periodo.dias ?? 7} dias</span>
+        </div>
+
+        {carregando ? (
+          <Skeleton quantidade={3} />
+        ) : !painel ? (
+          <Vazio icone={Activity}>
+            Não foi possível carregar a atividade agora.
+          </Vazio>
+        ) : (
+          <AtividadeDosAlunos painel={painel} aoAbrirAluno={aoAbrirAluno} />
         )}
       </section>
     </div>

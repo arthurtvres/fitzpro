@@ -5,6 +5,8 @@ import {
   Dumbbell,
   LayoutGrid,
   LineChart,
+  PanelLeftClose,
+  PanelLeftOpen,
   Salad,
   UserCog,
   Users,
@@ -29,6 +31,8 @@ export default function Sidebar({
   resumo,
   aberta,
   aoFechar,
+  recolhida = false,
+  aoAlternarRecolhida,
   navegacao = NAVEGACAO,
   // A marca leva para o início. É prop, e não uma string fixa aqui dentro,
   // porque a Sidebar serve a dois menus e não deve conhecer a rota de nenhum.
@@ -75,7 +79,7 @@ export default function Sidebar({
   }
 
   return (
-    <aside className={`sidebar${aberta ? " aberta" : ""}`}>
+    <aside className={`sidebar${aberta ? " aberta" : ""}${recolhida ? " recolhida" : ""}`}>
       <div className="sidebar-marca">
         <button
           type="button"
@@ -83,7 +87,21 @@ export default function Sidebar({
           onClick={() => aoNavegar(rotaInicial)}
           aria-label="FitzPro — ir para o início"
         >
-          <img className="sidebar-logo" src="/fitzpro.png" alt="FitzPro" />
+          <img className="sidebar-logo sidebar-logo-cheia" src="/fitzpro.png" alt="FitzPro" />
+          <img
+            className="sidebar-logo sidebar-logo-compacta"
+            src="/fitzprotop2.png"
+            alt="FitzPro"
+          />
+        </button>
+        <button
+          type="button"
+          className="sidebar-recolher icone"
+          onClick={aoAlternarRecolhida}
+          aria-label={recolhida ? "Expandir sidebar" : "Recolher sidebar"}
+          title={recolhida ? "Expandir sidebar" : "Recolher sidebar"}
+        >
+          {recolhida ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
         </button>
       </div>
 
@@ -101,6 +119,8 @@ export default function Sidebar({
                   rotaAtiva === grupo.rota ? " ativo" : ""
                 }`}
                 onClick={() => aoNavegar(grupo.rota)}
+                aria-label={recolhida ? grupo.rotulo : undefined}
+                title={recolhida ? grupo.rotulo : undefined}
               >
                 <span className="icone" aria-hidden="true">
                   {Icone && <Icone size={18} />}
@@ -120,6 +140,8 @@ export default function Sidebar({
                 className={`grupo-titulo${temItemAtivo ? " tem-ativo" : ""}`}
                 onClick={() => clicarNoGrupo(grupo)}
                 aria-expanded={aberto}
+                aria-label={recolhida ? grupo.rotulo : undefined}
+                title={recolhida ? grupo.rotulo : undefined}
               >
                 <span className="icone" aria-hidden="true">
                   {Icone && <Icone size={18} />}

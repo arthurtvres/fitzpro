@@ -357,7 +357,10 @@ def semear_execucoes(session: Session, personal: Usuario, hoje: date):
     - carga subindo ao longo das semanas, para o grafico e o "+7,5 kg";
     - uma semana com falta, para a consistencia nao dar 100%;
     - metade das sessoes detalhada e metade estimada, para o `≈` aparecer;
-    - a ultima sessao com carga acima de tudo, para produzir um recorde.
+    - as DUAS ultimas semanas no alvo, que e o que acende "pronto para subir";
+    - a ultima acima do alvo, que e o que produz um recorde;
+    - um aluno parado ha duas semanas, para o painel do personal ter um
+      "sumido" de verdade, e nao quatro linhas identicas em "em dia".
     """
     if session.exec(select(SessaoTreino)).first():
         return  # idempotente, como o resto do seed
@@ -382,6 +385,12 @@ def semear_execucoes(session: Session, personal: Usuario, hoje: date):
             # Uma falta plantada: sem ela a consistencia daria 100% e o
             # calendario nunca mostraria o estado "perdido".
             if semana == 3 and indice_aluno == 0:
+                continue
+
+            # O ultimo aluno parou ha duas semanas. Sem alguem assim, o painel
+            # do personal nasce com todo mundo "em dia" — e o estado que mais
+            # importa para ele (quem sumiu) nunca aparece.
+            if indice_aluno == len(alunos) - 1 and semana <= 1:
                 continue
 
             for treino in treinos:
@@ -419,7 +428,9 @@ def semear_execucoes(session: Session, personal: Usuario, hoje: date):
                 detalhar = semana % 2 == 0
 
                 for prescricao in prescricoes:
-                    carga = _carga_da_semana(prescricao.carga_kg, semana)
+                    carga = _carga_da_semana(
+                        prescricao.carga_kg, semana, degrau=indice_aluno * 2.5
+                    )
                     detalhe = None
                     if detalhar and carga:
                         alvo = series.reps_prescritas(prescricao.repeticoes) or 10
@@ -460,16 +471,26 @@ def _dia_da_semana_passada(hoje: date, dia_semana: str, semanas_atras: int) -> d
     return inicio_atual - timedelta(weeks=semanas_atras) + timedelta(days=indice)
 
 
-def _carga_da_semana(carga_prescrita: float | None, semanas_atras: int) -> float | None:
+def _carga_da_semana(
+    carga_prescrita: float | None, semanas_atras: int, degrau: float = 0.0
+) -> float | None:
     """
     Carga subindo com o tempo: quanto mais recente, mais peso.
 
-    A semana 0 fica **acima** da prescrita, o que produz um recorde pessoal —
-    e o card de PR da Home tem o que mostrar.
+    A curva e desenhada para produzir os dois sinais que as telas mostram:
+
+    - **semana 1 no alvo e semana 0 acima** dele. Duas sessoes seguidas batendo
+      a carga prescrita e exatamente o que acende `pronto_para_subir`, e a
+      ultima acima de tudo e o que vira recorde pessoal.
+    - `degrau` desloca a curva por aluno, para o painel do personal nao virar
+      quatro linhas com o mesmo numero.
     """
     if carga_prescrita is None:
         return None
-    return round(max(2.5, carga_prescrita - semanas_atras * 2.5), 1)
+
+    # 0 -> +2.5 (recorde), 1 -> no alvo, 2 -> -2.5, e assim por diante.
+    ajuste = 2.5 - max(0, semanas_atras - 1) * 2.5
+    return round(max(2.5, carga_prescrita + ajuste + degrau), 1)
 
 
 if __name__ == "__main__":

@@ -335,7 +335,13 @@ export default function FormularioDieta({
           </button>
         )}
         <button type="submit" className="primario" disabled={salvando || bloqueado}>
-          {salvando ? (item ? "Salvando..." : "Criando...") : item ? "Salvar alterações" : "Criar dieta"}
+          {salvando
+            ? item
+              ? "Salvando..."
+              : "Prescrevendo..."
+            : item
+              ? "Salvar alterações"
+              : "Prescrever dieta"}
         </button>
       </div>
     </form>
