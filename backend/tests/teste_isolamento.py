@@ -8,7 +8,7 @@ import inspect
 import os
 import sys
 import tempfile
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 CAMINHO = os.path.join(tempfile.mkdtemp(), "iso.db").replace("\\", "/")
 os.environ["FITZPRO_DB_URL"] = f"sqlite:///{CAMINHO}"
@@ -32,6 +32,8 @@ from app.models import (  # noqa: E402
     SessaoTreinoCriacao,
     TreinoCriacao,
     TreinoExercicioCriacao,
+    FinalidadeDoToken,
+    TokenDeAcesso,
     TrocaDeSenha,
     Usuario,
     UsuarioAtualizacao,
@@ -41,7 +43,7 @@ from app.routers import auth, avaliacoes, dietas, execucoes, painel, treinos, us
 from app.routers import progressao as progressao_rotas  # noqa: E402
 from app.seed import plano_alimentar as plano_alimentar_json  # noqa: E402
 from app.seed import refeicoes_base  # noqa: E402
-from app.services import catalogo, dias, plano_alimentar, progressao  # noqa: E402
+from app.services import catalogo, dias, plano_alimentar, progressao, token_acesso  # noqa: E402
 from app.services import desempenho as desempenho_svc  # noqa: E402
 
 create_db_and_tables()
@@ -628,6 +630,154 @@ restantes = s.exec(select(ExecucaoRefeicao).where(
 condicao = len(restantes) == 2 and all(e.dieta_id is None for e in restantes)
 print(f"  [{'PASS' if condicao else 'FALHA'}] refeicoes sobrevivem a apagar a dieta")
 ok, falhas = ok + bool(condicao), falhas + (not condicao)
+
+# ===================== recuperacao de senha =====================
+#
+# E a primeira rota PUBLICA de escrita depois de /registrar: nao ha token, nao
+# ha `usuario_atual`, e o unico que separa o dono da conta de qualquer um e o
+# link. Por isso as invariantes do token sao teste, e nao comentario.
+
+print("\n== recuperacao de senha ==")
+carlos = registrar("Carlos", "carlos@x.com")
+
+resposta_inexistente = auth.recuperar_senha(
+    auth.PedidoDeRecuperacao(email="nao@existe.com"), s)
+resposta_existente = auth.recuperar_senha(
+    auth.PedidoDeRecuperacao(email="carlos@x.com"), s)
+
+tok = token_acesso.emitir(carlos, FinalidadeDoToken.RECUPERACAO, s)
+guardado = s.exec(select(TokenDeAcesso).where(
+    TokenDeAcesso.usuario_id == carlos.id,
+    TokenDeAcesso.usado_em.is_(None))).first()
+
+checar("senha curta demais", 400, lambda: auth.redefinir_senha(
+    auth.RedefinicaoDeSenha(token=tok, senha_nova="123"), s))
+checar("token inventado", 400, lambda: auth.redefinir_senha(
+    auth.RedefinicaoDeSenha(token="nao-existe", senha_nova="senhanova123"), s))
+checar("redefinir com token valido", "ok", lambda: auth.redefinir_senha(
+    auth.RedefinicaoDeSenha(token=tok, senha_nova="senhanova123"), s))
+checar("reusar o MESMO token", 400, lambda: auth.redefinir_senha(
+    auth.RedefinicaoDeSenha(token=tok, senha_nova="outra123456"), s))
+checar("login com a senha nova", "ok", lambda: auth.login(
+    auth.Credenciais(email="carlos@x.com", senha="senhanova123"), s))
+checar("login com a senha ANTIGA", 401, lambda: auth.login(
+    auth.Credenciais(email="carlos@x.com", senha="senha12345"), s))
+
+# Resgatados JA, e nao la embaixo junto com as outras condicoes: emitir invalida
+# os anteriores, entao qualquer emissao seguinte mataria estes dois antes de a
+# assercao rodar. Foi exatamente o que aconteceu na primeira versao deste bloco.
+antigo = token_acesso.emitir(carlos, FinalidadeDoToken.RECUPERACAO, s)
+recente = token_acesso.emitir(carlos, FinalidadeDoToken.RECUPERACAO, s)
+antigo_morreu = token_acesso.resgatar(antigo, FinalidadeDoToken.RECUPERACAO, s) is None
+recente_vale = token_acesso.resgatar(recente, FinalidadeDoToken.RECUPERACAO, s) is not None
+
+vencido = token_acesso.emitir(carlos, FinalidadeDoToken.RECUPERACAO, s)
+registro_vencido = s.exec(select(TokenDeAcesso).where(
+    TokenDeAcesso.usuario_id == carlos.id,
+    TokenDeAcesso.usado_em.is_(None))).first()
+registro_vencido.expira_em = datetime.now(timezone.utc) - timedelta(minutes=1)
+s.add(registro_vencido)
+s.commit()
+
+convite = token_acesso.emitir(carlos, FinalidadeDoToken.CONVITE, s)
+
+inativa = registrar("Inativa", "inativa@x.com")
+inativa.ativo = False
+s.add(inativa)
+s.commit()
+tokens_antes = len(s.exec(select(TokenDeAcesso)).all())
+auth.recuperar_senha(auth.PedidoDeRecuperacao(email="inativa@x.com"), s)
+
+for descricao, condicao in [
+    # Qualquer diferenca entre as duas respostas transforma a rota num
+    # verificador de quem tem conta no sistema.
+    ("email inexistente e existente respondem igual",
+     resposta_inexistente == resposta_existente),
+    # Vazar o banco nao pode entregar links funcionando.
+    ("o banco guarda o hash, nunca o token", guardado.token_hash != tok),
+    ("emitir invalida o link anterior", antigo_morreu),
+    ("o link mais novo funciona", recente_vale),
+    ("link vencido nao resgata",
+     token_acesso.resgatar(vencido, FinalidadeDoToken.RECUPERACAO, s) is None),
+    # Convite vale 7 dias; aceita-lo como recuperacao daria uma janela longa
+    # demais para trocar a senha de alguem.
+    ("convite nao serve como recuperacao",
+     token_acesso.resgatar(convite, FinalidadeDoToken.RECUPERACAO, s) is None),
+    # Redefinir senha nao pode ser a porta dos fundos de quem foi desativado.
+    ("conta inativa nao recebe link",
+     len(s.exec(select(TokenDeAcesso)).all()) == tokens_antes),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+# ===================== convite do aluno =====================
+#
+# O convite e a unica porta pela qual um ALUNO chega a ter senha propria. Duas
+# coisas nao podem falhar aqui: ninguem entra antes de aceitar, e o personal que
+# convidou nao consegue usar o convite no lugar do aluno.
+
+print("\n== convite do aluno ==")
+convidada = usuarios.criar_usuario(
+    UsuarioCriacao(nome="Marina", email="marina@x.com", telefone="11961234599"), s, ana)
+obj_convidada = s.get(Usuario, convidada["id"])
+
+checar("login antes de aceitar o convite", 401, lambda: auth.login(
+    auth.Credenciais(email="marina@x.com", senha="123456"), s))
+
+conv = token_acesso.emitir(obj_convidada, FinalidadeDoToken.CONVITE, s)
+leitura_1 = auth.ler_convite(conv, s)
+leitura_2 = auth.ler_convite(conv, s)
+
+checar("GET convite inventado", 404, lambda: auth.ler_convite("nao-existe", s))
+checar("aceitar com senha curta", 400, lambda: auth.aceitar_convite(
+    auth.AceiteDoConvite(token=conv, senha="123", aceitou_termos=True), s))
+checar("aceitar SEM os termos", 400, lambda: auth.aceitar_convite(
+    auth.AceiteDoConvite(token=conv, senha="senhadela1", aceitou_termos=False), s))
+checar("aceitar com token inventado", 400, lambda: auth.aceitar_convite(
+    auth.AceiteDoConvite(token="nao-existe", senha="senhadela1", aceitou_termos=True), s))
+checar("aceite valido", "ok", lambda: auth.aceitar_convite(
+    auth.AceiteDoConvite(token=conv, senha="senhadela1", aceitou_termos=True), s))
+checar("login com a senha que o ALUNO escolheu", "ok", lambda: auth.login(
+    auth.Credenciais(email="marina@x.com", senha="senhadela1"), s))
+checar("reusar o convite", 400, lambda: auth.aceitar_convite(
+    auth.AceiteDoConvite(token=conv, senha="outrasenha1", aceitou_termos=True), s))
+
+# Reenvio: o personal dono pode, o de fora nao — o convite e uma escrita na
+# conta do aluno, e a regra de tenant vale igual.
+checar("reenviar convite do proprio aluno", "ok",
+       lambda: usuarios.reenviar_convite(convidada["id"], s, ana))
+checar("reenviar convite de aluno ALHEIO", 404,
+       lambda: usuarios.reenviar_convite(convidada["id"], s, bruno))
+checar("aluno tentando reenviar convite", 403,
+       lambda: personal_atual(obj_convidada))
+
+s.refresh(obj_convidada)
+com_senha = usuarios.criar_usuario(
+    UsuarioCriacao(nome="Rafa", email="rafa@x.com", telefone="11961234598",
+                   senha="123456"), s, ana)
+
+for descricao, condicao in [
+    ("cadastro sem senha dispara convite", convidada["convite_enviado"] is True),
+    ("cadastro com senha nao dispara", com_senha["convite_enviado"] is False),
+    # O aceite do aluno acontece no primeiro acesso, e nao no cadastro: quem
+    # cria a conta dele e o personal, e ninguem aceita termos por outra pessoa.
+    ("aluno nasce sem ter aceitado os termos", convidada["aceitou_termos"] is False),
+    ("aceitar o convite registra o aceite", obj_convidada.aceitou_termos is True),
+    ("e registra QUANDO", obj_convidada.termos_aceitos_em is not None),
+    # A tela do convite abre dizendo "Ola, Marina" antes de a pessoa digitar
+    # nada. Se o GET gastasse o link, abrir a pagina queimaria o convite.
+    ("ler o convite duas vezes nao o gasta", leitura_1 == leitura_2),
+    ("a leitura traz o nome do personal", leitura_1["personal_nome"] == "Ana"),
+    # Endpoint publico: devolve uma lista curta e explicita, nao `publico()`.
+    # Com `publico`, um campo novo no modelo passaria a vazar para qualquer um
+    # com um link de convite.
+    ("a leitura publica nao vaza o resto do cadastro",
+     set(leitura_1) == {"nome", "email", "personal_nome"}),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
 
 print(f"\n{'='*72}\n  {ok} passaram, {falhas} falharam\n{'='*72}")
 sys.exit(1 if falhas else 0)

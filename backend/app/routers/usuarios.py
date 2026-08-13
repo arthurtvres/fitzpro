@@ -1,3 +1,5 @@
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
@@ -10,6 +12,7 @@ from app.core.dependencias import (
 from app.core.seguranca import conferir_senha, gerar_hash
 from app.db.session import get_session
 from app.models import (
+    FinalidadeDoToken,
     Papel,
     TrocaDeSenha,
     Usuario,
@@ -18,6 +21,7 @@ from app.models import (
     cartao_de_contato,
     publico,
 )
+from app.services import convite
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
@@ -70,11 +74,18 @@ def criar_usuario(
     # público e não tem dono; se o papel viesse do corpo, um personal poderia
     # criar outro personal dentro do próprio tenant — um híbrido que não é nem
     # aluno nem conta independente.
+    # Sem senha no corpo, o aluno nasce com uma que ninguem conhece: 32 bytes
+    # aleatorios com hash. E preferivel a um hash sentinela ou a um campo nulo
+    # porque `conferir_senha` e `login` continuam funcionando sem saber que este
+    # caso existe — nao ha ramo novo onde um bug de autenticacao possa nascer.
+    por_convite = not dados.senha
+    senha_inicial = dados.senha or secrets.token_urlsafe(32)
+
     novo = Usuario.model_validate(
         dados,
         update={
             "email": email,
-            "senha_hash": gerar_hash(dados.senha),
+            "senha_hash": gerar_hash(senha_inicial),
             "papel": Papel.ALUNO,
             "personal_id": tenant_de(logado),
         },
@@ -83,7 +94,33 @@ def criar_usuario(
     session.add(novo)
     session.commit()
     session.refresh(novo)
-    return publico(novo)
+
+    if por_convite:
+        convite.enviar(novo, logado, session)
+
+    return {**publico(novo), "convite_enviado": por_convite}
+
+@router.post("/{usuario_id}/convite", status_code=202)
+def reenviar_convite(
+    usuario_id: int,
+    session: Session = Depends(get_session),
+    logado: Usuario = Depends(personal_atual),
+):
+    """
+    Manda o convite de novo. O anterior deixa de valer.
+
+    Existe porque o convite dura 7 dias e e-mail se perde. Sem isto, a saida do
+    personal seria apagar e recriar o aluno — levando junto treinos, dietas e
+    todo o historico de execucao.
+    """
+    aluno = gerenciavel_ou_404(usuario_id, logado, session)
+    if aluno.papel != Papel.ALUNO:
+        raise HTTPException(status_code=400, detail="So faz sentido para aluno")
+    if not aluno.ativo:
+        raise HTTPException(status_code=400, detail="Aluno inativo")
+
+    convite.enviar(aluno, logado, session)
+    return {"detail": "Convite reenviado."}
 
 # Precisa vir antes de /{usuario_id}, senão "meu-personal" é lido como um id.
 @router.get("/meu-personal")

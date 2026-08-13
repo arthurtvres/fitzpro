@@ -324,7 +324,7 @@ export default function FormularioDieta({
 
       {bloqueado && (
         <p className="aviso-inativo">
-          {alunoAlvo.nome} está inativo. A API recusa criar ou editar dietas enquanto ele não for reativado.
+          {alunoAlvo.nome} está inativo. Reative antes de prescrever.
         </p>
       )}
 

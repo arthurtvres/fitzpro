@@ -69,6 +69,12 @@ class UsuarioBase(SQLModel):
     altura_cm: float | None = None
     objetivo: str = ""
     telefone: str | None = None
+    cpf: str | None = None
+    cep: str | None = None
+    logradouro: str | None = None
+    numero_endereco: str | None = None
+    complemento: str | None = None
+    bairro: str | None = None
     foto_url: str | None = Field(default=None, sa_column=Column(Text))
 
     @field_validator("telefone")
@@ -96,7 +102,12 @@ class UsuarioCriacao(UsuarioBase):
     aluno: o personal não precisa informar o dele para criar a conta.
     """
 
-    senha: str
+    # Opcional: sem senha, o aluno recebe um convite e define a dele no primeiro
+    # acesso. É o caminho normal desde que o convite existe — o personal digitar
+    # uma senha pelo aluno significa que duas pessoas a conhecem, e que alguém
+    # precisa ditá-la por WhatsApp. Continua aceito porque nem todo personal vai
+    # querer depender de e-mail.
+    senha: str | None = None
     telefone: str
 
     @field_validator("telefone")

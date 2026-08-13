@@ -19,7 +19,7 @@ export const CONFIG_TREINO = {
   chave: "treinos",
   singular: "treino",
   artigoIndefinido: "um",
-  textoVazio: "Nenhum treino cadastrado",
+  textoVazio: "Nenhum treino prescrito",
   recurso: api.treinos,
   // A série vem dos exercícios do catálogo; a descrição virou observação geral.
   descricaoObrigatoria: false,
@@ -39,7 +39,7 @@ export const CONFIG_DIETA = {
   chave: "dietas",
   singular: "dieta",
   artigoIndefinido: "uma",
-  textoVazio: "Nenhuma dieta cadastrada",
+  textoVazio: "Nenhuma dieta prescrita",
   recurso: api.dietas,
   descricaoObrigatoria: true,
   rotuloDescricao: "Descrição",

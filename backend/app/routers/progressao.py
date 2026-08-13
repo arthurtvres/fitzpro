@@ -149,7 +149,7 @@ def _evolucao_corporal(aluno_id: int, session: Session) -> dict | None:
         "peso_kg": campo("peso_kg"),
         "percentual_gordura": campo("percentual_gordura"),
         "massa_muscular_kg": campo("massa_muscular_kg"),
-        "imc": imc(atual.peso_kg, aluno.altura_cm if aluno else None),
+        "imc": imc(atual.peso_kg, atual.altura_cm or (aluno.altura_cm if aluno else None)),
     }
 
 def _dieta_de_hoje(aluno_id: int, dia: date, session: Session) -> dict | None:

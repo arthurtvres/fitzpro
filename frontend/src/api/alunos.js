@@ -18,6 +18,15 @@ export const alunos = {
   desativar: (id) => requisitar(`/usuarios/${id}`, { method: "DELETE" }),
   reativar: (id) => requisitar(`/usuarios/${id}/reativar`, { method: "POST" }),
 
+  /**
+   * Manda o convite de novo; o anterior deixa de valer.
+   *
+   * Existe porque o link dura 7 dias e e-mail se perde. Sem isto, a saída do
+   * personal seria apagar e recriar o aluno — levando junto treinos, dietas e
+   * todo o histórico de execução.
+   */
+  reenviarConvite: (id) => requisitar(`/usuarios/${id}/convite`, { method: "POST" }),
+
   avaliacoes: {
     listar: (alunoId) => requisitar(`/alunos/${alunoId}/avaliacoes`),
     criar: (alunoId, dados) =>

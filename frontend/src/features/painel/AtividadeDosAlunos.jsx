@@ -7,10 +7,10 @@ import Vazio from "../../components/Vazio.jsx";
 import { contar, quandoFoi } from "../aluno/home/formato.js";
 
 export const SITUACOES = {
-  sumido: { rotulo: "sumido", tom: "erro" },
-  sem_registro: { rotulo: "sem registro", tom: "neutro" },
-  atencao: { rotulo: "atenção", tom: "alerta" },
-  em_dia: { rotulo: "em dia", tom: "sucesso" },
+  sumido: { rotulo: "Sumido", tom: "erro" },
+  sem_registro: { rotulo: "Sem registro", tom: "neutro" },
+  atencao: { rotulo: "Atenção", tom: "alerta" },
+  em_dia: { rotulo: "Em dia", tom: "sucesso" },
 };
 
 /**
@@ -44,9 +44,7 @@ export default function AtividadeDosAlunos({ painel, aoAbrirAluno }) {
       <p className="resumo-atividade">
         <strong>{contar(periodo.sessoes, "treino concluído", "treinos concluídos")}</strong>
         <span aria-hidden="true">·</span>
-        <span>
-          {contar(periodo.alunos_que_treinaram, "aluno treinou", "alunos treinaram")}
-        </span>
+        <span>{periodo.alunos_que_treinaram}/{periodo.alunos_ativos} alunos treinaram</span>
         <span aria-hidden="true">·</span>
         <span>{periodo.percentual_ativos}% ativos</span>
       </p>
@@ -88,7 +86,7 @@ export default function AtividadeDosAlunos({ painel, aoAbrirAluno }) {
                         <BarraProgresso valor={linha.feitos} total={linha.previstos} />
                       </>
                     ) : (
-                      <span className="sub">sem treino montado</span>
+                      <span className="sub">Sem treino montado</span>
                     )}
                   </td>
                   <td>

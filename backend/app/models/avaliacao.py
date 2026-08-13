@@ -16,6 +16,7 @@ class AvaliacaoCriacao(SQLModel):
 
     data: date = Field(default_factory=date.today)
     peso_kg: float | None = None
+    altura_cm: float | None = None
     percentual_gordura: float | None = None
     massa_muscular_kg: float | None = None
     cintura_cm: float | None = None
@@ -39,7 +40,7 @@ class Avaliacao(AvaliacaoCriacao, table=True):
     aluno_id: int = Field(foreign_key="usuario.id", index=True)
 
 def imc(peso_kg: float | None, altura_cm: float | None) -> float | None:
-    """IMC é derivado — peso está na avaliação e altura no perfil do aluno."""
+    """IMC é derivado do peso e da altura medidos na avaliação."""
     if not peso_kg or not altura_cm:
         return None
     altura_m = altura_cm / 100

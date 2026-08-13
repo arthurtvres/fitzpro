@@ -120,36 +120,34 @@ export default function AreaDoAluno({
       case "treinos":
         return {
           titulo: "Meus treinos",
-          // Sem "toque para ver os exercícios": o cartão já é obviamente
-          // clicável, e instrução de interface no subtítulo envelhece mal.
-          subtitulo: "Seu plano de treino atual.",
+          subtitulo: "Treinos prescritos.",
         };
       case "dietas":
         return {
           titulo: "Minha dieta",
-          subtitulo: "Seu plano alimentar, refeição por refeição.",
+          subtitulo: "Plano alimentar.",
         };
       case "evolucao":
         return {
           titulo: "Minha evolução",
-          subtitulo: "Suas medidas ao longo do tempo, como registradas nas avaliações.",
+          subtitulo: "Medidas e evolução.",
         };
       case "exercicios":
         return {
           titulo: "Exercícios",
-          subtitulo: "Consulte a execução de qualquer exercício do catálogo.",
+          subtitulo: "Execução e cargas.",
         };
       case "perfil":
-        return { titulo: "Minha conta", titulo2: "", subtitulo: "Seus dados de acesso." };
+        return { titulo: "Minha conta", titulo2: "", subtitulo: "Conta e acesso." };
       case "personal":
         return {
           titulo: "Meu personal",
-          subtitulo: "Informações de contato de quem acompanha seus treinos.",
+          subtitulo: "Contato do personal.",
         };
       default:
         return {
           titulo: `Olá, ${primeiroNome}`,
-          subtitulo: "Seu treino de hoje e o resumo do seu acompanhamento.",
+          subtitulo: "Treino e acompanhamento.",
         };
     }
   }

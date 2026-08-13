@@ -13,6 +13,7 @@ import { separarImagens } from "../../utils/imagem.js";
 
 const COMPOSICAO = [
   ["peso_kg", "Peso", "kg", "Ex.: 75,4"],
+  ["altura_cm", "Altura", "cm", "Ex.: 175"],
   ["percentual_gordura", "Gordura corporal", "%", "Ex.: 21,4"],
   ["massa_muscular_kg", "Massa muscular", "kg", "Ex.: 53,1"],
 ];
@@ -47,8 +48,9 @@ const formatarAnterior = (avaliacao, campo, unidade) => {
 
 function calcularImc(peso, alturaCm) {
   const pesoNumero = decimalBR(peso);
-  if (!pesoNumero || !alturaCm) return null;
-  const alturaM = Number(alturaCm) / 100;
+  const alturaNumero = decimalBR(alturaCm);
+  if (!pesoNumero || !alturaNumero) return null;
+  const alturaM = alturaNumero / 100;
   if (!alturaM) return null;
   return (pesoNumero / (alturaM * alturaM)).toFixed(1).replace(".", ",");
 }
@@ -63,9 +65,11 @@ export default function CriarAvaliacao({ alunos, aoSalvar, aoCancelar, aoErrar }
   const inputFotosRef = useRef(null);
 
   const alunosAtivos = alunos.filter((aluno) => aluno.ativo);
-  const alunoSelecionado = alunosAtivos.find((aluno) => String(aluno.id) === alunoId);
   const avaliacaoAnterior = avaliacoesAluno[0] ?? null;
-  const imcCalculado = calcularImc(dados.peso_kg, alunoSelecionado?.altura_cm);
+  const imcCalculado = calcularImc(
+    dados.peso_kg,
+    dados.altura_cm || avaliacaoAnterior?.altura_cm
+  );
 
   useEffect(() => {
     if (!alunoId) {
@@ -158,7 +162,7 @@ export default function CriarAvaliacao({ alunos, aoSalvar, aoCancelar, aoErrar }
       aoErrar(null);
       aoSalvar?.();
     } catch (e) {
-      setErros({ formulario: e.message || "Nao foi possivel salvar a avaliacao." });
+      setErros({ formulario: e.message || "Não foi possível salvar a avaliação." });
       aoErrar(e.message);
     } finally {
       setSalvando(false);
@@ -174,8 +178,8 @@ export default function CriarAvaliacao({ alunos, aoSalvar, aoCancelar, aoErrar }
 
   const referenciaTexto = useMemo(() => {
     if (!alunoId) return null;
-    if (carregandoReferencia) return "Carregando avaliacao anterior...";
-    if (!avaliacaoAnterior) return "Esta sera a primeira avaliacao deste aluno.";
+    if (carregandoReferencia) return "Carregando avaliação anterior...";
+    if (!avaliacaoAnterior) return "Primeira avaliação.";
     return "Valores anteriores carregados como referencia.";
   }, [alunoId, carregandoReferencia, avaliacaoAnterior]);
 
@@ -237,7 +241,7 @@ export default function CriarAvaliacao({ alunos, aoSalvar, aoCancelar, aoErrar }
           {imcCalculado ? (
             <strong>{imcCalculado}</strong>
           ) : (
-            <em>Cadastre a altura do aluno para calcular o IMC.</em>
+            <em>Informe peso e altura nesta avaliação para calcular o IMC.</em>
           )}
         </div>
 
@@ -259,13 +263,13 @@ export default function CriarAvaliacao({ alunos, aoSalvar, aoCancelar, aoErrar }
         </div>
 
         <SecaoFormulario titulo="Observacoes" />
-        <Campo id="avaliacao-observacao" label="Observacao">
+        <Campo id="avaliacao-observacao" label="Observação">
           <textarea
             id="avaliacao-observacao"
             rows="4"
             value={dados.observacao}
             onChange={alterar("observacao")}
-            placeholder="Ex.: evolucao observada, condicoes da avaliacao ou observacoes relevantes."
+            placeholder="Ex.: evolução observada, condições da avaliação ou observações relevantes."
           />
         </Campo>
 
@@ -313,7 +317,7 @@ export default function CriarAvaliacao({ alunos, aoSalvar, aoCancelar, aoErrar }
           <div className="grade-fotos-avaliacao">
             {dados.fotos.map((foto) => (
               <figure key={foto.id}>
-                <img src={foto.url} alt={foto.nome || "Foto da avaliacao"} />
+                <img src={foto.url} alt={foto.nome || "Foto da avaliação"} />
                 <button
                   type="button"
                   aria-label="Remover foto"
@@ -334,7 +338,7 @@ export default function CriarAvaliacao({ alunos, aoSalvar, aoCancelar, aoErrar }
             Cancelar
           </button>
           <button type="submit" className="primario" disabled={salvando}>
-            {salvando ? "Salvando..." : "Salvar avaliacao"}
+            {salvando ? "Salvando..." : "Salvar avaliação"}
           </button>
         </div>
       </form>

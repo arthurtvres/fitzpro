@@ -12,8 +12,9 @@ def validar_aluno(aluno_id: int, logado: Usuario, session: Session) -> Usuario:
     return aluno_do_tenant(aluno_id, logado, session)
 
 def com_imc(avaliacao: Avaliacao, aluno: Usuario) -> dict:
-    """O IMC não é guardado: sai do peso da avaliação com a altura do perfil."""
-    return {**avaliacao.model_dump(), "imc": imc(avaliacao.peso_kg, aluno.altura_cm)}
+    """O IMC não é guardado: sai das medidas da avaliação."""
+    altura = avaliacao.altura_cm or aluno.altura_cm
+    return {**avaliacao.model_dump(), "imc": imc(avaliacao.peso_kg, altura)}
 
 @router.get("")
 def listar_avaliacoes(

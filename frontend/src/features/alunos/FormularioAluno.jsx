@@ -26,7 +26,6 @@ const VAZIO = {
   senha: "",
   data_nascimento: "",
   sexo: "",
-  altura_cm: "",
   objetivo: "",
   objetivo_outro: "",
   foto_url: null,
@@ -39,6 +38,8 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
   const [erros, setErros] = useState({});
   const [salvando, setSalvando] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  // O padrão é convidar: quem define a senha do aluno é o aluno.
+  const [porConvite, setPorConvite] = useState(true);
 
   const editando = Boolean(aluno);
 
@@ -59,7 +60,6 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
       senha: "",
       data_nascimento: aluno.data_nascimento ?? "",
       sexo: aluno.sexo ?? "",
-      altura_cm: aluno.altura_cm == null ? "" : String(aluno.altura_cm),
       objetivo: aluno.objetivo ? objetivoPadrao : "",
       objetivo_outro: objetivoPadrao === "Outro" ? aluno.objetivo : "",
       foto_url: aluno.foto_url ?? null,
@@ -98,19 +98,13 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
     if (!telefoneValido(dados.telefone)) {
       proximos.telefone = "Informe o telefone com DDD.";
     }
-    if (!editando && dados.senha.length < 6) {
+    if (!editando && !porConvite && dados.senha.length < 6) {
       proximos.senha = "A senha deve possuir pelo menos 6 caracteres.";
     }
     if (dados.data_nascimento) {
       const hoje = new Date().toISOString().slice(0, 10);
       if (dados.data_nascimento > hoje) {
         proximos.data_nascimento = "Informe uma data de nascimento válida.";
-      }
-    }
-    if (dados.altura_cm !== "") {
-      const altura = Number(dados.altura_cm);
-      if (!Number.isFinite(altura) || altura < 50 || altura > 260) {
-        proximos.altura_cm = "Informe uma altura válida.";
       }
     }
     if (dados.objetivo === "Outro" && !objetivoFinal) {
@@ -136,11 +130,13 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
         telefone: apenasDigitos(dados.telefone),
         data_nascimento: vazioVirandoNulo(dados.data_nascimento),
         sexo: vazioVirandoNulo(dados.sexo),
-        altura_cm: dados.altura_cm === "" ? null : Number(dados.altura_cm),
         objetivo: objetivoFinal,
         foto_url: dados.foto_url,
       };
-      if (!editando) corpo.senha = dados.senha;
+      // Sem `senha` no corpo, o servidor manda o convite. Omitir e mandar
+      // string vazia sao coisas diferentes ali — por isso a chave so aparece
+      // quando o personal escolheu definir a senha.
+      if (!editando && !porConvite) corpo.senha = dados.senha;
 
       await aoSalvar(corpo);
       if (!editando) setDados(VAZIO);
@@ -255,22 +251,6 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
           </select>
         </Campo>
 
-        <Campo id="aluno-altura" label="Altura" erro={erroDe("altura_cm")}>
-          <div className="input-com-sufixo">
-            <input
-              id="aluno-altura"
-              type="number"
-              min="50"
-              max="260"
-              step="0.5"
-              value={dados.altura_cm}
-              onChange={alterar("altura_cm")}
-              placeholder="Ex.: 175"
-              aria-invalid={Boolean(erroDe("altura_cm"))}
-            />
-            <span>cm</span>
-          </div>
-        </Campo>
       </div>
 
       <SecaoFormulario titulo="Objetivo" />
@@ -305,9 +285,28 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
         <>
           <SecaoFormulario
             titulo="Acesso ao FitzPRO"
-            descricao="O aluno usa esta senha para acessar a área dele."
+            descricao="Como o aluno vai entrar na área dele pela primeira vez."
           />
 
+          {/* Convite por padrão: senha que o personal digita é senha que duas
+              pessoas conhecem, e que alguém precisa ditar por WhatsApp. Definir
+              na hora continua possível para quem não quer depender de e-mail. */}
+          <label className="opcao-acesso">
+            <input
+              type="checkbox"
+              checked={porConvite}
+              onChange={(e) => setPorConvite(e.target.checked)}
+            />
+            <span>
+              <strong>Enviar convite por e-mail</strong>
+              <span className="ajuda-campo">
+                O aluno recebe um link, cria a própria senha e aceita os termos.
+                O link vale por 7 dias e pode ser reenviado.
+              </span>
+            </span>
+          </label>
+
+          {!porConvite && (
           <Campo id="aluno-senha" label="Senha de acesso" erro={erroDe("senha")} obrigatorio>
             <div className="input-senha">
               <input
@@ -329,6 +328,7 @@ export default function FormularioAluno({ aluno, aoSalvar, aoCancelar }) {
             </div>
             <span className="ajuda-campo">Mínimo de 6 caracteres</span>
           </Campo>
+          )}
         </>
       )}
 

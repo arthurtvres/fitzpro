@@ -796,14 +796,17 @@
   display: flex;
   align-items: center;
   gap: var(--e-2);
-  padding: 0;
+  padding: 4px 6px;
   background: none;
   border: 0;
+  border-radius: var(--raio-controle);
   color: inherit;
+  cursor: pointer;
   text-align: left;
+  transition: background 0.18s ease, color 0.18s ease;
 }
 .celula-aluno:hover {
-  background: none;
+  background: color-mix(in srgb, var(--primario) 9%, transparent);
   color: var(--acento-texto);
 }
 /* Sem o prefixo `.painel-personal`: a tabela de atividade agora aparece
@@ -831,6 +834,61 @@
 }
 .resumo-atividade [aria-hidden="true"] {
   color: var(--borda);
+}
+.titulo-com-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+.titulo-com-badge > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+}
+.badge-contagem {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--alerta) 22%, transparent);
+  color: var(--alerta-texto);
+  font-size: 12px;
+  line-height: 1;
+}
+.tooltip-info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--texto-fraco);
+  cursor: help;
+}
+.tooltip-info::after {
+  content: attr(aria-label);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 10;
+  width: 260px;
+  padding: var(--e-2) var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+  color: var(--texto);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.tooltip-info:hover::after,
+.tooltip-info:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .lista-sugestoes,
@@ -889,14 +947,249 @@
 
 /* Minha conta: dois cards empilhados, na mesma largura do formulário de aluno. */
 .perfil {
-  width: min(100%, 830px);
+  width: min(100%, 1360px);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--e-4);
 }
+.perfil-abas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-2);
+}
+.perfil-abas button {
+  min-height: 52px;
+  justify-content: flex-start;
+  gap: var(--e-2);
+  padding: 0 var(--e-4);
+  border-color: var(--borda);
+  background: var(--superficie);
+  color: var(--texto-fraco);
+  font-weight: 700;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+.perfil-abas button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--primario) 42%, var(--borda));
+  background: var(--superficie-2);
+  color: var(--texto);
+}
+.perfil-abas button.ativa {
+  border-color: var(--primario);
+  background: color-mix(in srgb, var(--primario) 18%, var(--superficie));
+  color: var(--texto);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--primario) 16%, transparent);
+}
 .painel-perfil {
+  width: min(100%, 830px);
   padding: var(--e-5);
+}
+.painel-planos {
+  width: min(100%, 1360px);
+  padding: var(--e-6);
+}
+.plano-atual-card,
+.cabecalho-planos-disponiveis {
+  border: 1px solid var(--borda);
+  background: color-mix(in srgb, var(--superficie) 84%, transparent);
+}
+.plano-atual-card {
+  display: grid;
+  gap: var(--e-4);
+  min-height: 168px;
+  padding: var(--e-6);
+  border-radius: 14px;
+  margin-bottom: var(--e-4);
+}
+.plano-atual-topo,
+.cabecalho-planos-disponiveis {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+.plano-atual-topo strong,
+.cabecalho-planos-disponiveis strong {
+  color: var(--texto-suave);
+  font-size: 16px;
+}
+.plano-atual-topo em {
+  margin-left: auto;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--sucesso) 70%, transparent);
+  border-radius: var(--raio-controle);
+  background: color-mix(in srgb, var(--sucesso) 18%, transparent);
+  color: var(--sucesso-texto);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+.icone-plano {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--aviso) 34%, transparent);
+  color: var(--aviso-texto);
+}
+.plano-atual-card h3 {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 17px;
+}
+.plano-atual-card p {
+  margin: var(--e-1) 0 0;
+  color: var(--texto-fraco);
+}
+.plano-atual-card .link {
+  justify-self: end;
+}
+.cabecalho-planos-disponiveis {
+  padding: var(--e-5) var(--e-6);
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+}
+.grade-planos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: var(--e-5);
+  padding: var(--e-4) var(--e-6) var(--e-6);
+  border: 1px solid var(--borda);
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
+  background: color-mix(in srgb, var(--superficie) 84%, transparent);
+}
+.cartao-plano {
+  display: flex;
+  min-height: 276px;
+  flex-direction: column;
+  gap: var(--e-3);
+  padding: var(--e-5);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: var(--superficie);
+}
+.cartao-plano.ativo {
+  border-color: var(--primario);
+  background: color-mix(in srgb, var(--primario) 12%, var(--superficie));
+}
+.cartao-plano.destaque {
+  border-color: color-mix(in srgb, var(--aviso) 65%, var(--borda));
+}
+.cartao-plano span {
+  display: block;
+  margin-bottom: var(--e-2);
+  color: var(--texto-fraco);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.cartao-plano h3 {
+  margin: 0;
+  font-size: 20px;
+}
+.cartao-plano strong {
+  display: block;
+  margin-top: var(--e-1);
+  font-size: 28px;
+  line-height: 1.15;
+  word-break: keep-all;
+}
+.cartao-plano strong small {
+  color: var(--texto-fraco);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.cartao-plano dl {
+  display: grid;
+  gap: var(--e-2);
+  margin: 0;
+}
+.cartao-plano dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e-2);
+  padding-top: var(--e-2);
+  border-top: 1px solid color-mix(in srgb, var(--borda) 72%, transparent);
+}
+.cartao-plano dt {
+  flex: 1;
+  color: var(--texto-fraco);
+  font-size: 12px;
+  font-weight: 700;
+}
+.cartao-plano dd {
+  flex: 0 0 auto;
+  max-width: 58%;
+  margin: 0;
+  color: var(--texto-suave);
+  text-align: right;
+  font-weight: 700;
+}
+.cartao-plano button {
+  margin-top: auto;
+}
+@media (max-width: 1180px) {
+  .grade-planos {
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .perfil-abas,
+  .grade-planos {
+    grid-template-columns: 1fr;
+  }
+  .grade-planos {
+    padding: 0 var(--e-3) var(--e-3);
+  }
+  .cabecalho-planos-disponiveis,
+  .plano-atual-card {
+    padding: var(--e-5);
+  }
+  .perfil-abas button {
+    min-height: 46px;
+  }
+}
+@media (max-width: 900px) {
+  .painel-formulario-treino {
+    padding: var(--e-4);
+  }
+  .treino-prescricao-layout {
+    grid-template-columns: 1fr;
+  }
+  .treino-exercicios-preview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .treino-preview-grid {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 560px) {
+  .painel-formulario-treino {
+    padding: var(--e-3);
+  }
+  .treino-prescricao-card,
+  .treino-exercicios-preview {
+    padding: var(--e-4);
+  }
+  .formulario-treino .linha {
+    grid-template-columns: 1fr;
+  }
+  .aluno-contexto,
+  .treino-exercicios-preview > div:first-child {
+    align-items: flex-start;
+  }
+  .treino-exercicios-preview > div:first-child {
+    flex-direction: column;
+  }
 }
 /* Confirmação discreta ao lado do botão — some ao editar de novo. */
 .aviso-salvo {
@@ -912,6 +1205,132 @@
   width: min(100%, 1020px);
   margin: 0 auto;
   padding: var(--e-5);
+}
+.painel-formulario-treino {
+  width: min(100%, 1180px);
+  margin: 0;
+  padding: var(--e-5);
+}
+.formulario-treino {
+  width: 100%;
+  margin: 0;
+}
+.treino-prescricao-layout {
+  display: grid;
+  grid-template-columns: minmax(520px, 1.35fr) minmax(320px, 0.8fr);
+  gap: var(--e-4);
+  align-items: start;
+}
+.treino-prescricao-card,
+.treino-exercicios-preview {
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: var(--superficie);
+}
+.treino-prescricao-card {
+  padding: var(--e-5);
+  min-width: 0;
+}
+.treino-prescricao-lateral {
+  display: grid;
+  gap: var(--e-4);
+}
+.aluno-contexto {
+  display: flex;
+  gap: var(--e-3);
+  align-items: flex-start;
+}
+.aluno-contexto span {
+  color: var(--texto-fraco);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.aluno-contexto strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+}
+.aluno-contexto p {
+  margin: 4px 0 0;
+  color: var(--texto-fraco);
+}
+.icone-bloco {
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primario) 20%, transparent);
+  color: var(--acento-texto);
+}
+.modelos-treino-lista {
+  display: grid;
+  gap: var(--e-2);
+}
+.modelos-treino-lista button {
+  width: 100%;
+  justify-content: flex-start;
+  gap: var(--e-2);
+  padding: var(--e-3);
+  border-color: var(--borda);
+  background: var(--superficie-2);
+  text-align: left;
+}
+.modelos-treino-lista button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primario) 55%, var(--borda));
+  background: color-mix(in srgb, var(--primario) 12%, var(--superficie-2));
+}
+.modelos-treino-lista span {
+  display: grid;
+  gap: 2px;
+}
+.modelos-treino-lista strong {
+  color: var(--texto);
+}
+.modelos-treino-lista small {
+  color: var(--texto-fraco);
+}
+.treino-exercicios-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4);
+  margin-top: var(--e-4);
+  padding: var(--e-5);
+}
+.treino-exercicios-preview > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+}
+.treino-exercicios-preview h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.treino-exercicios-preview p {
+  margin: 4px 0 0;
+  color: var(--texto-fraco);
+}
+.treino-preview-grid {
+  display: flex;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.treino-preview-grid span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  padding: 7px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  color: var(--texto-suave);
+  background: var(--superficie-2);
+  font-size: 13px;
+  font-weight: 700;
 }
 .painel > h2 {
   margin: 0 0 var(--e-3);
@@ -1064,11 +1483,84 @@
   text-decoration: underline;
 }
 
+/* Escolha entre convidar e definir a senha na hora. Caixa grande e clicavel
+   inteira: e uma decisao, nao um detalhe de formulario. */
+.opcao-acesso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-2);
+  width: 100%;
+  padding: var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie);
+  cursor: pointer;
+  margin-bottom: var(--e-3);
+}
+.opcao-acesso:hover {
+  border-color: var(--acento);
+}
+.opcao-acesso input {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  padding: 0;
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--acento-solido);
+  cursor: pointer;
+}
+.opcao-acesso > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.opcao-acesso .ajuda-campo {
+  margin: 0;
+  max-width: 58ch;
+}
+
 .apoio-login {
   color: var(--texto-fraco);
   font-size: 13px;
   margin: calc(var(--e-3) * -1) 0 var(--e-4);
 }
+/* Alinhado à direita, colado no campo de senha: é sobre aquele campo. */
+.esqueci-senha {
+  align-self: flex-end;
+  margin-top: calc(var(--e-2) * -1);
+  font-size: 13px;
+  color: var(--acento-texto);
+}
+
+/* A confirmação de "enviamos o link": o único conteúdo do cartão naquele
+   momento, então centralizado, ao contrário do resto do formulário. */
+.aviso-enviado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--e-2);
+  margin-bottom: var(--e-4);
+}
+.aviso-enviado svg {
+  color: var(--sucesso-texto);
+}
+.aviso-enviado h1 {
+  margin: 0;
+}
+.aviso-enviado p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--texto-fraco);
+  line-height: 1.55;
+}
+.aviso-enviado p.sub {
+  font-size: 12.5px;
+}
+
 /* Alternar entre entrar e criar conta: discreto, é ação secundária. */
 .alternar-auth {
   display: flex;
@@ -1454,7 +1946,7 @@
 
 .grade-metricas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--e-4);
 }
 .metrica {
@@ -1503,6 +1995,11 @@
 }
 .metrica .tendencia.positiva {
   color: var(--sucesso-texto);
+}
+@media (max-width: 900px) {
+  .grade-metricas {
+    grid-template-columns: 1fr;
+  }
 }
 
 .grade-home {
@@ -1823,6 +2320,11 @@
   font-size: 14px;
   color: var(--texto);
 }
+.ficha-aluno .pendente-acesso {
+  margin: 0 0 var(--e-2);
+  font-size: 13px;
+  color: var(--alerta-texto);
+}
 .ficha-aluno .dados-aluno dd.sub {
   color: var(--texto-fraco);
 }
@@ -1935,7 +2437,7 @@
 }
 .grade-form-aluno {
   display: grid;
-  grid-template-columns: minmax(180px, 1.15fr) minmax(140px, 0.9fr) minmax(120px, 0.65fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--e-3);
 }
 .input-com-sufixo,

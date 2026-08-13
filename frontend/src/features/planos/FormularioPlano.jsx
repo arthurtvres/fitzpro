@@ -1,12 +1,37 @@
 import { useEffect, useState } from "react";
+import { CalendarDays, ClipboardList, Dumbbell, Sparkles, UserRound } from "lucide-react";
+
 import FormularioDieta from "./FormularioDieta.jsx";
 
+const MODELOS_TREINO = [
+  {
+    nome: "Treino A - Superiores",
+    dia: "segunda",
+    descricao: "Peito, costas, ombros e bracos.",
+  },
+  {
+    nome: "Treino B - Inferiores",
+    dia: "quarta",
+    descricao: "Quadriceps, posteriores, gluteos e panturrilhas.",
+  },
+  {
+    nome: "Full body",
+    dia: "sexta",
+    descricao: "Treino geral com movimentos basicos e controle de volume.",
+  },
+  {
+    nome: "Cardio + mobilidade",
+    dia: "sabado",
+    descricao: "Condicionamento, mobilidade e recuperacao ativa.",
+  },
+];
+
 /**
- * Formulário de treino/dieta, usado em dois contextos:
- * - dentro do detalhe de um aluno (`alunoFixo`): sem seletor, aluno já definido;
+ * Formulario de treino/dieta, usado em dois contextos:
+ * - dentro do detalhe de um aluno (`alunoFixo`): sem seletor, aluno ja definido;
  * - na tela "Prescrever treino/dieta" (`alunos`): com seletor de aluno.
  *
- * Salvar fica com o pai — aqui só se monta o corpo da requisição.
+ * Salvar fica com o pai. Aqui so se monta o corpo da requisicao.
  */
 export default function FormularioPlano({
   config,
@@ -58,7 +83,15 @@ export default function FormularioPlano({
   const alterar = (campo) => (evento) =>
     setDados((atual) => ({ ...atual, [campo]: evento.target.value }));
 
-  // Só alunos ativos podem receber treino/dieta — a API recusa os inativos com 400.
+  const aplicarModelo = (modelo) =>
+    setDados((atual) => ({
+      ...atual,
+      nome: modelo.nome,
+      descricao: modelo.descricao,
+      [campoExtra.nome]: modelo.dia,
+    }));
+
+  // So alunos ativos podem receber treino/dieta; a API recusa os inativos.
   const alunosSelecionaveis = (alunos ?? []).filter((a) => a.ativo);
   const alunoAlvo = alunoFixo ?? alunos?.find((a) => String(a.id) === dados.aluno_id);
   const bloqueado = Boolean(alunoAlvo && !alunoAlvo.ativo);
@@ -73,7 +106,6 @@ export default function FormularioPlano({
         [campoExtra.nome]: campoExtra.converter(dados[campoExtra.nome]),
         aluno_id: Number(dados.aluno_id),
       });
-      // O pai devolve false quando a API recusou, para o form não se limpar à toa.
       if (salvou !== false && !item) setDados(vazio);
     } finally {
       setSalvando(false);
@@ -81,85 +113,160 @@ export default function FormularioPlano({
   }
 
   const id = (sufixo) => `${config.chave}-${sufixo}`;
+  const resumoAluno =
+    alunoAlvo &&
+    [alunoAlvo.objetivo, alunoAlvo.idade != null ? `${alunoAlvo.idade} anos` : null]
+      .filter(Boolean)
+      .join(" · ");
 
   return (
-    <form className="formulario" onSubmit={enviar}>
-      {!alunoFixo && (
-        <div className="campo">
-          <label htmlFor={id("aluno")}>Aluno</label>
-          <select
-            id={id("aluno")}
-            value={dados.aluno_id}
-            onChange={alterar("aluno_id")}
-            required
-          >
-            <option value="" disabled>
-              Selecione um aluno
-            </option>
-            {/* Em edição, o aluno atual pode estar inativo e não aparecer na
-                lista de selecionáveis — então entra explicitamente. */}
-            {item && alunoAlvo && !alunoAlvo.ativo && (
-              <option value={String(alunoAlvo.id)}>{alunoAlvo.nome} (inativo)</option>
-            )}
-            {alunosSelecionaveis.map((aluno) => (
-              <option key={aluno.id} value={String(aluno.id)}>
-                {aluno.nome}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+    <form className="formulario formulario-treino" onSubmit={enviar}>
+      <div className="treino-prescricao-layout">
+        <section className="treino-prescricao-card">
+          <div className="secao-formulario">
+            <h2>Dados do treino</h2>
+            <p>Aluno, dia e foco.</p>
+          </div>
 
-      <div className="linha">
-        <div className="campo">
-          <label htmlFor={id("nome")}>Nome</label>
-          <input id={id("nome")} value={dados.nome} onChange={alterar("nome")} required />
-        </div>
-        <div className="campo">
-          <label htmlFor={id("extra")}>{campoExtra.rotulo}</label>
-          {campoExtra.tipo === "select" ? (
-            <select
-              id={id("extra")}
-              value={dados[campoExtra.nome]}
-              onChange={alterar(campoExtra.nome)}
-            >
-              {campoExtra.opcoes.map((opcao) => (
-                <option key={opcao} value={opcao}>
-                  {opcao}
+          {!alunoFixo && (
+            <div className="campo">
+              <label htmlFor={id("aluno")}>Aluno</label>
+              <select
+                id={id("aluno")}
+                value={dados.aluno_id}
+                onChange={alterar("aluno_id")}
+                required
+              >
+                <option value="" disabled>
+                  Selecione um aluno
                 </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              id={id("extra")}
-              type="number"
-              min="0"
-              value={dados[campoExtra.nome]}
-              onChange={alterar(campoExtra.nome)}
-              required
-            />
+                {item && alunoAlvo && !alunoAlvo.ativo && (
+                  <option value={String(alunoAlvo.id)}>{alunoAlvo.nome} (inativo)</option>
+                )}
+                {alunosSelecionaveis.map((aluno) => (
+                  <option key={aluno.id} value={String(aluno.id)}>
+                    {aluno.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
-        </div>
+
+          <div className="linha">
+            <div className="campo">
+              <label htmlFor={id("nome")}>Nome do treino</label>
+              <input
+                id={id("nome")}
+                value={dados.nome}
+                onChange={alterar("nome")}
+                placeholder="Ex.: Treino A - Inferiores"
+                required
+              />
+            </div>
+            <div className="campo">
+              <label htmlFor={id("extra")}>{campoExtra.rotulo}</label>
+              {campoExtra.tipo === "select" ? (
+                <select
+                  id={id("extra")}
+                  value={dados[campoExtra.nome]}
+                  onChange={alterar(campoExtra.nome)}
+                >
+                  {campoExtra.opcoes.map((opcao) => (
+                    <option key={opcao} value={opcao}>
+                      {opcao}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id={id("extra")}
+                  type="number"
+                  min="0"
+                  value={dados[campoExtra.nome]}
+                  onChange={alterar(campoExtra.nome)}
+                  required
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="campo">
+            <label htmlFor={id("descricao")}>{config.rotuloDescricao}</label>
+            <textarea
+              id={id("descricao")}
+              rows="4"
+              value={dados.descricao}
+              onChange={alterar("descricao")}
+              required={config.descricaoObrigatoria}
+              placeholder={
+                config.descricaoObrigatoria
+                  ? ""
+                  : "Foco do treino, grupos musculares, restricoes ou observacoes."
+              }
+            />
+          </div>
+        </section>
+
+        <aside className="treino-prescricao-lateral">
+          <section className="treino-prescricao-card aluno-contexto">
+            <div className="icone-bloco">
+              <UserRound size={18} aria-hidden="true" />
+            </div>
+            <div>
+              <span>Aluno selecionado</span>
+              <strong>{alunoAlvo?.nome ?? "Nenhum aluno"}</strong>
+              <p>
+                {alunoAlvo
+                  ? resumoAluno || "Sem objetivo informado"
+                  : "Selecione um aluno."}
+              </p>
+            </div>
+          </section>
+
+          <section className="treino-prescricao-card modelos-treino">
+            <div className="secao-formulario">
+              <h2>Modelos rápidos</h2>
+            </div>
+            <div className="modelos-treino-lista">
+              {MODELOS_TREINO.map((modelo) => (
+                <button key={modelo.nome} type="button" onClick={() => aplicarModelo(modelo)}>
+                  <Sparkles size={14} aria-hidden="true" />
+                  <span>
+                    <strong>{modelo.nome}</strong>
+                    <small>{modelo.dia}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </aside>
       </div>
 
-      <div className="campo">
-        <label htmlFor={id("descricao")}>{config.rotuloDescricao}</label>
-        <textarea
-          id={id("descricao")}
-          rows="3"
-          value={dados.descricao}
-          onChange={alterar("descricao")}
-          required={config.descricaoObrigatoria}
-          placeholder={
-            config.descricaoObrigatoria ? "" : "opcional — a série vem dos exercícios"
-          }
-        />
-      </div>
+      <section className="treino-exercicios-preview">
+        <div>
+          <div className="icone-bloco">
+            <Dumbbell size={18} aria-hidden="true" />
+          </div>
+          <div>
+            <h2>Exercícios</h2>
+            <p>Séries, reps, carga e descanso.</p>
+          </div>
+        </div>
+        <div className="treino-preview-grid">
+          <span>
+            <ClipboardList size={15} aria-hidden="true" />
+            Estrutura pronta
+          </span>
+          <span>
+            <CalendarDays size={15} aria-hidden="true" />
+            {dados[campoExtra.nome]}
+          </span>
+        </div>
+      </section>
 
       {bloqueado && (
         <p className="aviso-inativo">
-          {alunoAlvo.nome} está inativo — a API recusa criar ou editar{" "}
-          {config.chave} enquanto ele não for reativado.
+          {alunoAlvo.nome} está inativo. Reative antes de prescrever.
         </p>
       )}
 

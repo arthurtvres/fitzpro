@@ -60,7 +60,7 @@ export default function ListaAlunos({
               {aluno.ativo ? (
                 <>
                   <button className="link" onClick={() => aoEditar(aluno)}>
-                    <Pencil size={14} /> editar
+                    <Pencil size={14} /> Editar
                   </button>
                   <button className="link perigo" onClick={() => aoDesativar(aluno)}>
                     <UserX size={14} /> desativar

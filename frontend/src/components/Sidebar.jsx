@@ -81,10 +81,13 @@ export default function Sidebar({
   return (
     <aside className={`sidebar${aberta ? " aberta" : ""}${recolhida ? " recolhida" : ""}`}>
       <div className="sidebar-marca">
-        <button
-          type="button"
+        <a
+          href={`#${rotaInicial}`}
           className="botao-marca"
-          onClick={() => aoNavegar(rotaInicial)}
+          onClick={(e) => {
+            e.preventDefault();
+            aoNavegar(rotaInicial);
+          }}
           aria-label="FitzPro — ir para o início"
         >
           <img className="sidebar-logo sidebar-logo-cheia" src="/fitzpro.png" alt="FitzPro" />
@@ -93,7 +96,7 @@ export default function Sidebar({
             src="/fitzprotop2.png"
             alt="FitzPro"
           />
-        </button>
+        </a>
         <button
           type="button"
           className="sidebar-recolher icone"
@@ -123,7 +126,7 @@ export default function Sidebar({
                 title={recolhida ? grupo.rotulo : undefined}
               >
                 <span className="icone" aria-hidden="true">
-                  {Icone && <Icone size={18} />}
+                  {Icone && <Icone size={21} />}
                 </span>
                 <span className="rotulo">{grupo.rotulo}</span>
               </button>
@@ -144,11 +147,11 @@ export default function Sidebar({
                 title={recolhida ? grupo.rotulo : undefined}
               >
                 <span className="icone" aria-hidden="true">
-                  {Icone && <Icone size={18} />}
+                  {Icone && <Icone size={21} />}
                 </span>
                 <span className="rotulo">{grupo.rotulo}</span>
                 <span className={`seta${aberto ? " aberta" : ""}`} aria-hidden="true">
-                  <ChevronRight size={16} />
+                  <ChevronRight size={19} />
                 </span>
               </button>
 

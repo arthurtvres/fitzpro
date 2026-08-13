@@ -207,10 +207,10 @@ export default function ViewAvaliacoes({ alunos, aoAbrirAluno, aoCriar, aoErrar 
             value={filtroPeriodo}
             onChange={(e) => setFiltroPeriodo(e.target.value)}
           >
-            <option value="">Todo periodo</option>
-            <option value="30">Ultimos 30 dias</option>
-            <option value="90">Ultimos 3 meses</option>
-            <option value="180">Ultimos 6 meses</option>
+            <option value="">Todo período</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 3 meses</option>
+            <option value="180">Últimos 6 meses</option>
             <option value="ano">Este ano</option>
           </select>
         </div>
@@ -219,8 +219,8 @@ export default function ViewAvaliacoes({ alunos, aoAbrirAluno, aoCriar, aoErrar 
       <div className="treinos-resumo">
         <span>
           {carregando
-            ? "Carregando avaliacoes"
-            : `${avaliacoesFiltradas.length} avaliacoes registradas`}
+            ? "Carregando avaliações"
+            : `${avaliacoesFiltradas.length} avaliações registradas`}
         </span>
         <div className="controle-segmentado">
           <button
@@ -228,14 +228,14 @@ export default function ViewAvaliacoes({ alunos, aoAbrirAluno, aoCriar, aoErrar 
             className={visualizacao === "evolucao" ? "ativo" : ""}
             onClick={() => setVisualizacao("evolucao")}
           >
-            Evolucao por aluno
+            Evolução por aluno
           </button>
           <button
             type="button"
             className={visualizacao === "historico" ? "ativo" : ""}
             onClick={() => setVisualizacao("historico")}
           >
-            Historico
+            Histórico
           </button>
         </div>
       </div>
@@ -244,17 +244,15 @@ export default function ViewAvaliacoes({ alunos, aoAbrirAluno, aoCriar, aoErrar 
         <Skeleton quantidade={4} />
       ) : avaliacoes.length === 0 ? (
         <Vazio icone={LineChart}>
-          <strong>Nenhuma avaliacao registrada</strong>
-          <span>
-            Registre a primeira avaliacao para comecar a acompanhar a evolucao dos seus alunos.
-          </span>
+          <strong>Nenhuma avaliação registrada</strong>
+          <span>Registre a primeira avaliação.</span>
           <button type="button" className="primario" onClick={aoCriar}>
-            + Nova avaliacao
+            + Nova avaliação
           </button>
         </Vazio>
       ) : visualizacao === "historico" ? (
         avaliacoesFiltradas.length === 0 ? (
-          <Vazio icone={Search}>Nenhuma avaliacao encontrada para esses filtros.</Vazio>
+          <Vazio icone={Search}>Nenhuma avaliação encontrada para esses filtros.</Vazio>
         ) : (
           <HistoricoAvaliacoes
             avaliacoes={avaliacoesFiltradas}
@@ -342,9 +340,9 @@ function HistoricoAvaliacoes({ avaliacoes, aoAbrirAluno, aoVisualizar }) {
                     className="botao-montar"
                     onClick={() => aoVisualizar(avaliacao)}
                   >
-                    <Eye size={14} /> Ver avaliacao
+                    <Eye size={14} /> Ver avaliação
                   </button>
-                  <button type="button" className="botao-menu-card" aria-label="Mais acoes">
+                  <button type="button" className="botao-menu-card" aria-label="Mais ações">
                     <MoreVertical size={18} />
                   </button>
                 </td>
@@ -383,16 +381,16 @@ function EvolucaoAluno({
       </label>
 
       {!alunoSelecionado || avaliacoes.length === 0 ? (
-        <Vazio icone={LineChart}>Este aluno ainda nao possui avaliacao.</Vazio>
+        <Vazio icone={LineChart}>Este aluno ainda não possui avaliação.</Vazio>
       ) : (
         <>
           <div className="evolucao-topo">
             <div>
               <h2>{alunoSelecionado.nome}</h2>
-              <span>Ultima avaliacao: {formatarDataLonga(ultima.data)}</span>
+              <span>Última avaliação: {formatarDataLonga(ultima.data)}</span>
             </div>
             <button type="button" className="botao-montar" onClick={() => aoVisualizar(ultima)}>
-              <Eye size={14} /> Ver avaliacao
+              <Eye size={14} /> Ver avaliação
             </button>
           </div>
 
@@ -421,7 +419,7 @@ function EvolucaoAluno({
                     <em>desde {formatarDataBR(anterior.data).slice(0, 5)}</em>
                   </>
                 ) : (
-                  <em>Primeira avaliacao</em>
+                  <em>Primeira avaliação</em>
                 )}
               </article>
             ))}
@@ -434,7 +432,7 @@ function EvolucaoAluno({
           />
 
           <div className="historico-aluno">
-            <h2>Historico completo</h2>
+            <h2>Histórico completo</h2>
             {avaliacoes.map((avaliacao) => (
               <button
                 type="button"
@@ -476,7 +474,7 @@ function GraficoEvolucao({ avaliacoes, metrica, setMetrica }) {
   return (
     <section className="painel grafico-evolucao">
       <div className="barra-acoes">
-        <h2>Evolucao</h2>
+        <h2>Evolução</h2>
         <select value={metrica} onChange={(e) => setMetrica(e.target.value)}>
           {METRICAS_GRAFICO.map(([campo, nome]) => (
             <option key={campo} value={campo}>
@@ -487,10 +485,10 @@ function GraficoEvolucao({ avaliacoes, metrica, setMetrica }) {
       </div>
 
       {pontos.length < 2 ? (
-        <Vazio icone={BarChart3}>Aluno com apenas uma avaliacao nessa metrica.</Vazio>
+        <Vazio icone={BarChart3}>Aluno com apenas uma avaliação nessa métrica.</Vazio>
       ) : (
         <>
-          <svg viewBox="0 0 100 100" role="img" aria-label={`Evolucao de ${rotulo}`}>
+      <svg viewBox="0 0 100 100" role="img" aria-label={`Evolução de ${rotulo}`}>
             <polyline points={path} fill="none" stroke="currentColor" strokeWidth="2" />
             {coords.map((ponto) => (
               <circle key={`${ponto.data}-${ponto.valor}`} cx={ponto.x} cy={ponto.y} r="2.8" />
@@ -514,7 +512,7 @@ function DetalheAvaliacaoModal({ avaliacao, anterior, aoFechar }) {
   const fotos = lerFotos(avaliacao.fotos);
 
   return (
-    <Modal titulo={`Avaliacao - ${formatarDataBR(avaliacao.data)}`} largo aoFechar={aoFechar}>
+    <Modal titulo={`Avaliação - ${formatarDataBR(avaliacao.data)}`} largo aoFechar={aoFechar}>
       <div className="detalhe-registro">
         <div className="avaliacao-modal-topo">
           <User size={16} />
@@ -533,7 +531,7 @@ function DetalheAvaliacaoModal({ avaliacao, anterior, aoFechar }) {
                 <th>Medida</th>
                 <th>Atual</th>
                 <th>Anterior</th>
-                <th>Variacao</th>
+                <th>Variação</th>
               </tr>
             </thead>
             <tbody>
@@ -554,7 +552,7 @@ function DetalheAvaliacaoModal({ avaliacao, anterior, aoFechar }) {
         </div>
 
         <div className="bloco-detalhe">
-          <span>Observacao</span>
+          <span>Observação</span>
           <p>{avaliacao.observacao || "-"}</p>
         </div>
 
@@ -562,7 +560,7 @@ function DetalheAvaliacaoModal({ avaliacao, anterior, aoFechar }) {
           <div className="galeria-avaliacao">
             {fotos.map((foto) => (
               <figure key={foto.id}>
-                <img src={foto.url} alt={foto.nome || "Foto da avaliacao"} />
+                <img src={foto.url} alt={foto.nome || "Foto da avaliação"} />
                 {foto.nome && <figcaption>{foto.nome}</figcaption>}
               </figure>
             ))}

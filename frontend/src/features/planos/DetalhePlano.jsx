@@ -191,7 +191,7 @@ export default function DetalhePlano({
                     ))}
                   </div>
                 ) : (
-                  <p className="plano-sem-refeicoes">Sem alimentos cadastrados.</p>
+                  <p className="plano-sem-refeicoes">Sem alimentos.</p>
                 )}
 
                 {(refeicao.proteinas || refeicao.carboidratos || refeicao.gorduras) && (

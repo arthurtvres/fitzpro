@@ -119,9 +119,9 @@ export default function ViewAlunos({
         const avaliacoes = avaliacoesPorAluno[aluno.id] ?? [];
         const ultimaAvaliacao = avaliacoes[0]?.data ?? null;
         const pendencias = [
-          totalTreinos === 0 ? "sem treino" : null,
-          totalDietas === 0 ? "sem dieta" : null,
-          avaliacoes.length === 0 ? "sem avaliação" : null,
+          totalTreinos === 0 ? "Sem treino" : null,
+          totalDietas === 0 ? "Sem dieta" : null,
+          avaliacoes.length === 0 ? "Sem avaliação" : null,
         ].filter(Boolean);
 
         return [
@@ -185,8 +185,8 @@ export default function ViewAlunos({
           pendentes === 0
             ? "Tudo em dia"
             : pendentes === 1
-              ? "aluno precisa de atenção"
-              : "alunos precisam de atenção",
+              ? "Aluno precisa de atenção"
+              : "Alunos precisam de atenção",
         Icone: AlertTriangle,
       },
     ];
@@ -391,7 +391,7 @@ function AlunoCard({
             {aluno.ativo ? "Ativo" : "Inativo"}
           </span>
         </div>
-        <p>{aluno.objetivo || "Sem objetivo cadastrado"}</p>
+        <p>{aluno.objetivo || "Sem objetivo"}</p>
 
         <div className="aluno-operacional">
           <span>

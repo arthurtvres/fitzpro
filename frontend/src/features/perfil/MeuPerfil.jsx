@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Eye, EyeOff } from "lucide-react";
+import { Check, Crown, Eye, EyeOff, IdCard, Lock } from "lucide-react";
 
 import { api } from "../../api/index.js";
 import CampoFoto from "../../components/CampoFoto.jsx";
@@ -22,11 +22,148 @@ const SENHAS_VAZIAS = { senha_atual: "", senha_nova: "", confirmacao: "" };
  * registro, preservados por `api.perfil.atualizar`.
  */
 export default function MeuPerfil({ usuario, aoAtualizar, aoErrar }) {
+  const [aba, setAba] = useState("conta");
+  const abas = [
+    ["conta", "Informações da conta", IdCard],
+    ["senha", "Senha", Lock],
+    ...(usuario.papel === "PERSONAL" ? [["plano", "Meu plano", Crown]] : []),
+  ];
+
   return (
     <div className="perfil">
-      <DadosDaConta usuario={usuario} aoAtualizar={aoAtualizar} aoErrar={aoErrar} />
-      <TrocaDeSenha usuario={usuario} aoErrar={aoErrar} />
+      <div className="perfil-abas" role="tablist" aria-label="Minha conta">
+        {abas.map(([chave, rotulo, Icone]) => (
+          <button
+            key={chave}
+            type="button"
+            className={aba === chave ? "ativa" : ""}
+            onClick={() => setAba(chave)}
+            role="tab"
+            aria-selected={aba === chave}
+          >
+            <Icone size={16} aria-hidden="true" />
+            {rotulo}
+          </button>
+        ))}
+      </div>
+
+      {aba === "conta" && (
+        <DadosDaConta usuario={usuario} aoAtualizar={aoAtualizar} aoErrar={aoErrar} />
+      )}
+      {aba === "senha" && <TrocaDeSenha usuario={usuario} aoErrar={aoErrar} />}
+      {aba === "plano" && usuario.papel === "PERSONAL" && <MeuPlano usuario={usuario} />}
     </div>
+  );
+}
+
+const PLANOS = [
+  {
+    nome: "Essencial",
+    preco: "R$ 29,90",
+    periodo: "/mês",
+    limite: "até 6 alunos",
+    custo: "R$ 4,98",
+  },
+  {
+    nome: "Pro",
+    preco: "R$ 49,90",
+    periodo: "/mês",
+    limite: "até 20 alunos",
+    custo: "R$ 2,50",
+    destaque: true,
+  },
+  {
+    nome: "Max",
+    preco: "R$ 79,90",
+    periodo: "/mês",
+    limite: "até 50 alunos",
+    custo: "R$ 1,60",
+  },
+  {
+    nome: "50+",
+    preco: "Sob consulta",
+    periodo: "",
+    limite: "sob consulta",
+    custo: "—",
+  },
+];
+
+function planoAtual(usuario) {
+  const faixa = usuario.quantidade_alunos;
+  if (faixa === "MAIS_DE_50") return "50+";
+  if (faixa === "DE_31_A_50") return "Max";
+  if (["DE_6_A_15", "DE_16_A_30"].includes(faixa)) return "Pro";
+  return "Essencial";
+}
+
+function MeuPlano({ usuario }) {
+  const atual = planoAtual(usuario);
+
+  return (
+    <section className="painel painel-perfil painel-planos">
+      <SecaoFormulario
+        titulo="Meu plano"
+        descricao="Veja seu plano atual e compare as opções disponíveis."
+      />
+
+      <div className="plano-atual-card">
+        <div className="plano-atual-topo">
+          <span className="icone-plano">
+            <Crown size={16} aria-hidden="true" />
+          </span>
+          <strong>Seu plano atual</strong>
+          <em>Ativo</em>
+        </div>
+        <div>
+          <h3>{atual}</h3>
+          <p>Renova mensalmente</p>
+        </div>
+        <button type="button" className="link perigo">
+          Cancelar assinatura
+        </button>
+      </div>
+
+      <div className="cabecalho-planos-disponiveis">
+        <span className="icone-plano">
+          <Crown size={16} aria-hidden="true" />
+        </span>
+        <strong>Planos disponíveis</strong>
+      </div>
+
+      <div className="grade-planos">
+        {PLANOS.map((plano) => {
+          const ativo = plano.nome === atual;
+          return (
+            <article
+              key={plano.nome}
+              className={`cartao-plano${ativo ? " ativo" : ""}${plano.destaque ? " destaque" : ""}`}
+            >
+              <div>
+                <span>{ativo ? "Plano atual" : "Disponível"}</span>
+                <h3>{plano.nome}</h3>
+                <strong>
+                  {plano.preco}
+                  {plano.periodo && <small>{plano.periodo}</small>}
+                </strong>
+              </div>
+              <dl>
+                <div>
+                  <dt>Alunos</dt>
+                  <dd>{plano.limite}</dd>
+                </div>
+                <div>
+                  <dt>Custo/aluno no limite</dt>
+                  <dd>{plano.custo}</dd>
+                </div>
+              </dl>
+              <button type="button" className={ativo ? "" : "primario"} disabled={ativo}>
+                {ativo ? "Plano atual" : plano.nome === "50+" ? "Falar conosco" : "Contratar"}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -37,6 +174,12 @@ function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
     data_nascimento: "",
     sexo: "",
     telefone: "",
+    cpf: "",
+    cep: "",
+    logradouro: "",
+    numero_endereco: "",
+    complemento: "",
+    bairro: "",
     foto_url: null,
   });
   const [erros, setErros] = useState({});
@@ -50,6 +193,12 @@ function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
       data_nascimento: usuario.data_nascimento ?? "",
       sexo: usuario.sexo ?? "",
       telefone: formatarTelefone(usuario.telefone ?? ""),
+      cpf: usuario.cpf ?? "",
+      cep: usuario.cep ?? "",
+      logradouro: usuario.logradouro ?? "",
+      numero_endereco: usuario.numero_endereco ?? "",
+      complemento: usuario.complemento ?? "",
+      bairro: usuario.bairro ?? "",
       foto_url: usuario.foto_url ?? null,
     });
     setErros({});
@@ -94,6 +243,12 @@ function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
         data_nascimento: dados.data_nascimento || null,
         sexo: dados.sexo || null,
         telefone: apenasDigitos(dados.telefone) || null,
+        cpf: dados.cpf.trim() || null,
+        cep: dados.cep.trim() || null,
+        logradouro: dados.logradouro.trim() || null,
+        numero_endereco: dados.numero_endereco.trim() || null,
+        complemento: dados.complemento.trim() || null,
+        bairro: dados.bairro.trim() || null,
         foto_url: dados.foto_url,
       });
       aoAtualizar(atualizado);
@@ -193,6 +348,77 @@ function DadosDaConta({ usuario, aoAtualizar, aoErrar }) {
             </select>
           </Campo>
         </div>
+
+        {usuario.papel === "PERSONAL" && (
+          <>
+            <SecaoFormulario
+              titulo="Dados do personal"
+              descricao="Dados cadastrais e endereço do seu perfil profissional."
+            />
+
+            <Campo id="perfil-cpf" label="CPF">
+              <input
+                id="perfil-cpf"
+                value={dados.cpf}
+                onChange={alterar("cpf")}
+                placeholder="000.000.000-00"
+                autoComplete="off"
+              />
+            </Campo>
+
+            <div className="grade-form-aluno">
+              <Campo id="perfil-cep" label="CEP">
+                <input
+                  id="perfil-cep"
+                  value={dados.cep}
+                  onChange={alterar("cep")}
+                  placeholder="00000-000"
+                  autoComplete="postal-code"
+                />
+              </Campo>
+
+              <Campo id="perfil-logradouro" label="Logradouro">
+                <input
+                  id="perfil-logradouro"
+                  value={dados.logradouro}
+                  onChange={alterar("logradouro")}
+                  placeholder="Rua, avenida..."
+                  autoComplete="address-line1"
+                />
+              </Campo>
+            </div>
+
+            <div className="grade-form-aluno">
+              <Campo id="perfil-numero-endereco" label="Número">
+                <input
+                  id="perfil-numero-endereco"
+                  value={dados.numero_endereco}
+                  onChange={alterar("numero_endereco")}
+                  placeholder="0000"
+                  autoComplete="address-line2"
+                />
+              </Campo>
+
+              <Campo id="perfil-complemento" label="Complemento">
+                <input
+                  id="perfil-complemento"
+                  value={dados.complemento}
+                  onChange={alterar("complemento")}
+                  placeholder="Sala, bloco, condomínio..."
+                />
+              </Campo>
+
+              <Campo id="perfil-bairro" label="Bairro">
+                <input
+                  id="perfil-bairro"
+                  value={dados.bairro}
+                  onChange={alterar("bairro")}
+                  autoComplete="address-level3"
+                />
+              </Campo>
+            </div>
+          </>
+        )}
 
         <p className="campos-obrigatorios">* Campos obrigatórios</p>
 

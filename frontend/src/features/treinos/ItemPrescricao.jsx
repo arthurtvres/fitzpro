@@ -128,12 +128,12 @@ export default function ItemPrescricao({
         )}
         {aoEditar && (
           <button className="link" onClick={() => aoEditar(item)}>
-            <Pencil size={14} /> editar
+            <Pencil size={14} /> Editar
           </button>
         )}
         {aoRemover && (
           <button className="link perigo" onClick={() => aoRemover(item)}>
-            <Trash2 size={14} /> remover
+            <Trash2 size={14} /> Remover
           </button>
         )}
       </div>

@@ -1,5 +1,7 @@
-import { Mail, Phone, Pencil } from "lucide-react";
+import { useState } from "react";
+import { Mail, Phone, Pencil, Send } from "lucide-react";
 
+import { api } from "../../api/index.js";
 import { formatarTelefone } from "../../utils/telefone.js";
 
 /** "1994-03-12" -> "12/03/1994". Sem `new Date`: ele desloca por fuso. */
@@ -23,8 +25,20 @@ const SEXOS = { F: "Feminino", M: "Masculino", OUTRO: "Outro" };
  * cadastro sem data de nascimento tem que ser visível para ser preenchido, e
  * uma ficha que esconde o que falta parece completa quando não está.
  */
-export default function FichaDoAluno({ aluno, aoEditar }) {
+export default function FichaDoAluno({ aluno, aoEditar, aoErrar }) {
+  const [convite, setConvite] = useState(null);
   const telefone = aluno.telefone ? formatarTelefone(aluno.telefone) : null;
+
+  async function reenviarConvite() {
+    setConvite("enviando");
+    try {
+      await api.alunos.reenviarConvite(aluno.id);
+      setConvite("enviado");
+    } catch (e) {
+      setConvite(null);
+      aoErrar?.(e.message);
+    }
+  }
   const nascimento = dataBR(aluno.data_nascimento);
 
   const perfil = [
@@ -32,7 +46,6 @@ export default function FichaDoAluno({ aluno, aoEditar }) {
       ? `${nascimento} (${aluno.idade} anos)`
       : nascimento],
     ["Sexo", SEXOS[aluno.sexo] ?? aluno.sexo],
-    ["Altura", aluno.altura_cm ? `${aluno.altura_cm} cm` : null],
     ["Objetivo", aluno.objetivo],
   ];
 
@@ -85,6 +98,32 @@ export default function FichaDoAluno({ aluno, aoEditar }) {
           ))}
         </dl>
       </section>
+
+      {/* Só aparece para quem ainda não entrou. Depois do primeiro acesso o
+          aluno tem senha própria, e reenviar convite não faria nada por ele —
+          o caminho dali em diante é "esqueci minha senha", que é dele. */}
+      {!aluno.aceitou_termos && aluno.ativo && (
+        <section>
+          <h3>Primeiro acesso</h3>
+          <p className="pendente-acesso">
+            {aluno.nome.split(" ")[0]} ainda não criou a senha dele. O convite
+            vale por 7 dias.
+          </p>
+          {convite === "enviado" ? (
+            <p className="sub">Convite reenviado para {aluno.email}.</p>
+          ) : (
+            <button
+              type="button"
+              className="link destaque"
+              onClick={reenviarConvite}
+              disabled={convite === "enviando"}
+            >
+              <Send size={14} aria-hidden="true" />
+              {convite === "enviando" ? "Enviando..." : "Reenviar convite"}
+            </button>
+          )}
+        </section>
+      )}
 
       {aoEditar && (
         <button type="button" className="link destaque" onClick={() => aoEditar(aluno)}>

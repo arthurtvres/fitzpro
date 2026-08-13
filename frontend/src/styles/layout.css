@@ -20,7 +20,7 @@
   padding: 30px;
   max-width: 1440px;
   width: 100%;
-  margin: 0 auto;
+  margin: 10;
 }
 
 /* ---------- header ---------- */
@@ -31,6 +31,11 @@
   z-index: 5;
   background: var(--superficie);
   border-bottom: 1px solid var(--borda);
+}
+.header-inner {
+  max-width: 1440px;
+  width: 100%;
+  margin: 10px;
   padding: var(--e-4) var(--e-5);
   display: flex;
   align-items: center;
@@ -119,13 +124,23 @@
  */
 .botao-marca,
 .botao-marca:hover,
-.botao-marca:active {
+.botao-marca:active,
+.botao-marca:visited {
   display: block;
   width: 100%;
   padding: 0;
   background: none;
   border: 0;
+  color: inherit;
+  text-decoration: none;
+  opacity: 1;
+  filter: none;
   transition: none;
+}
+.botao-marca:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 4px;
+  border-radius: var(--raio-controle);
 }
 /* Lockup horizontal (3.75:1) com fundo transparente: entra direto, sem plate. */
 .sidebar-logo {
@@ -193,7 +208,7 @@
   padding: 9px var(--e-3);
   color: var(--sidebar-texto);
   font-weight: 500;
-  font-size: 14px;
+  font-size: 15px;
   text-align: left;
   transition: background 0.2s ease, color 0.2s ease, padding 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -254,7 +269,7 @@
   border-radius: var(--raio-controle);
   padding: 7px var(--e-3);
   color: var(--sidebar-texto-fraco);
-  font-size: 13.5px;
+  font-size: 15.5px;
   font-weight: 400;
 }
 .grupo-itens .item:hover:not(:disabled) {
@@ -424,6 +439,9 @@
     padding: var(--e-4);
   }
   .header {
+    padding: 0;
+  }
+  .header-inner {
     padding: var(--e-3) var(--e-4);
     align-items: flex-start;
     flex-wrap: wrap;

@@ -9,6 +9,7 @@ import { prepararFotoDeEvolucao, separarImagens } from "../../utils/imagem.js";
 
 export const CAMPOS_AVALIACAO = [
   ["peso_kg", "Peso (kg)", "0.1"],
+  ["altura_cm", "Altura (cm)", "0.5"],
   ["percentual_gordura", "Gordura (%)", "0.1"],
   ["massa_muscular_kg", "Massa muscular (kg)", "0.1"],
   ["cintura_cm", "Cintura (cm)", "0.5"],
@@ -192,12 +193,6 @@ export default function PainelAvaliacoes({ aluno, aoErrar }) {
         )}
       </div>
 
-      {!aluno.altura_cm && (
-        <p className="aviso-inativo">
-          Sem altura no cadastro do aluno, o IMC não é calculado.
-        </p>
-      )}
-
       {editando !== null && (
         <form className="formulario" onSubmit={salvar}>
           <div className="campo">
@@ -255,13 +250,13 @@ export default function PainelAvaliacoes({ aluno, aoErrar }) {
             <div className="grade-fotos-avaliacao">
               {dados.fotos.map((foto) => (
                 <figure key={foto.id}>
-                  <img src={foto.url} alt={foto.nome || "Foto da avaliacao"} />
+                  <img src={foto.url} alt={foto.nome || "Foto da avaliação"} />
                   <button
                     type="button"
                     className="link perigo"
                     onClick={() => removerFoto(foto.id)}
                   >
-                    remover
+                    Remover
                   </button>
                 </figure>
               ))}
@@ -370,7 +365,7 @@ export default function PainelAvaliacoes({ aluno, aoErrar }) {
               <div className="galeria-avaliacao">
                 {lerFotos(visualizando.fotos).map((foto) => (
                   <figure key={foto.id}>
-                    <img src={foto.url} alt={foto.nome || "Foto da avaliacao"} />
+                    <img src={foto.url} alt={foto.nome || "Foto da avaliação"} />
                     {foto.nome && <figcaption>{foto.nome}</figcaption>}
                   </figure>
                 ))}

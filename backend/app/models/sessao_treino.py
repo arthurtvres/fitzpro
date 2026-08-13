@@ -1,5 +1,6 @@
 from datetime import date, datetime, timezone
 
+from sqlalchemy import Index
 from sqlmodel import Field, SQLModel
 
 class SessaoTreinoCriacao(SQLModel):
@@ -18,6 +19,11 @@ class SessaoTreino(SessaoTreinoCriacao, table=True):
     nasceu, e de quebra resolve a limitação de o mesmo treino só poder ser feito
     uma vez por dia.
     """
+
+    # Declarado aqui, e nao so criado na migration: indice que o modelo nao
+    # conhece o autogenerate le como sobra e escreve um drop na revisao
+    # seguinte — foi o que aconteceu, em silencio, na primeira vez.
+    __table_args__ = (Index("ix_sessaotreino_aluno_data", "aluno_id", "data"),)
 
     id: int | None = Field(default=None, primary_key=True)
     aluno_id: int = Field(foreign_key="usuario.id", index=True)

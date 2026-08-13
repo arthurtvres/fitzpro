@@ -23,6 +23,12 @@ export const perfil = {
         altura_cm: usuario.altura_cm ?? null,
         objetivo: usuario.objetivo ?? "",
         telefone: usuario.telefone ?? null,
+        cpf: usuario.cpf ?? null,
+        cep: usuario.cep ?? null,
+        logradouro: usuario.logradouro ?? null,
+        numero_endereco: usuario.numero_endereco ?? null,
+        complemento: usuario.complemento ?? null,
+        bairro: usuario.bairro ?? null,
         ...dados,
       })
     ),

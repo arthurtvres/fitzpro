@@ -31,6 +31,24 @@ SEGREDO_JWT = os.getenv("FITZPRO_SEGREDO", "desenvolvimento-trocar-em-producao")
 ALGORITMO_JWT = "HS256"
 HORAS_DE_SESSAO = 12
 
+# ---------- e-mail ----------
+#
+# O backend "console" é o padrão de propósito: quem clona o repositório
+# consegue exercitar recuperação de senha e convite sem credencial nenhuma, e
+# os testes nunca mandam mensagem para ninguém. Trocar para "smtp" em produção
+# é uma variável de ambiente, não uma mudança de código.
+EMAIL_BACKEND = os.getenv("FITZPRO_EMAIL_BACKEND", "console")
+EMAIL_REMETENTE = os.getenv("FITZPRO_EMAIL_REMETENTE", "FitzPRO <nao-responda@fitzpro.local>")
+SMTP_HOST = os.getenv("FITZPRO_SMTP_HOST", "")
+SMTP_PORTA = int(os.getenv("FITZPRO_SMTP_PORTA", "587"))
+SMTP_USUARIO = os.getenv("FITZPRO_SMTP_USUARIO", "")
+SMTP_SENHA = os.getenv("FITZPRO_SMTP_SENHA", "")
+
+# Para onde os links dos e-mails apontam. É o endereço do **front**, não o da
+# API: quem abre o link é uma pessoa no navegador, e a tela de definir senha
+# vive no React.
+URL_DO_APP = os.getenv("FITZPRO_URL_APP", "http://localhost:5173").rstrip("/")
+
 # Origens do front em desenvolvimento (Vite usa 5173; 3000 fica aqui caso o
 # projeto migre para outro dev server). Em produção isso vira variável de ambiente.
 ORIGENS_PERMITIDAS = [

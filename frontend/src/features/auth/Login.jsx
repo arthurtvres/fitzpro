@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { api } from "../../api/index.js";
 
-export default function Login({ tema, aoEntrar, aoCriarConta }) {
+export default function Login({ tema, aoEntrar, aoCriarConta, aoEsquecerSenha }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState(null);
@@ -56,6 +56,12 @@ export default function Login({ tema, aoEntrar, aoCriarConta }) {
               required
             />
           </div>
+
+          {/* Acima do botão, e não no rodapé: quem procura este link já errou
+              a senha, e a hora de encontrá-lo é olhando para o campo. */}
+          <button type="button" className="link esqueci-senha" onClick={aoEsquecerSenha}>
+            Esqueci minha senha
+          </button>
 
           <button type="submit" className="primario" disabled={entrando}>
             {entrando ? "Entrando..." : "Entrar"}

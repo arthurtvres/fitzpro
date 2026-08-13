@@ -5,8 +5,11 @@ import { ArrowLeft, Hand, LogOut, X } from "lucide-react";
 import { api } from "./api/index.js";
 import { lerToken, quandoSessaoExpirar } from "./api/client.js";
 import AreaDoAluno from "./features/aluno/AreaDoAluno.jsx";
+import AceitarConvite from "./features/auth/AceitarConvite.jsx";
 import CriarConta from "./features/auth/CriarConta.jsx";
+import EsqueciSenha from "./features/auth/EsqueciSenha.jsx";
 import Login from "./features/auth/Login.jsx";
+import RedefinirSenha from "./features/auth/RedefinirSenha.jsx";
 import Avatar from "./components/Avatar.jsx";
 import BotaoTema from "./components/BotaoTema.jsx";
 import Header from "./components/Header.jsx";
@@ -243,30 +246,28 @@ export default function App() {
             <Hand className="icone-tchau" size={20} aria-hidden="true" />
           </>
         ),
-        subtitulo: "O que está acontecendo hoje e o que precisa da sua atenção.",
+        subtitulo: "Resumo do dia.",
       };
     }
 
     if (secao === "acompanhamento") {
       return {
         titulo: "Acompanhamento",
-        subtitulo:
-          "Quem treinou, quem sumiu e onde dá para subir a carga — tudo de execução registrada.",
+        subtitulo: "Desempenho e atividade dos seus alunos.",
       };
     }
 
     if (secao === "exercicios") {
       return {
         titulo: "Catálogo de exercícios",
-        subtitulo:
-          "873 exercícios do free-exercise-db. Clique na foto para ver as instruções.",
+        subtitulo: "Exercícios e instruções.",
       };
     }
 
     if (secao === "perfil") {
       return {
         titulo: "Minha conta",
-        subtitulo: "Seus dados de acesso ao FitzPRO.",
+        subtitulo: "Conta, senha e plano.",
       };
     }
 
@@ -275,8 +276,8 @@ export default function App() {
         titulo: pagina === "criar" ? "Nova avaliação" : "Avaliações",
         subtitulo:
           pagina === "criar"
-            ? "Registre medidas, observações e acompanhe a evolução do aluno."
-            : "Acompanhe medidas e evolução física dos seus alunos.",
+            ? "Medidas e evolução."
+            : "Histórico corporal.",
         acoes:
           pagina === "criar" ? undefined : (
             <button
@@ -300,7 +301,7 @@ export default function App() {
           subtitulo: partes.join(" · "),
           acoes: (
             <button type="button" onClick={() => navegar("treinos/ver")}>
-              <ArrowLeft size={15} /> voltar
+              <ArrowLeft size={15} /> Voltar
             </button>
           ),
         };
@@ -313,18 +314,18 @@ export default function App() {
           titulo: editando ? `Editar ${config.singular}` : acaoNovo,
           subtitulo:
             alunos.length === 0
-              ? "Cadastre um aluno antes — todo treino e dieta pertence a alguém."
+              ? "Cadastre um aluno antes."
               : config.chave === "treinos"
-                ? "Escolha o aluno e prescreva um treino."
-                : "Escolha o aluno e prescreva uma dieta.",
+                ? "Aluno e rotina."
+                : "Aluno e plano alimentar.",
         };
       }
       return {
         titulo: config.chave === "treinos" ? "Treinos" : "Dietas",
         subtitulo:
           config.chave === "treinos"
-            ? "Gerencie e monte os treinos dos seus alunos."
-            : "Gerencie os planos alimentares dos seus alunos.",
+            ? "Treinos prescritos."
+            : "Dietas prescritas.",
         acoes:
           config.chave === "treinos" ? (
             <button
@@ -349,10 +350,10 @@ export default function App() {
     if (alunoIdDaRota) {
       return {
         titulo: alunoDaRota?.nome ?? "Aluno",
-        subtitulo: alunoDaRota?.objetivo || "Ficha, treinos, dietas e evolução.",
+        subtitulo: alunoDaRota?.objetivo || "Ficha do aluno.",
         acoes: (
           <button type="button" onClick={() => navegar("alunos/ver")}>
-            <ArrowLeft size={15} /> voltar
+            <ArrowLeft size={15} /> Voltar
           </button>
         ),
       };
@@ -362,14 +363,14 @@ export default function App() {
         return {
         titulo: alunoEmEdicao ? `Editar ${alunoEmEdicao.nome}` : "Cadastrar aluno",
         subtitulo: alunoEmEdicao
-          ? "Alterações valem para os treinos e dietas já vinculados."
-          : "Cadastre um novo aluno para começar a montar seus treinos e planejamentos.",
+          ? "Cadastro do aluno."
+          : "Novo aluno.",
       };
     }
 
     return {
       titulo: "Alunos",
-      subtitulo: "Gerencie seus alunos e acompanhe seus planejamentos.",
+      subtitulo: "Cadastros e planos.",
       acoes: (
         <button type="button" className="primario" onClick={() => navegar("alunos/criar")}>
           + Novo aluno
@@ -451,7 +452,7 @@ export default function App() {
             className={
               config.chave === "dietas"
                 ? "painel painel-formulario-dieta"
-                : "painel painel-estreito"
+                : "painel painel-formulario-treino"
             }
           >
             <FormularioPlano
@@ -525,6 +526,41 @@ export default function App() {
     return <div className="tela-login">Carregando...</div>;
   }
   if (!logado) {
+    // Estas duas vêm da URL, e não do `telaAuth`: o link do e-mail chega de
+    // fora, num navegador que nunca viu este app, e o token viaja na query.
+    if (rota === "redefinir") {
+      return (
+        <RedefinirSenha
+          tema={tema}
+          token={new URLSearchParams(local.search).get("token") ?? ""}
+          aoEntrar={(usuario) => {
+            setLogado(usuario);
+            // `replace`: o endereço com o token sai do histórico. Ele já foi
+            // consumido, então voltar para ele só daria "link inválido" — e um
+            // token de senha não fica na barra depois de usado.
+            irPara("/", { replace: true });
+          }}
+          aoVoltar={() => irPara("/", { replace: true })}
+        />
+      );
+    }
+    if (rota === "convite") {
+      return (
+        <AceitarConvite
+          tema={tema}
+          token={new URLSearchParams(local.search).get("token") ?? ""}
+          aoEntrar={(usuario) => {
+            setLogado(usuario);
+            irPara("/", { replace: true });
+          }}
+          aoVoltar={() => irPara("/", { replace: true })}
+        />
+      );
+    }
+    if (rota === "esqueci-senha") {
+      return <EsqueciSenha tema={tema} aoVoltar={() => irPara("/")} />;
+    }
+
     return telaAuth === "criar" ? (
       <CriarConta
         tema={tema}
@@ -532,7 +568,12 @@ export default function App() {
         aoVoltar={() => setTelaAuth("login")}
       />
     ) : (
-      <Login tema={tema} aoEntrar={setLogado} aoCriarConta={() => setTelaAuth("criar")} />
+      <Login
+        tema={tema}
+        aoEntrar={setLogado}
+        aoCriarConta={() => setTelaAuth("criar")}
+        aoEsquecerSenha={() => irPara("/esqueci-senha")}
+      />
     );
   }
 

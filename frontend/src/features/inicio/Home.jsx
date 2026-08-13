@@ -352,10 +352,10 @@ export default function Home({ alunos, aoAbrirAluno, aoMontarTreino, aoErrar }) 
                     <div className="titulo">{aluno.nome}</div>
                     <div className="descricao">
                       {t.length === 0 && d.length === 0
-                        ? "sem treino e sem dieta"
+                        ? "Sem treino e sem dieta"
                         : t.length === 0
-                          ? "sem treino"
-                          : "sem dieta"}
+                          ? "Sem treino"
+                          : "Sem dieta"}
                     </div>
                   </div>
                   <div className="acoes">

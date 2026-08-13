@@ -13,7 +13,7 @@ const GLIFOS = {
   hoje: { icone: Dot, titulo: "hoje" },
   previsto: { icone: Circle, titulo: "treino previsto" },
   perdido: { icone: X, titulo: "treino não realizado" },
-  vazio: { icone: Minus, titulo: "sem treino" },
+  vazio: { icone: Minus, titulo: "Sem treino" },
 };
 
 export default function CalendarioDaSemana({ semana }) {

@@ -28,7 +28,6 @@ export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino, aoEditar 
   const detalhes = [
     aluno.email,
     aluno.idade != null ? `${aluno.idade} anos` : null,
-    aluno.altura_cm ? `${aluno.altura_cm} cm` : null,
   ].filter(Boolean);
 
   return (
@@ -46,8 +45,7 @@ export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino, aoEditar 
 
       {!aluno.ativo && (
         <p className="aviso-inativo">
-          Aluno inativo — a API recusa criar ou editar treinos e dietas até que ele
-          seja reativado.
+          Aluno inativo. Reative antes de prescrever treino ou dieta.
         </p>
       )}
 
@@ -86,7 +84,7 @@ export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino, aoEditar 
 
       {/* key força remontar ao trocar de aba/aluno, zerando formulário e lista */}
       {aba === "informacoes" ? (
-        <FichaDoAluno aluno={aluno} aoEditar={aoEditar} />
+        <FichaDoAluno aluno={aluno} aoEditar={aoEditar} aoErrar={aoErrar} />
       ) : aba === "progressao" ? (
         <PainelProgressao key={`${aluno.id}-pr`} aluno={aluno} aoErrar={aoErrar} />
       ) : aba === "avaliacoes" ? (

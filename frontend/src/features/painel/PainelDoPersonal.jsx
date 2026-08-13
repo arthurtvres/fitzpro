@@ -2,18 +2,18 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
   CalendarX,
+  Info,
   TrendingDown,
   TrendingUp,
   TriangleAlert,
   Users,
-  Weight,
 } from "lucide-react";
 
 import { api } from "../../api/index.js";
 import Avatar from "../../components/Avatar.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
-import { contar, dataCurta, kg, numero } from "../aluno/home/formato.js";
+import { dataCurta, numero } from "../aluno/home/formato.js";
 import AtividadeDosAlunos from "./AtividadeDosAlunos.jsx";
 
 /**
@@ -44,7 +44,7 @@ export default function PainelDoPersonal({ aoAbrirAluno, aoMontarTreino, aoErrar
   if (carregando) return <Skeleton quantidade={4} />;
   if (!dados) return null;
 
-  const { periodo, volume, alunos, sugestoes } = dados;
+  const { periodo, alunos, sugestoes } = dados;
   if (periodo.alunos_ativos === 0) {
     return (
       <Vazio icone={Users}>
@@ -63,40 +63,25 @@ export default function PainelDoPersonal({ aoAbrirAluno, aoMontarTreino, aoErrar
           icone={<Activity size={18} />}
           rotulo={`Treinos em ${periodo.dias} dias`}
           valor={numero(periodo.sessoes)}
-          nota={`${periodo.alunos_que_treinaram} de ${periodo.alunos_ativos} alunos treinaram`}
+          nota={`${periodo.alunos_que_treinaram}/${periodo.alunos_ativos} alunos treinaram`}
           tendencia={periodo.variacao_percentual}
-        />
-        <Metrica
-          icone={<Weight size={18} />}
-          rotulo="Volume da carteira"
-          valor={kg(volume.total_kg, { estimado: volume.estimado })}
-          nota="somado de todos os alunos"
-          tendencia={volume.variacao_percentual}
         />
         <Metrica
           icone={<TriangleAlert size={18} />}
           rotulo="Precisam de atenção"
           valor={numero(precisamDeAtencao.length)}
-          nota={
-            precisamDeAtencao.length === 0
-              ? "todos em dia"
-              : contar(precisamDeAtencao.length, "aluno", "alunos")
-          }
+          nota={precisamDeAtencao.length === 0 ? "Tudo em dia" : null}
         />
         <Metrica
           icone={<TrendingUp size={18} />}
           rotulo="Prontos para subir"
           valor={numero(dados.total_sugestoes)}
-          nota="exercícios com carga batida"
+          nota="cargas para progredir"
         />
       </div>
 
       <section className="painel">
-        <h2 className="titulo-secao">Atividade dos alunos</h2>
-        <p className="apoio-secao">
-          Ordenados por quem precisa de você primeiro — quem sumiu no topo, quem
-          está em dia por último. Toque no nome para abrir o aluno.
-        </p>
+        <h2 className="titulo-secao">ATIVIDADE DOS ALUNOS</h2>
 
         <AtividadeDosAlunos painel={dados} aoAbrirAluno={aoAbrirAluno} />
       </section>
@@ -132,7 +117,7 @@ export default function PainelDoPersonal({ aoAbrirAluno, aoMontarTreino, aoErrar
                   className="link destaque"
                   onClick={() => aoMontarTreino({ id: s.treino_id, nome: s.treino_nome })}
                 >
-                  ajustar
+                  Ajustar
                 </button>
               </li>
             ))}
@@ -142,13 +127,20 @@ export default function PainelDoPersonal({ aoAbrirAluno, aoMontarTreino, aoErrar
 
       {precisamDeAtencao.length > 0 && (
         <section className="painel">
-          <h2 className="titulo-secao">
-            <CalendarX size={16} aria-hidden="true" /> Quem sumiu
+          <h2 className="titulo-secao titulo-com-badge">
+            <span>
+              <CalendarX size={16} aria-hidden="true" /> QUEM SUMIU
+            </span>
+            <strong className="badge-contagem">{precisamDeAtencao.length}</strong>
+            <span
+              className="tooltip-info"
+              tabIndex={0}
+              aria-label="Sem registro há mais de dez dias ou muito abaixo do previsto na semana."
+            >
+              <Info size={14} aria-hidden="true" />
+            </span>
           </h2>
-          <p className="apoio-secao">
-            Sem registro há mais de dez dias, ou muito abaixo do previsto na
-            semana. Uma mensagem costuma resolver.
-          </p>
+          <p className="apoio-secao">Sem treino há +10 dias</p>
 
           <ul className="lista-sumidos">
             {precisamDeAtencao.map((linha) => (
@@ -164,7 +156,7 @@ export default function PainelDoPersonal({ aoAbrirAluno, aoMontarTreino, aoErrar
                 </div>
                 {linha.aluno.telefone && (
                   <a className="link destaque" href={`tel:+55${linha.aluno.telefone}`}>
-                    ligar
+                    Ligar
                   </a>
                 )}
               </li>
@@ -184,7 +176,7 @@ function Metrica({ icone, rotulo, valor, nota, tendencia }) {
       </span>
       <span className="rotulo">{rotulo}</span>
       <strong className="valor">{valor}</strong>
-      <span className="nota">{nota}</span>
+      {nota && <span className="nota">{nota}</span>}
       {tendencia != null && (
         <span className={`tendencia${tendencia >= 0 ? " positiva" : ""}`}>
           {tendencia >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}

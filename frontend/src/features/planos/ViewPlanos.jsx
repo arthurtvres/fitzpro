@@ -308,7 +308,11 @@ function DietasPage({
       </div>
 
       <div className="treinos-resumo">
-        <span>{carregando ? "Carregando dietas" : pluralDietas(dietasFiltradas.length)}</span>
+        <span>
+          {carregando
+            ? "Carregando dietas"
+            : `${dietasFiltradas.length} dietas prescritas`}
+        </span>
       </div>
 
       {carregando ? (
@@ -317,8 +321,8 @@ function DietasPage({
         </div>
       ) : dietas.length === 0 ? (
         <Vazio icone={Salad}>
-          <strong>Nenhuma dieta cadastrada</strong>
-          <span>Crie um plano alimentar para começar a organizar as refeições do aluno.</span>
+          <strong>Nenhuma dieta prescrita</strong>
+          <span>Prescreva a primeira dieta.</span>
           <button type="button" className="primario" onClick={aoCriar}>
             + Prescrever dieta
           </button>
@@ -577,7 +581,7 @@ function TreinosPage({
         <span>
           {carregando
             ? "Carregando treinos"
-            : `${treinosFiltrados.length} treinos cadastrados`}
+            : `${treinosFiltrados.length} treinos prescritos`}
         </span>
         <div className="controle-segmentado">
           <button
@@ -601,7 +605,7 @@ function TreinosPage({
         <div className="aviso-inline">
           <span>{erroLocal}</span>
           <button type="button" className="link" onClick={() => setErroLocal(null)}>
-            fechar
+            Fechar
           </button>
         </div>
       )}
@@ -610,8 +614,8 @@ function TreinosPage({
         <TreinosSkeleton />
       ) : treinos.length === 0 ? (
         <Vazio icone={Dumbbell}>
-          <strong>Nenhum treino cadastrado</strong>
-          <span>Crie o primeiro treino para começar a montar os exercícios dos seus alunos.</span>
+          <strong>Nenhum treino prescrito</strong>
+          <span>Prescreva o primeiro treino.</span>
           <button type="button" className="primario" onClick={aoCriar}>
             + Prescrever treino
           </button>
