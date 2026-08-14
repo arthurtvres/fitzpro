@@ -1,4 +1,4 @@
-import { Eye, ListPlus, Pencil, Trash2 } from "lucide-react";
+import { Eye, ListPlus, Pencil, Printer, Trash2 } from "lucide-react";
 
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
@@ -17,6 +17,7 @@ export default function ListaPlanos({
   aoRemover,
   aoAbrir,
   aoVisualizar,
+  aoImprimir,
   textoVazio,
 }) {
   if (carregando) return <Skeleton quantidade={3} />;
@@ -56,6 +57,11 @@ export default function ListaPlanos({
             {aoAbrir && (
               <button className="link destaque" onClick={() => aoAbrir(item)}>
                 <ListPlus size={14} /> montar
+              </button>
+            )}
+            {aoImprimir && (
+              <button className="link" onClick={() => aoImprimir(item)}>
+                <Printer size={14} /> PDF
               </button>
             )}
             <button className="link" onClick={() => aoEditar(item)}>

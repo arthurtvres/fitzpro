@@ -1,22 +1,16 @@
+/**
+ * Plano novo nasce **sem refeição nenhuma**.
+ *
+ * Antes vinha um "Cafe da manha" às 07:30 já montado. Quem prescreve para
+ * alguém que treina à noite tinha que apagar aquilo antes de começar, e o dado
+ * de exemplo corria o risco de ser salvo por engano — plano com refeição que
+ * ninguém escreveu é pior que plano vazio.
+ */
 export const criarPlanoAlimentarVazio = () => ({
   proteinas: "",
   carboidratos: "",
   gorduras: "",
-  refeicoes: [
-    {
-      id: `ref-${Date.now()}`,
-      horario: "07:30",
-      nome: "Cafe da manha",
-      calorias: "",
-      proteinas: "",
-      carboidratos: "",
-      gorduras: "",
-      observacao: "",
-      alimentos: [
-        { id: `alim-${Date.now()}`, nome: "", quantidade: "", unidade: "unidade" },
-      ],
-    },
-  ],
+  refeicoes: [],
 });
 
 export function serializarPlanoAlimentar(plano) {

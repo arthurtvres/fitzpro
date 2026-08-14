@@ -1,5 +1,7 @@
 from datetime import date
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlmodel import Session, select
@@ -43,6 +45,10 @@ def listar_dietas(
     aluno_id: int | None = None,
     session: Session = Depends(get_session),
     logado: Usuario = Depends(usuario_atual),
+    # No fim da assinatura de proposito: os testes chamam as rotas
+    # posicionalmente, e um parametro novo no meio empurraria `session` e
+    # `logado` de lugar — quebrando tudo com um erro que nao aponta para aqui.
+    incluir_arquivados: bool = False,
 ):
     # O aluno logado só enxerga as dietas dele, peça o que pedir.
     if logado.papel == Papel.ALUNO:
@@ -56,6 +62,12 @@ def listar_dietas(
     )
     if aluno_id is not None:
         consulta = consulta.where(Dieta.aluno_id == aluno_id)
+
+    # Arquivada sai das listas por padrao. Para o ALUNO nao ha escapatoria: o
+    # plano foi tirado do ar, e um parametro na URL nao pode traze-lo de volta.
+    if logado.papel == Papel.ALUNO or not incluir_arquivados:
+        consulta = consulta.where(Dieta.arquivado_em.is_(None))
+
     dietas = session.exec(consulta).all()
 
     # Uma agregada para o que já foi consumido hoje, pelo mesmo motivo da
@@ -126,6 +138,42 @@ def atualizar_dieta(
     session.commit()
     session.refresh(dieta)
     return dieta
+
+
+@router.post("/{dieta_id}/arquivar")
+def arquivar_dieta(
+    dieta_id: int,
+    session: Session = Depends(get_session),
+    logado: Usuario = Depends(personal_atual),
+):
+    """
+    Tira o plano do ar sem apagar nada.
+
+    Existe porque excluir era a unica saida para um plano que acabou — e
+    excluir leva junto o vinculo: as execucoes sobrevivem, mas perdem o nome do
+    que foi feito. Arquivado, ele some das listas e da tela do aluno, e segue
+    inteiro para consulta.
+    """
+    alvo = buscar_ou_404(dieta_id, logado, session)
+    alvo.arquivado_em = datetime.now(timezone.utc)
+    session.add(alvo)
+    session.commit()
+    session.refresh(alvo)
+    return alvo
+
+@router.post("/{dieta_id}/desarquivar")
+def desarquivar_dieta(
+    dieta_id: int,
+    session: Session = Depends(get_session),
+    logado: Usuario = Depends(personal_atual),
+):
+    """Volta o plano para as listas e para o aluno."""
+    alvo = buscar_ou_404(dieta_id, logado, session)
+    alvo.arquivado_em = None
+    session.add(alvo)
+    session.commit()
+    session.refresh(alvo)
+    return alvo
 
 @router.delete("/{dieta_id}")
 def deletar_dieta(

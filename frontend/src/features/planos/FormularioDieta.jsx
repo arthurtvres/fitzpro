@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { MoreVertical, Plus, Trash2 } from "lucide-react";
 
+import BuscaDeAlimento from "./BuscaDeAlimento.jsx";
+import { macrosDaPorcao, somarMacros } from "./macros.js";
+
 import {
   criarPlanoAlimentarVazio,
   lerPlanoAlimentar,
@@ -39,7 +42,11 @@ const novaRefeicao = (nome = "") => ({
   carboidratos: "",
   gorduras: "",
   observacao: "",
-  alimentos: [{ id: novoId("alim"), nome: "", quantidade: "", unidade: "unidade" }],
+  // "g" e nao "unidade": e a unidade em que a TACO publica, entao escolher um
+  // alimento da tabela ja calcula os macros. Com "unidade", toda linha nova
+  // nascia dizendo "informe em g ou ml". O `adicionarAlimento` ja usava "g" —
+  // era o primeiro alimento de cada refeicao que destoava.
+  alimentos: [{ id: novoId("alim"), nome: "", quantidade: "", unidade: "g" }],
 });
 
 export default function FormularioDieta({
@@ -103,10 +110,18 @@ export default function FormularioDieta({
     setPlano((atual) => ({
       ...atual,
       refeicoes: atual.refeicoes.map((refeicao) =>
-        refeicao.id === idRefeicao ? { ...refeicao, [campo]: valor } : refeicao
+        refeicao.id === idRefeicao
+          ? {
+              ...refeicao,
+              ...(typeof campo === "object" ? campo : { [campo]: valor }),
+            }
+          : refeicao
       ),
     }));
 
+  // Aceita `(campo, valor)` ou um objeto de campos: escolher um alimento muda
+  // nome, vínculo e macros de uma vez, e três chamadas em sequência fariam a
+  // linha passar por estados intermediários incoerentes.
   const alterarAlimento = (refeicaoId, alimentoId, campo, valor) =>
     setPlano((atual) => ({
       ...atual,
@@ -115,7 +130,12 @@ export default function FormularioDieta({
           ? {
               ...refeicao,
               alimentos: refeicao.alimentos.map((alimento) =>
-                alimento.id === alimentoId ? { ...alimento, [campo]: valor } : alimento
+                alimento.id === alimentoId
+                  ? {
+                      ...alimento,
+                      ...(typeof campo === "object" ? campo : { [campo]: valor }),
+                    }
+                  : alimento
               ),
             }
           : refeicao
@@ -299,6 +319,13 @@ export default function FormularioDieta({
           </div>
 
           <SecaoFormulario titulo="Refeições" />
+          {/* Sem refeição ainda: diz o que fazer, em vez de deixar um vão. */}
+          {plano.refeicoes.length === 0 && (
+            <p className="apoio-secao">
+              Nenhuma refeição no plano. Comece adicionando a primeira.
+            </p>
+          )}
+
           <div className="lista-refeicoes-form">
             {plano.refeicoes.map((refeicao) => (
               <RefeicaoCard
@@ -432,12 +459,34 @@ function RefeicaoCard({
           <div className="alimento-editor" key={alimento.id}>
             <div className="campo alimento-nome">
               <label>Alimento</label>
-              <input
-                value={alimento.nome}
-                onChange={(e) =>
-                  alterarAlimento(refeicao.id, alimento.id, "nome", e.target.value)
+              <BuscaDeAlimento
+                valor={alimento.nome}
+                vinculado={Boolean(alimento.por_cem)}
+                aoDigitar={(texto) =>
+                  // Digitar à mão desfaz o vínculo: os macros guardados eram
+                  // do alimento escolhido, e mantê-los faria a linha exibir um
+                  // nome com os números de outra coisa.
+                  alterarAlimento(refeicao.id, alimento.id, {
+                    nome: texto,
+                    alimento_id: null,
+                    por_cem: null,
+                  })
                 }
-                placeholder="Ovos"
+                aoEscolher={(escolhido) =>
+                  alterarAlimento(refeicao.id, alimento.id, {
+                    nome: escolhido.nome,
+                    alimento_id: escolhido.id,
+                    // A tabela é sempre por 100 g; a porção sai da quantidade.
+                    por_cem: {
+                      kcal: escolhido.kcal,
+                      proteina_g: escolhido.proteina_g,
+                      carboidrato_g: escolhido.carboidrato_g,
+                      gordura_g: escolhido.gordura_g,
+                      fibra_g: escolhido.fibra_g,
+                    },
+                    unidade: alimento.unidade === "unidade" ? "g" : alimento.unidade,
+                  })
+                }
               />
             </div>
             <div className="campo">
@@ -469,6 +518,7 @@ function RefeicaoCard({
                 ))}
               </select>
             </div>
+            <MacrosDaLinha alimento={alimento} />
             <button
               type="button"
               className="link perigo remover-alimento"
@@ -480,6 +530,18 @@ function RefeicaoCard({
           </div>
         ))}
       </div>
+
+      <TotalDaRefeicao
+        alimentos={refeicao.alimentos}
+        aoUsar={(total) =>
+          alterarRefeicao(refeicao.id, {
+            calorias: String(total.kcal),
+            proteinas: String(total.proteina_g),
+            carboidratos: String(total.carboidrato_g),
+            gorduras: String(total.gordura_g),
+          })
+        }
+      />
 
       <button type="button" className="link destaque" onClick={() => adicionarAlimento(refeicao.id)}>
         <Plus size={14} /> Adicionar alimento
@@ -531,6 +593,62 @@ function RefeicaoCard({
         {formatarNumero(total.carboidratos)}g • G{formatarNumero(total.gorduras)}g
       </div>
     </section>
+  );
+}
+
+/** Os macros de uma linha, ou o motivo de não haver conta. */
+function MacrosDaLinha({ alimento }) {
+  if (!alimento.por_cem) return <span className="macros-linha vazio" />;
+
+  const macros = macrosDaPorcao(alimento.por_cem, alimento.quantidade, alimento.unidade);
+  if (!macros) {
+    // O caso comum: escolheu da tabela mas a unidade é "unidade" ou "fatia".
+    // A TACO não traz o peso da unidade, então não há conversão possível — e
+    // dizer isso é melhor que mostrar um número inventado ou não mostrar nada.
+    return <span className="macros-linha aviso">informe em g ou ml</span>;
+  }
+
+  return (
+    <span className="macros-linha">
+      <strong>{macros.kcal ?? "—"} kcal</strong>
+      <span>
+        P {macros.proteina_g ?? "—"} · C {macros.carboidrato_g ?? "—"} · G{" "}
+        {macros.gordura_g ?? "—"}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * O total da refeição, somando só as linhas que têm cálculo.
+ *
+ * O "usar" existe porque a refeição continua tendo campos de kcal e macros
+ * digitados à mão — é deles que sai o total da dieta. Sem uma ponte entre os
+ * dois, a tela mostraria um número calculado ao lado de outro digitado, e o
+ * resumo lá em cima seguiria o digitado. Preencher com um clique, em vez de
+ * sobrescrever sozinho, mantém quem prescreve no controle.
+ */
+function TotalDaRefeicao({ alimentos, aoUsar }) {
+  const total = somarMacros(
+    alimentos.map((a) => macrosDaPorcao(a.por_cem, a.quantidade, a.unidade))
+  );
+  if (total.contadas === 0) return null;
+
+  return (
+    <p className="total-refeicao">
+      <strong>{total.kcal} kcal</strong>
+      <span>
+        P {total.proteina_g} g · C {total.carboidrato_g} g · G {total.gordura_g} g
+      </span>
+      {/* Sem este aviso, um total que ignora metade das linhas passaria por
+          total exato — e é justamente o número que decide a dieta. */}
+      {total.parciais && (
+        <em>parcial: {alimentos.length - total.contadas} sem cálculo</em>
+      )}
+      <button type="button" className="link destaque" onClick={() => aoUsar(total)}>
+        usar na refeição
+      </button>
+    </p>
   );
 }
 

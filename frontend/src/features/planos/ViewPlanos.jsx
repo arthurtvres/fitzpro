@@ -2,10 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
   Copy,
+  Archive,
   Dumbbell,
   Edit3,
+  Eye,
   Flame,
   MoreVertical,
+  Printer,
   Salad,
   Search,
   Trash2,
@@ -13,7 +16,11 @@ import {
   User,
 } from "lucide-react";
 
+import { api } from "../../api/index.js";
+import FolhaImpressao from "../../components/FolhaImpressao.jsx";
 import Modal from "../../components/Modal.jsx";
+import DetalheTreino from "../treinos/DetalheTreino.jsx";
+import { FichaDeTreino } from "../impressao/Documentos.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
 import { DIAS } from "./config.js";
@@ -27,6 +34,8 @@ import ListaPlanos from "./ListaPlanos.jsx";
  * Editar sai daqui e vai para a tela de criação em modo edição (mesmo padrão dos alunos).
  */
 export default function ViewPlanos({
+  // Só para o cabeçalho das folhas impressas; ver `FolhaImpressao`.
+  personal,
   config,
   alunos,
   aoCriar,
@@ -88,6 +97,7 @@ export default function ViewPlanos({
       <TreinosPage
         treinos={itens}
         alunos={alunos}
+        personal={personal}
         carregando={carregando}
         busca={busca}
         setBusca={setBusca}
@@ -141,9 +151,18 @@ export default function ViewPlanos({
             aoErrar(erro.message);
           }
         }}
-        aoArquivar={() => {
+        aoArquivar={async (treino) => {
           setMenuAberto(null);
-          setErroLocal("Arquivar treino ainda precisa de suporte no backend.");
+          try {
+            await recurso.arquivar(treino.id);
+            // Sai da lista em vez de recarregar tudo: a resposta ja confirma,
+            // e recarregar piscaria a tela inteira por causa de uma linha.
+            setItens((atual) => atual.filter((item) => item.id !== treino.id));
+            setErroLocal(null);
+            aoErrar(null);
+          } catch (erro) {
+            aoErrar(erro.message);
+          }
         }}
       />
     );
@@ -154,6 +173,17 @@ export default function ViewPlanos({
       <DietasPage
         config={config}
         dietas={itens}
+        aoArquivar={async (dieta) => {
+          setMenuAberto(null);
+          try {
+            await recurso.arquivar(dieta.id);
+            setItens((atual) => atual.filter((item) => item.id !== dieta.id));
+            setErroLocal(null);
+            aoErrar(null);
+          } catch (erro) {
+            aoErrar(erro.message);
+          }
+        }}
         alunos={alunos}
         carregando={carregando}
         busca={busca}
@@ -249,6 +279,7 @@ const rotuloDia = (dia) =>
   })[dia] ?? dia;
 
 function DietasPage({
+  aoArquivar,
   config,
   dietas,
   alunos,
@@ -321,11 +352,13 @@ function DietasPage({
         </div>
       ) : dietas.length === 0 ? (
         <Vazio icone={Salad}>
-          <strong>Nenhuma dieta prescrita</strong>
-          <span>Prescreva a primeira dieta.</span>
-          <button type="button" className="primario" onClick={aoCriar}>
-            + Prescrever dieta
-          </button>
+          <div>
+            <strong>Nenhuma dieta prescrita</strong>
+            <span>Prescreva a primeira dieta.</span>
+            <button type="button" className="primario" onClick={aoCriar}>
+              + Prescrever dieta
+            </button>
+          </div>
         </Vazio>
       ) : dietasFiltradas.length === 0 ? (
         <Vazio icone={Search}>Nenhuma dieta encontrada para esses filtros.</Vazio>
@@ -340,6 +373,7 @@ function DietasPage({
               setMenuAberto={setMenuAberto}
               aoVisualizar={setVisualizando}
               aoEditar={aoEditar}
+              aoArquivar={aoArquivar}
               aoExcluir={() => setConfirmandoExclusao(dieta)}
             />
           ))}
@@ -398,6 +432,7 @@ function DietaCard({
   setMenuAberto,
   aoVisualizar,
   aoEditar,
+  aoArquivar,
   aoExcluir,
 }) {
   const ref = useRef(null);
@@ -462,6 +497,9 @@ function DietaCard({
             <button type="button" onClick={() => aoEditar(dieta)}>
               <Edit3 size={14} /> Editar
             </button>
+            <button type="button" onClick={() => aoArquivar(dieta)}>
+              <Archive size={14} /> Arquivar
+            </button>
             <button type="button" className="perigo" onClick={aoExcluir}>
               <Trash2 size={14} /> Excluir
             </button>
@@ -498,9 +536,27 @@ function TreinosPage({
   aoRemover,
   aoDuplicar,
   aoArquivar,
+  personal,
 }) {
   const nomeDoAluno = (id) =>
     alunos.find((aluno) => aluno.id === id)?.nome ?? `Aluno #${id}`;
+
+  const [visualizando, setVisualizando] = useState(null);
+  // O treino a imprimir, já com os exercícios: a lista só sabe a contagem.
+  const [imprimindo, setImprimindo] = useState(null);
+
+  async function prepararImpressao(treino) {
+    setMenuAberto(null);
+    try {
+      setImprimindo({
+        treino,
+        itens: await api.treinos.exercicios.listar(treino.id),
+        aluno: alunos.find((a) => a.id === treino.aluno_id),
+      });
+    } catch (erro) {
+      setErroLocal(erro.message);
+    }
+  }
 
   const treinosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -614,11 +670,13 @@ function TreinosPage({
         <TreinosSkeleton />
       ) : treinos.length === 0 ? (
         <Vazio icone={Dumbbell}>
-          <strong>Nenhum treino prescrito</strong>
-          <span>Prescreva o primeiro treino.</span>
-          <button type="button" className="primario" onClick={aoCriar}>
-            + Prescrever treino
-          </button>
+          <div>
+            <strong>Nenhum treino prescrito</strong>
+            <span>Prescreva o primeiro treino.</span>
+            <button type="button" className="primario" onClick={aoCriar}>
+              + Prescrever treino
+            </button>
+          </div>
         </Vazio>
       ) : treinosFiltrados.length === 0 ? (
         <Vazio icone={Search}>Nenhum treino encontrado para esses filtros.</Vazio>
@@ -640,6 +698,8 @@ function TreinosPage({
                     menuAberto={menuAberto}
                     setMenuAberto={setMenuAberto}
                     aoAbrir={aoAbrir}
+                    aoVisualizar={setVisualizando}
+                    aoImprimir={prepararImpressao}
                     aoEditar={aoEditar}
                     aoDuplicar={aoDuplicar}
                     aoArquivar={aoArquivar}
@@ -661,6 +721,8 @@ function TreinosPage({
               menuAberto={menuAberto}
               setMenuAberto={setMenuAberto}
               aoAbrir={aoAbrir}
+              aoVisualizar={setVisualizando}
+              aoImprimir={prepararImpressao}
               aoEditar={aoEditar}
               aoDuplicar={aoDuplicar}
               aoArquivar={aoArquivar}
@@ -695,6 +757,30 @@ function TreinosPage({
           </div>
         </Modal>
       )}
+
+      {visualizando && (
+        <Modal titulo={visualizando.nome} largo aoFechar={() => setVisualizando(null)}>
+          <DetalheTreino
+            key={visualizando.id}
+            treino={visualizando}
+            aluno={alunos.find((a) => a.id === visualizando.aluno_id)}
+            personal={personal}
+            somenteLeitura
+            aoErrar={setErroLocal}
+          />
+        </Modal>
+      )}
+
+      {imprimindo && (
+        <FolhaImpressao
+          titulo="Ficha de treino"
+          aluno={imprimindo.aluno}
+          personal={personal}
+          aoFechar={() => setImprimindo(null)}
+        >
+          <FichaDeTreino treino={imprimindo.treino} itens={imprimindo.itens} />
+        </FolhaImpressao>
+      )}
     </section>
   );
 }
@@ -706,6 +792,8 @@ function TreinoCard({
   menuAberto,
   setMenuAberto,
   aoAbrir,
+  aoVisualizar,
+  aoImprimir,
   aoEditar,
   aoDuplicar,
   aoArquivar,
@@ -752,6 +840,11 @@ function TreinoCard({
       </div>
 
       <div className="treino-acoes" ref={ref}>
+        {/* Ao lado de "montar", e não escondido no menu: ver e montar são as
+            duas coisas que se faz com um treino, e uma delas é a mais comum. */}
+        <button type="button" className="link" onClick={() => aoVisualizar(treino)}>
+          <Eye size={14} /> Ver treino
+        </button>
         <button type="button" className="botao-montar" onClick={() => aoAbrir(treino)}>
           Montar treino
         </button>
@@ -769,14 +862,17 @@ function TreinoCard({
 
         {menuAberto === treino.id && (
           <div className="menu-card">
+            <button type="button" onClick={() => aoImprimir(treino)}>
+              <Printer size={14} /> Gerar PDF
+            </button>
             <button type="button" onClick={() => aoDuplicar(treino)}>
               <Copy size={14} /> Duplicar treino
             </button>
             <button type="button" onClick={() => aoEditar(treino)}>
               <Edit3 size={14} /> Editar
             </button>
-            <button type="button" onClick={aoArquivar}>
-              Arquivar
+            <button type="button" onClick={() => aoArquivar(treino)}>
+              <Archive size={14} /> Arquivar
             </button>
             <button type="button" className="perigo" onClick={aoExcluir}>
               <Trash2 size={14} /> Excluir treino

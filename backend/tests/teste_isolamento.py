@@ -31,8 +31,10 @@ from app.models import (  # noqa: E402
     DietaCriacao,
     SerieRealizada,
     SessaoTreinoCriacao,
+    Treino,
     TreinoCriacao,
     TreinoExercicioCriacao,
+    Dieta,
     FinalidadeDoToken,
     TokenDeAcesso,
     TrocaDeSenha,
@@ -1169,6 +1171,71 @@ for descricao, condicao in [
      "termos_pendentes" in auth.login(
          auth.Credenciais(email="leitora@x.com", senha="senha12345"), s)["usuario"]),
     ("/eu informa a pendencia", "termos_pendentes" in auth.eu(leitora)),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+# ===================== arquivar treino e dieta =====================
+#
+# Arquivar existe porque excluir era a unica saida para um plano que acabou — e
+# excluir leva junto o vinculo do historico. O que nao pode falhar: o aluno
+# deixa de ver, e nenhum parametro na URL traz de volta para ele.
+
+print("\n== arquivar treino e dieta ==")
+arq_personal = registrar("Arquivista", "arquivista@x.com")
+arq_aluno = usuarios.criar_usuario(
+    UsuarioCriacao(nome="Aluno Arq", email="arq@x.com", telefone="11961234587",
+                   data_nascimento=ADULTO, senha="senha123456"), s, arq_personal)
+obj_arq_aluno = s.get(Usuario, arq_aluno["id"])
+
+arq_treino = treinos.criar_treino(
+    TreinoCriacao(nome="Treino velho", dia_semana="segunda",
+                  aluno_id=arq_aluno["id"]), s, arq_personal)
+arq_dieta = dietas.criar_dieta(
+    DietaCriacao(nome="Dieta velha", descricao="d", calorias=2000,
+                 aluno_id=arq_aluno["id"]), s, arq_personal)
+
+def nomes_de(consulta):
+    return {t["nome"] for t in consulta}
+
+antes_personal = nomes_de(treinos.listar_treinos(None, s, arq_personal))
+antes_aluno = nomes_de(treinos.listar_treinos(None, s, obj_arq_aluno))
+
+checar("personal arquiva o treino", "ok",
+       lambda: treinos.arquivar_treino(arq_treino.id, s, arq_personal))
+checar("personal arquiva a dieta", "ok",
+       lambda: dietas.arquivar_dieta(arq_dieta.id, s, arq_personal))
+checar("arquivar treino de OUTRO personal", 404,
+       lambda: treinos.arquivar_treino(treino_bruno.id, s, arq_personal))
+
+depois_personal = nomes_de(treinos.listar_treinos(None, s, arq_personal))
+com_arquivados = nomes_de(
+    treinos.listar_treinos(None, s, arq_personal, incluir_arquivados=True))
+depois_aluno = nomes_de(treinos.listar_treinos(None, s, obj_arq_aluno))
+aluno_forcando = nomes_de(
+    treinos.listar_treinos(None, s, obj_arq_aluno, incluir_arquivados=True))
+dietas_do_aluno = nomes_de(dietas.listar_dietas(None, s, obj_arq_aluno))
+
+checar("personal desarquiva", "ok",
+       lambda: treinos.desarquivar_treino(arq_treino.id, s, arq_personal))
+voltou = nomes_de(treinos.listar_treinos(None, s, arq_personal))
+
+for descricao, condicao in [
+    ("o treino aparecia antes de arquivar", "Treino velho" in antes_personal),
+    ("some da lista do personal", "Treino velho" not in depois_personal),
+    ("volta com incluir_arquivados", "Treino velho" in com_arquivados),
+    ("some para o aluno", "Treino velho" not in depois_aluno),
+    # A trava que importa: o aluno nao contorna pela URL. Um plano tirado do ar
+    # nao pode voltar porque alguem descobriu o nome de um parametro.
+    ("aluno nao traz de volta pela URL", "Treino velho" not in aluno_forcando),
+    ("a dieta arquivada tambem some para o aluno",
+     "Dieta velha" not in dietas_do_aluno),
+    ("desarquivar devolve a lista", "Treino velho" in voltou),
+    # Arquivar nao e excluir: o registro segue inteiro no banco.
+    ("o treino continua existindo", s.get(Treino, arq_treino.id) is not None),
+    ("e a data do arquivamento fica registrada",
+     s.get(Dieta, arq_dieta.id).arquivado_em is not None),
 ]:
     ok += condicao
     falhas += not condicao

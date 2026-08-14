@@ -195,6 +195,27 @@
   gap: 2px;
   flex: 1;
   overflow-y: auto;
+
+  /* A barra do sistema e larga e opaca demais para uma coluna de menu — ela
+     competia com os itens. Fina e discreta em vez de escondida: sumindo de vez,
+     nada indicaria que ha mais menu abaixo da dobra.
+     `scrollbar-width`/`-color` atendem Firefox; o `::-webkit` abaixo, o resto. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda) transparent;
+}
+.sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--borda);
+  border-radius: 3px;
+}
+/* Só ganha contraste quando o ponteiro está na barra lateral. */
+.sidebar-nav:hover::-webkit-scrollbar-thumb {
+  background: var(--texto-fraco);
 }
 
 .grupo-titulo {
@@ -208,7 +229,7 @@
   padding: 9px var(--e-3);
   color: var(--sidebar-texto);
   font-weight: 500;
-  font-size: 15px;
+  font-size: 13.5px;
   text-align: left;
   transition: background 0.2s ease, color 0.2s ease, padding 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -269,7 +290,7 @@
   border-radius: var(--raio-controle);
   padding: 7px var(--e-3);
   color: var(--sidebar-texto-fraco);
-  font-size: 15.5px;
+  font-size: 14px;
   font-weight: 400;
 }
 .grupo-itens .item:hover:not(:disabled) {

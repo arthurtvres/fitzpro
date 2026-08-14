@@ -1,5 +1,7 @@
 from datetime import date
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlmodel import Session, select
@@ -61,6 +63,10 @@ def listar_treinos(
     aluno_id: int | None = None,
     session: Session = Depends(get_session),
     logado: Usuario = Depends(usuario_atual),
+    # No fim da assinatura de proposito: os testes chamam as rotas
+    # posicionalmente, e um parametro novo no meio empurraria `session` e
+    # `logado` de lugar — quebrando tudo com um erro que nao aponta para aqui.
+    incluir_arquivados: bool = False,
 ):
     # O aluno logado só enxerga os treinos dele, peça o que pedir.
     if logado.papel == Papel.ALUNO:
@@ -75,6 +81,11 @@ def listar_treinos(
     )
     if aluno_id is not None:
         consulta = consulta.where(Treino.aluno_id == aluno_id)
+
+    # Arquivado sai das listas por padrao. Para o ALUNO nao ha escapatoria: o
+    # plano foi tirado do ar, e um parametro na URL nao pode traze-lo de volta.
+    if logado.papel == Papel.ALUNO or not incluir_arquivados:
+        consulta = consulta.where(Treino.arquivado_em.is_(None))
     treinos = session.exec(consulta).all()
 
     # Uma consulta agregada para todos: a lista mostra quantos exercícios cada
@@ -149,6 +160,42 @@ def atualizar_treino(
     session.commit()
     session.refresh(treino)
     return treino
+
+
+@router.post("/{treino_id}/arquivar")
+def arquivar_treino(
+    treino_id: int,
+    session: Session = Depends(get_session),
+    logado: Usuario = Depends(personal_atual),
+):
+    """
+    Tira o plano do ar sem apagar nada.
+
+    Existe porque excluir era a unica saida para um plano que acabou — e
+    excluir leva junto o vinculo: as execucoes sobrevivem, mas perdem o nome do
+    que foi feito. Arquivado, ele some das listas e da tela do aluno, e segue
+    inteiro para consulta.
+    """
+    alvo = buscar_ou_404(treino_id, logado, session)
+    alvo.arquivado_em = datetime.now(timezone.utc)
+    session.add(alvo)
+    session.commit()
+    session.refresh(alvo)
+    return alvo
+
+@router.post("/{treino_id}/desarquivar")
+def desarquivar_treino(
+    treino_id: int,
+    session: Session = Depends(get_session),
+    logado: Usuario = Depends(personal_atual),
+):
+    """Volta o plano para as listas e para o aluno."""
+    alvo = buscar_ou_404(treino_id, logado, session)
+    alvo.arquivado_em = None
+    session.add(alvo)
+    session.commit()
+    session.refresh(alvo)
+    return alvo
 
 @router.delete("/{treino_id}")
 def deletar_treino(

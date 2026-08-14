@@ -1,3 +1,4 @@
+import { alimentos } from "./alimentos.js";
 import { alunos } from "./alunos.js";
 import { agendamentos } from "./agendamentos.js";
 import { auth } from "./auth.js";
@@ -13,6 +14,7 @@ import { treinos } from "./treinos.js";
 export const api = {
   auth,
   alunos,
+  alimentos,
   treinos,
   dietas,
   exercicios,

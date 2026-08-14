@@ -19,6 +19,7 @@ import FormularioAluno from "./features/alunos/FormularioAluno.jsx";
 import PaginaDoAluno from "./features/alunos/PaginaDoAluno.jsx";
 import ViewAlunos from "./features/alunos/ViewAlunos.jsx";
 import ViewAvaliacoes from "./features/alunos/ViewAvaliacoes.jsx";
+import CatalogoAlimentos from "./features/exercicios/CatalogoAlimentos.jsx";
 import CatalogoExercicios from "./features/exercicios/CatalogoExercicios.jsx";
 import DetalheExercicio from "./features/exercicios/DetalheExercicio.jsx";
 import Home from "./features/inicio/Home.jsx";
@@ -28,6 +29,7 @@ import PainelDoPersonal from "./features/painel/PainelDoPersonal.jsx";
 import MeuPerfil from "./features/perfil/MeuPerfil.jsx";
 import { CONFIG_POR_CHAVE } from "./features/planos/config.js";
 import FormularioPlano from "./features/planos/FormularioPlano.jsx";
+import PlanosArquivados from "./features/planos/PlanosArquivados.jsx";
 import ViewPlanos from "./features/planos/ViewPlanos.jsx";
 import DetalheTreino from "./features/treinos/DetalheTreino.jsx";
 
@@ -273,6 +275,12 @@ export default function App() {
     }
 
     if (secao === "exercicios") {
+      if (pagina === "alimentos") {
+        return {
+          titulo: "Catálogo de alimentos",
+          subtitulo: "Tabela TACO (NEPA/UNICAMP). Valores por 100 g.",
+        };
+      }
       return {
         titulo: "Catálogo de exercícios",
         subtitulo: "Exercícios e instruções.",
@@ -321,6 +329,15 @@ export default function App() {
           ),
         };
       }
+      if (pagina === "arquivados") {
+        const ehTreino = config.chave === "treinos";
+        return {
+          titulo: ehTreino ? "Treinos arquivados" : "Dietas arquivadas",
+          subtitulo:
+            "Fora do ar e invisíveis para o aluno. O histórico continua inteiro.",
+        };
+      }
+
       if (pagina === "criar") {
         const editando = Boolean(planoEmEdicao);
         const acaoNovo =
@@ -417,6 +434,7 @@ export default function App() {
     }
 
     if (secao === "exercicios") {
+      if (pagina === "alimentos") return <CatalogoAlimentos aoErrar={setErro} />;
       return (
         <section className="painel">
           <CatalogoExercicios aoDetalhar={setExercicioDetalhado} aoErrar={setErro} />
@@ -443,6 +461,7 @@ export default function App() {
       return (
         <ViewAvaliacoes
           alunos={alunos}
+          personal={logado}
           aoAbrirAluno={abrirAluno}
           aoCriar={() => navegar("avaliacoes/criar")}
           aoErrar={setErro}
@@ -451,11 +470,19 @@ export default function App() {
     }
 
     if (config) {
+      if (pagina === "arquivados") {
+        return (
+          <PlanosArquivados config={config} alunos={alunos} aoErrar={setErro} />
+        );
+      }
+
       if (pagina === "detalhe" && treinoAberto) {
         return (
           <DetalheTreino
             key={treinoAberto.id}
             treino={treinoAberto}
+            aluno={alunoDoTreino}
+            personal={logado}
             aoErrar={setErro}
           />
         );
@@ -486,6 +513,7 @@ export default function App() {
         <ViewPlanos
           key={config.chave}
           config={config}
+          personal={logado}
           alunos={alunos}
           aoCriar={() => navegar(`${config.chave}/criar`)}
           aoEditar={(item) => editarPlano(config.chave, item)}
@@ -500,6 +528,8 @@ export default function App() {
         <PaginaDoAluno
           key={alunoIdDaRota}
           alunoId={alunoIdDaRota}
+          // Quem prescreve, para o cabeçalho das folhas impressas.
+          personal={logado}
           aoErrar={setErro}
           aoMontarTreino={montarTreino}
           aoEditar={editarAluno}
@@ -633,6 +663,7 @@ export default function App() {
   }
 
   const { titulo, subtitulo, acoes } = cabecalho();
+  const mensagemErro = typeof erro === "string" ? erro.trim() : erro;
 
   return (
     <div className={`shell${sidebarRecolhida ? " sidebar-recolhida" : ""}`}>
@@ -680,9 +711,9 @@ export default function App() {
         </Header>
 
         <div className="conteudo-corpo">
-          {erro && (
+          {mensagemErro && (
             <div className="erro">
-              <span>{erro}</span>
+              <span>{mensagemErro}</span>
               <button onClick={() => setErro(null)} aria-label="Fechar">
                 <X size={16} />
               </button>

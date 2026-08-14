@@ -39,6 +39,7 @@ export const NAVEGACAO = [
     icone: "halter",
     itens: [
       { chave: "treinos/ver", rotulo: "Ver treinos" },
+      { chave: "treinos/arquivados", rotulo: "Treinos arquivados" },
       { chave: "treinos/criar", rotulo: "Prescrever treino" },
     ],
   },
@@ -48,6 +49,7 @@ export const NAVEGACAO = [
     icone: "salada",
     itens: [
       { chave: "dietas/ver", rotulo: "Ver dietas" },
+      { chave: "dietas/arquivados", rotulo: "Dietas arquivadas" },
       { chave: "dietas/criar", rotulo: "Prescrever dieta" },
     ],
   },
@@ -62,9 +64,12 @@ export const NAVEGACAO = [
   },
   {
     chave: "exercicios",
-    rotulo: "Exercícios",
+    rotulo: "Catálogos",
     icone: "biceps",
-    itens: [{ chave: "exercicios/ver", rotulo: "Catálogo" }],
+    itens: [
+      { chave: "exercicios/ver", rotulo: "Catálogo de exercícios" },
+      { chave: "exercicios/alimentos", rotulo: "Catálogo de alimentos" },
+    ],
   },
   {
     chave: "perfil",

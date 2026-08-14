@@ -9,6 +9,7 @@ from app.core.config import DIRETORIO_FRONTEND, ORIGENS_PERMITIDAS, TITULO
 from app.db.session import create_db_and_tables
 from app.routers import (
     agendamentos,
+    alimentos,
     auth,
     avaliacoes,
     dietas,
@@ -19,12 +20,14 @@ from app.routers import (
     treinos,
     usuarios,
 )
+from app.services import alimentos as tabela_alimentos
 from app.services import catalogo
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
     catalogo.carregar()
+    tabela_alimentos.carregar()
     yield
 
 app = FastAPI(title=TITULO, lifespan=lifespan)
@@ -44,6 +47,7 @@ app.include_router(avaliacoes.router)
 app.include_router(treinos.router)
 app.include_router(dietas.router)
 app.include_router(exercicios.router)
+app.include_router(alimentos.router)
 
 # Depois de treinos e dietas: as rotas de execução estendem esses prefixos, e a
 # ordem mantém a disciplina de literal antes de paramétrica no nível do router.

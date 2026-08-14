@@ -1676,6 +1676,14 @@
   color: var(--texto-fraco);
   white-space: nowrap;
 }
+.variacao.positiva {
+  color: var(--sucesso-texto);
+  font-weight: 600;
+}
+.variacao.negativa {
+  color: var(--erro-texto);
+  font-weight: 600;
+}
 
 .avaliacoes-page {
   width: min(100%, 1420px);
@@ -1695,9 +1703,11 @@
   padding: var(--e-3);
 }
 .avaliacoes-tabela .acoes-celula {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--e-2);
+  width: 210px;
+  text-align: right;
+}
+.avaliacoes-tabela .acoes-celula button + button {
+  margin-left: var(--e-2);
 }
 .fotos-inline {
   display: inline-flex !important;
@@ -1805,16 +1815,33 @@
   flex-direction: column;
   gap: var(--e-2);
 }
+/* A linha do historico: o conteudo abre a avaliacao, o icone gera o PDF. A
+   moldura ficou no container e o clique no botao de dentro — antes a linha
+   inteira era um <button>, e botao dentro de botao nao e HTML valido. */
 .avaliacao-linha-card {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-card);
+  background: var(--superficie);
+  padding: var(--e-3) var(--e-4);
+}
+.avaliacao-linha-conteudo {
+  flex: 1;
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: var(--e-3);
   align-items: center;
   text-align: left;
-  border: 1px solid var(--borda);
-  border-radius: var(--raio-card);
-  background: var(--superficie);
-  padding: var(--e-3) var(--e-4);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+.avaliacao-linha-conteudo:hover {
+  background: none;
 }
 .avaliacao-linha-card span {
   display: inline-flex;
@@ -1946,8 +1973,8 @@
 
 .grade-metricas {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--e-4);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--e-3);
 }
 .metrica {
   display: grid;
@@ -1955,11 +1982,13 @@
   grid-template-rows: auto auto auto;
   column-gap: var(--e-3);
   align-items: center;
+  min-width: 0;
+  padding: var(--e-3);
 }
 .metrica .icone-metrica {
   grid-row: 1 / 3;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--raio-controle);
   background: var(--acento-suave);
   color: var(--acento-texto);
@@ -1997,6 +2026,11 @@
   color: var(--sucesso-texto);
 }
 @media (max-width: 900px) {
+  .grade-metricas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
   .grade-metricas {
     grid-template-columns: 1fr;
   }
@@ -3158,7 +3192,7 @@ button.perigo:hover:not(:disabled) {
   .imc-calculado em {
     text-align: left;
   }
-  .avaliacao-linha-card {
+  .avaliacao-linha-conteudo {
     grid-template-columns: 1fr;
   }
   .painel-formulario-avaliacao {
@@ -4063,15 +4097,38 @@ button.perigo:hover:not(:disabled) {
 .vazio {
   color: var(--texto-fraco);
   font-size: 13.5px;
-  padding: var(--e-6) var(--e-4);
+  padding: var(--e-6) var(--e-5);
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--e-2);
+  justify-content: center;
+  gap: var(--e-3);
+  min-height: 160px;
 }
+.vazio-conteudo,
 .vazio p {
   margin: 0;
+  max-width: 620px;
+}
+.vazio-conteudo {
+  display: grid;
+  gap: 4px;
+}
+.vazio-conteudo > div {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+.vazio-conteudo button {
+  margin-top: var(--e-2);
+}
+.vazio-conteudo strong {
+  color: var(--texto);
+  font-weight: 700;
+}
+.vazio-conteudo span {
+  display: block;
 }
 .icone-vazio {
   width: 40px;
@@ -4367,4 +4424,143 @@ button.perigo:hover:not(:disabled) {
   justify-content: center;
   color: var(--acento-texto);
   margin-bottom: var(--e-2);
+}
+
+/* Duas acoes na mesma barra (ex.: PDF + acao primaria). */
+.acoes-do-painel {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+/* ---------- busca de alimento (TACO) ---------- */
+
+.busca-alimento {
+  position: relative;
+}
+.busca-alimento input {
+  width: 100%;
+}
+/* Marca que a linha veio da tabela — e nao foi digitada a mao. */
+.selo-tabela {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--acento-texto);
+  background: var(--acento-suave);
+  border-radius: var(--raio-pilula);
+  padding: 2px 6px;
+  pointer-events: none;
+}
+.sugestoes-alimento {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+  scrollbar-width: thin;
+}
+.sugestoes-alimento button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  border-radius: var(--raio-controle);
+  color: inherit;
+}
+.sugestoes-alimento button:hover {
+  background: var(--superficie-2);
+}
+.sugestoes-alimento .nome {
+  font-size: 13.5px;
+}
+.sugestoes-alimento .macros {
+  font-size: 11.5px;
+  color: var(--texto-fraco);
+}
+
+.macros-linha {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 11.5px;
+  color: var(--texto-fraco);
+  min-width: 120px;
+}
+.macros-linha strong {
+  font-size: 13px;
+  color: var(--texto);
+}
+.macros-linha.aviso {
+  font-style: italic;
+}
+
+.total-refeicao {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+  margin: var(--e-2) 0 0;
+  padding-top: var(--e-2);
+  border-top: 1px dashed var(--borda);
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+}
+.total-refeicao strong {
+  font-size: 14px;
+  color: var(--texto);
+}
+.total-refeicao em {
+  color: var(--alerta-texto);
+  font-style: normal;
+}
+
+/* Filtros do catalogo de alimentos. */
+.filtros-alimentos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e-3);
+  margin: var(--e-3) 0;
+}
+.chips-fonte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  padding: 5px 12px;
+  font-size: 12.5px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-pilula);
+  background: none;
+  color: var(--texto-fraco);
+}
+.chip:hover {
+  border-color: var(--acento);
+  background: none;
+}
+.chip.ativo {
+  background: var(--acento-suave);
+  border-color: var(--acento);
+  color: var(--acento-texto);
+  font-weight: 500;
 }

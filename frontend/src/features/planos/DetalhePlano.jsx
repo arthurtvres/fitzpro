@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Edit3, User } from "lucide-react";
+import { Check, Edit3, Printer, User } from "lucide-react";
 
 import { api } from "../../api/index.js";
 import BarraProgresso from "../../components/BarraProgresso.jsx";
+import FolhaImpressao from "../../components/FolhaImpressao.jsx";
+import { PlanoAlimentarImpresso } from "../impressao/Documentos.jsx";
 
 import { CONFIG_TREINO } from "./config.js";
 import { lerPlanoAlimentar } from "./dietaPlano.js";
@@ -28,6 +30,8 @@ export default function DetalhePlano({
   item,
   aluno,
   aoEditar,
+  // Só para o cabeçalho da folha impressa; ver `FolhaImpressao`.
+  personal,
   aoErrar,
   // Modo execução: cada refeição vira uma caixa de marcar e aparece o progresso
   // do dia. Ausente = leitura, como no resto do projeto.
@@ -39,6 +43,7 @@ export default function DetalhePlano({
   // React valem para o componente inteiro.
   const ehDieta = config.chave !== CONFIG_TREINO.chave;
   const [progresso, setProgresso] = useState(null);
+  const [imprimindo, setImprimindo] = useState(false);
 
   const carregarProgresso = useCallback(() => {
     if (!modoExecucao || !ehDieta) return;
@@ -81,6 +86,8 @@ export default function DetalhePlano({
     return (
       <DetalheTreino
         treino={item}
+        aluno={aluno}
+        personal={personal}
         aoErrar={aoErrar}
         somenteLeitura
         modoExecucao={modoExecucao}
@@ -110,12 +117,29 @@ export default function DetalhePlano({
               </span>
             )}
           </div>
-          {aoEditar && (
-            <button type="button" className="botao-montar" onClick={aoEditar}>
-              <Edit3 size={14} /> Editar dieta
+          <div className="acoes-do-painel">
+            <button type="button" onClick={() => setImprimindo(true)}>
+              <Printer size={14} /> PDF
             </button>
-          )}
+            {aoEditar && (
+              <button type="button" className="botao-montar" onClick={aoEditar}>
+                <Edit3 size={14} /> Editar dieta
+              </button>
+            )}
+          </div>
         </header>
+
+        {imprimindo && (
+          <FolhaImpressao
+            titulo="Plano alimentar"
+            /* `aluno` aqui é o nome, não o objeto — é o que esta tela recebe. */
+            aluno={{ nome: aluno }}
+            personal={personal}
+            aoFechar={() => setImprimindo(false)}
+          >
+            <PlanoAlimentarImpresso dieta={item} plano={plano} />
+          </FolhaImpressao>
+        )}
 
         <section className="plano-modal-resumo">
           <span>Meta diária</span>

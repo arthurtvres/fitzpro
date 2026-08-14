@@ -4,14 +4,16 @@ import {
   CalendarDays,
   Camera,
   Eye,
+  Printer,
   LineChart,
-  MoreVertical,
   Search,
   User,
 } from "lucide-react";
 
 import { api } from "../../api/index.js";
+import FolhaImpressao from "../../components/FolhaImpressao.jsx";
 import Modal from "../../components/Modal.jsx";
+import { AvaliacaoImpressa } from "../impressao/Documentos.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
 import { CAMPOS_AVALIACAO, lerFotos } from "./PainelAvaliacoes.jsx";
@@ -95,12 +97,28 @@ function variacao(atual, anterior, unidade) {
   }`;
 }
 
+function Variacao({ atual, anterior, unidade }) {
+  if (atual == null || anterior == null) return "-";
+  const delta = Number((Number(atual) - Number(anterior)).toFixed(1));
+  const classe =
+    delta > 0 ? "variacao positiva" : delta < 0 ? "variacao negativa" : "variacao";
+
+  return <span className={classe}>{variacao(atual, anterior, unidade)}</span>;
+}
+
 function pontoPorPercentual(valor, min, max) {
   if (max === min) return 50;
   return 92 - ((valor - min) / (max - min)) * 78;
 }
 
-export default function ViewAvaliacoes({ alunos, aoAbrirAluno, aoCriar, aoErrar }) {
+export default function ViewAvaliacoes({
+  alunos,
+  aoAbrirAluno,
+  aoCriar,
+  aoErrar,
+  // Só para o cabeçalho da folha impressa; ver `FolhaImpressao`.
+  personal,
+}) {
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
@@ -110,6 +128,7 @@ export default function ViewAvaliacoes({ alunos, aoAbrirAluno, aoCriar, aoErrar 
   const [alunoEvolucao, setAlunoEvolucao] = useState("");
   const [metricaGrafico, setMetricaGrafico] = useState("peso_kg");
   const [visualizando, setVisualizando] = useState(null);
+  const [imprimindo, setImprimindo] = useState(null);
 
   const alunosAtivos = useMemo(() => alunos.filter((aluno) => aluno.ativo), [alunos]);
 
@@ -244,11 +263,13 @@ export default function ViewAvaliacoes({ alunos, aoAbrirAluno, aoCriar, aoErrar 
         <Skeleton quantidade={4} />
       ) : avaliacoes.length === 0 ? (
         <Vazio icone={LineChart}>
-          <strong>Nenhuma avaliação registrada</strong>
-          <span>Registre a primeira avaliação.</span>
-          <button type="button" className="primario" onClick={aoCriar}>
-            + Nova avaliação
-          </button>
+          <div>
+            <strong>Nenhuma avaliação registrada</strong>
+            <span>Registre a primeira avaliação.</span>
+            <button type="button" className="primario" onClick={aoCriar}>
+              + Nova avaliação
+            </button>
+          </div>
         </Vazio>
       ) : visualizacao === "historico" ? (
         avaliacoesFiltradas.length === 0 ? (
@@ -258,6 +279,7 @@ export default function ViewAvaliacoes({ alunos, aoAbrirAluno, aoCriar, aoErrar 
             avaliacoes={avaliacoesFiltradas}
             aoAbrirAluno={aoAbrirAluno}
             aoVisualizar={setVisualizando}
+            aoImprimir={setImprimindo}
           />
         )
       ) : (
@@ -272,7 +294,20 @@ export default function ViewAvaliacoes({ alunos, aoAbrirAluno, aoCriar, aoErrar 
           metricaGrafico={metricaGrafico}
           setMetricaGrafico={setMetricaGrafico}
           aoVisualizar={setVisualizando}
+          aoImprimir={setImprimindo}
         />
+      )}
+
+      {imprimindo && (
+        <FolhaImpressao
+          titulo="Avaliação física"
+          /* A avaliação já vem com o aluno embutido nesta tela. */
+          aluno={imprimindo.aluno}
+          personal={personal}
+          aoFechar={() => setImprimindo(null)}
+        >
+          <AvaliacaoImpressa avaliacao={imprimindo} campos={CAMPOS_AVALIACAO} />
+        </FolhaImpressao>
       )}
 
       {visualizando && (
@@ -292,7 +327,7 @@ export default function ViewAvaliacoes({ alunos, aoAbrirAluno, aoCriar, aoErrar 
   );
 }
 
-function HistoricoAvaliacoes({ avaliacoes, aoAbrirAluno, aoVisualizar }) {
+function HistoricoAvaliacoes({ avaliacoes, aoAbrirAluno, aoVisualizar, aoImprimir }) {
   return (
     <div className="rolagem-tabela">
       <table className="tabela avaliacoes-tabela">
@@ -342,8 +377,14 @@ function HistoricoAvaliacoes({ avaliacoes, aoAbrirAluno, aoVisualizar }) {
                   >
                     <Eye size={14} /> Ver avaliação
                   </button>
-                  <button type="button" className="botao-menu-card" aria-label="Mais ações">
-                    <MoreVertical size={18} />
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => aoImprimir(avaliacao)}
+                    aria-label="Gerar PDF"
+                    title="Gerar PDF"
+                  >
+                    <Printer size={14} />
                   </button>
                 </td>
               </tr>
@@ -366,6 +407,7 @@ function EvolucaoAluno({
   metricaGrafico,
   setMetricaGrafico,
   aoVisualizar,
+  aoImprimir,
 }) {
   return (
     <div className="evolucao-aluno">
@@ -389,9 +431,18 @@ function EvolucaoAluno({
               <h2>{alunoSelecionado.nome}</h2>
               <span>Última avaliação: {formatarDataLonga(ultima.data)}</span>
             </div>
-            <button type="button" className="botao-montar" onClick={() => aoVisualizar(ultima)}>
-              <Eye size={14} /> Ver avaliação
-            </button>
+            <div className="acoes-do-painel">
+              <button type="button" className="link" onClick={() => aoImprimir(ultima)}>
+                <Printer size={14} /> PDF
+              </button>
+              <button
+                type="button"
+                className="botao-montar"
+                onClick={() => aoVisualizar(ultima)}
+              >
+                <Eye size={14} /> Ver avaliação
+              </button>
+            </div>
           </div>
 
           <div className="metricas-evolucao">
@@ -415,7 +466,13 @@ function EvolucaoAluno({
                 </strong>
                 {anterior ? (
                   <>
-                    <small>{variacao(ultima[campo], anterior[campo], unidadeVariacao) ?? "-"}</small>
+                    <small>
+                      <Variacao
+                        atual={ultima[campo]}
+                        anterior={anterior[campo]}
+                        unidade={unidadeVariacao}
+                      />
+                    </small>
                     <em>desde {formatarDataBR(anterior.data).slice(0, 5)}</em>
                   </>
                 ) : (
@@ -433,19 +490,32 @@ function EvolucaoAluno({
 
           <div className="historico-aluno">
             <h2>Histórico completo</h2>
+            {/* A linha era um <button> só. Virou uma linha com duas ações
+                porque botão dentro de botão não é HTML válido — e imprimir
+                qualquer avaliação do histórico exige a segunda. */}
             {avaliacoes.map((avaliacao) => (
-              <button
-                type="button"
-                key={avaliacao.id}
-                className="avaliacao-linha-card"
-                onClick={() => aoVisualizar(avaliacao)}
-              >
-                <span>
-                  <CalendarDays size={14} /> {formatarDataCurta(avaliacao.data)}
-                </span>
-                <span>{formatarComUnidade(avaliacao.peso_kg, "kg")}</span>
-                <span>{formatarComUnidade(avaliacao.percentual_gordura, "%")}</span>
-              </button>
+              <div key={avaliacao.id} className="avaliacao-linha-card">
+                <button
+                  type="button"
+                  className="avaliacao-linha-conteudo"
+                  onClick={() => aoVisualizar(avaliacao)}
+                >
+                  <span>
+                    <CalendarDays size={14} /> {formatarDataCurta(avaliacao.data)}
+                  </span>
+                  <span>{formatarComUnidade(avaliacao.peso_kg, "kg")}</span>
+                  <span>{formatarComUnidade(avaliacao.percentual_gordura, "%")}</span>
+                </button>
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => aoImprimir(avaliacao)}
+                  aria-label={`Gerar PDF da avaliação de ${formatarDataCurta(avaliacao.data)}`}
+                  title="Gerar PDF"
+                >
+                  <Printer size={14} />
+                </button>
+              </div>
             ))}
           </div>
         </>
@@ -541,8 +611,16 @@ function DetalheAvaliacaoModal({ avaliacao, anterior, aoFechar }) {
                     <td>{rotulo}</td>
                     <td>{formatarComUnidade(avaliacao[campo], unidade)}</td>
                     <td>{anterior ? formatarComUnidade(anterior[campo], unidade) : "-"}</td>
-                    <td className="variacao">
-                      {anterior ? variacao(avaliacao[campo], anterior[campo], unidade) ?? "-" : "-"}
+                    <td>
+                      {anterior ? (
+                        <Variacao
+                          atual={avaliacao[campo]}
+                          anterior={anterior[campo]}
+                          unidade={unidade}
+                        />
+                      ) : (
+                        "-"
+                      )}
                     </td>
                   </tr>
                 )

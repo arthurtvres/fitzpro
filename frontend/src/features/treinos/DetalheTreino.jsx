@@ -13,10 +13,12 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Dumbbell, Play, Plus, Square, Trophy } from "lucide-react";
+import { Dumbbell, Play, Plus, Printer, Square, Trophy } from "lucide-react";
 
 import { api } from "../../api/index.js";
 import BarraProgresso from "../../components/BarraProgresso.jsx";
+import FolhaImpressao from "../../components/FolhaImpressao.jsx";
+import { FichaDeTreino } from "../impressao/Documentos.jsx";
 import Modal from "../../components/Modal.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
@@ -27,6 +29,10 @@ import ItemPrescricao from "./ItemPrescricao.jsx";
 
 export default function DetalheTreino({
   treino,
+  // Só para a folha impressa: o cabeçalho precisa dizer de quem é o treino e
+  // quem prescreveu. A tela já sabe as duas coisas pelo contexto.
+  aluno,
+  personal,
   aoErrar,
   somenteLeitura = false,
   // Modo execução: mostra as caixas de marcar e o histórico de carga. É
@@ -37,6 +43,7 @@ export default function DetalheTreino({
   aoVerHistorico,
 }) {
   const [itens, setItens] = useState([]);
+  const [imprimindo, setImprimindo] = useState(false);
   const [progresso, setProgresso] = useState(null);
   const [recordes, setRecordes] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -228,18 +235,39 @@ export default function DetalheTreino({
 
   return (
     <>
+      {/* Só existe durante a impressão: monta, abre o diálogo e sai da árvore
+          quando ele fecha. Renderiza fora do app, num portal. */}
+      {imprimindo && (
+        <FolhaImpressao
+          titulo="Ficha de treino"
+          subtitulo={aluno?.objetivo || undefined}
+          aluno={aluno}
+          personal={personal}
+          aoFechar={() => setImprimindo(false)}
+        >
+          <FichaDeTreino treino={treino} itens={itens} />
+        </FolhaImpressao>
+      )}
+
       <section className="painel">
         <div className="barra-acoes">
           <h2 style={{ margin: 0 }}>Exercícios</h2>
-          {!somenteLeitura && (
-            <button
-              type="button"
-              className="primario"
-              onClick={() => setEscolhendo(true)}
-            >
-              <Plus size={15} /> Adicionar exercício
-            </button>
-          )}
+          <div className="acoes-do-painel">
+            {itens.length > 0 && (
+              <button type="button" onClick={() => setImprimindo(true)}>
+                <Printer size={15} /> PDF
+              </button>
+            )}
+            {!somenteLeitura && (
+              <button
+                type="button"
+                className="primario"
+                onClick={() => setEscolhendo(true)}
+              >
+                <Plus size={15} /> Adicionar exercício
+              </button>
+            )}
+          </div>
         </div>
 
         {recordes.length > 0 && (

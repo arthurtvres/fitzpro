@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Eye, LineChart, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, LineChart, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 
 import { api } from "../../api/index.js";
+import FolhaImpressao from "../../components/FolhaImpressao.jsx";
 import Modal from "../../components/Modal.jsx";
+import { AvaliacaoImpressa } from "../impressao/Documentos.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
 import { prepararFotoDeEvolucao, separarImagens } from "../../utils/imagem.js";
@@ -55,11 +57,12 @@ export const arquivoParaFoto = async (arquivo) => ({
 });
 
 /** Histórico de medidas do aluno. O IMC vem calculado pela API. */
-export default function PainelAvaliacoes({ aluno, aoErrar }) {
+export default function PainelAvaliacoes({ aluno, personal, aoErrar }) {
   const [itens, setItens] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [editando, setEditando] = useState(null); // null = fechado
   const [visualizando, setVisualizando] = useState(null);
+  const [imprimindo, setImprimindo] = useState(null);
   const [dados, setDados] = useState(formularioAvaliacaoVazio);
   const [salvando, setSalvando] = useState(false);
 
@@ -319,6 +322,14 @@ export default function PainelAvaliacoes({ aluno, aoErrar }) {
                     <button className="link destaque" onClick={() => setVisualizando(item)}>
                       <Eye size={14} />
                     </button>
+                    <button
+                      className="link"
+                      onClick={() => setImprimindo(item)}
+                      aria-label="Gerar PDF"
+                      title="Gerar PDF"
+                    >
+                      <Printer size={14} />
+                    </button>
                     <button className="link" onClick={() => abrirEdicao(item)}>
                       <Pencil size={14} />
                     </button>
@@ -331,6 +342,17 @@ export default function PainelAvaliacoes({ aluno, aoErrar }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {imprimindo && (
+        <FolhaImpressao
+          titulo="Avaliação física"
+          aluno={aluno}
+          personal={personal}
+          aoFechar={() => setImprimindo(null)}
+        >
+          <AvaliacaoImpressa avaliacao={imprimindo} campos={CAMPOS_AVALIACAO} />
+        </FolhaImpressao>
       )}
 
       {visualizando && (

@@ -5,3 +5,5 @@
 @import "./componentes.css";
 /* Por último: a Home do aluno ajusta cards e cores já definidos acima. */
 @import "./aluno-home.css";
+/* Depois de tudo: só vale em @media print, e precisa vencer o que veio antes. */
+@import "./impressao.css";

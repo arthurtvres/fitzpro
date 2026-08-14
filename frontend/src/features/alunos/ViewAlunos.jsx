@@ -297,16 +297,20 @@ export default function ViewAlunos({
         <Skeleton quantidade={4} />
       ) : alunos.length === 0 ? (
         <Vazio icone={UserPlus}>
-          <strong>Nenhum aluno cadastrado</strong>
-          <span>Cadastre seu primeiro aluno para começar a criar treinos e acompanhar sua evolução.</span>
-          <button type="button" className="primario" onClick={aoCriar}>
-            + Criar aluno
-          </button>
+          <div>
+            <strong>Nenhum aluno cadastrado</strong>
+            <span>Cadastre seu primeiro aluno para começar a criar treinos e acompanhar sua evolução.</span>
+            <button type="button" className="primario" onClick={aoCriar}>
+              + Criar aluno
+            </button>
+          </div>
         </Vazio>
       ) : alunosFiltrados.length === 0 ? (
         <Vazio icone={Search}>
-          <strong>Nenhum aluno encontrado.</strong>
-          <span>Experimente alterar os filtros ou o termo pesquisado.</span>
+          <div>
+            <strong>Nenhum aluno encontrado.</strong>
+            <span>Experimente alterar os filtros ou o termo pesquisado.</span>
+          </div>
         </Vazio>
       ) : (
         <div className="alunos-lista">

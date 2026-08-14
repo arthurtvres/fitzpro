@@ -15,7 +15,14 @@ import PainelAvaliacoes from "./PainelAvaliacoes.jsx";
  * Conteúdo do modal do aluno: dados, situação e as abas de treinos e dietas.
  * Quem abre e fecha é o App; aqui não há wrapper de card — o modal já é um.
  */
-export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino, aoEditar }) {
+export default function DetalheAluno({
+  aluno,
+  // Só para o cabeçalho das folhas impressas; ver `FolhaImpressao`.
+  personal,
+  aoErrar,
+  aoMontarTreino,
+  aoEditar,
+}) {
   // "Informações" e nao "treinos": abrir um aluno é, na maioria das vezes,
   // lembrar quem é a pessoa ou achar o telefone dela. Montar treino tem porta
   // própria — a ação "montar" no cartão do treino.
@@ -94,11 +101,17 @@ export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino, aoEditar 
       ) : aba === "progressao" ? (
         <PainelProgressao key={`${aluno.id}-pr`} aluno={aluno} aoErrar={aoErrar} />
       ) : aba === "avaliacoes" ? (
-        <PainelAvaliacoes key={`${aluno.id}-av`} aluno={aluno} aoErrar={aoErrar} />
+        <PainelAvaliacoes
+          key={`${aluno.id}-av`}
+          aluno={aluno}
+          personal={personal}
+          aoErrar={aoErrar}
+        />
       ) : (
         <PainelPlano
           key={`${aluno.id}-${config.chave}`}
           config={config}
+          personal={personal}
           aluno={aluno}
           aoErrar={aoErrar}
           aoAbrir={aba === "treinos" ? aoMontarTreino : undefined}
@@ -115,6 +128,9 @@ export default function DetalheAluno({ aluno, aoErrar, aoMontarTreino, aoEditar 
           <DetalhePlano
             config={visualizando.config}
             item={visualizando.item}
+            /* `aluno` aqui é o nome — é o que esta tela espera. */
+            aluno={aluno.nome}
+            personal={personal}
             aoErrar={aoErrar}
           />
         </Modal>

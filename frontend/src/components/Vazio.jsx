@@ -7,7 +7,7 @@ export default function Vazio({ icone: Icone = Inbox, children, acao }) {
       <span className="icone-vazio" aria-hidden="true">
         <Icone size={22} />
       </span>
-      <p>{children}</p>
+      <div className="vazio-conteudo">{children}</div>
       {acao}
     </div>
   );

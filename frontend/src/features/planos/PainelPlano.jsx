@@ -3,6 +3,10 @@ import { Plus } from "lucide-react";
 
 import FormularioPlano from "./FormularioPlano.jsx";
 import ListaPlanos from "./ListaPlanos.jsx";
+import FolhaImpressao from "../../components/FolhaImpressao.jsx";
+import { FichaDeTreino, PlanoAlimentarImpresso } from "../impressao/Documentos.jsx";
+import { lerPlanoAlimentar } from "./dietaPlano.js";
+import { api } from "../../api/index.js";
 
 /**
  * Treinos ou dietas de um aluno específico, dentro da página dele.
@@ -17,6 +21,8 @@ import ListaPlanos from "./ListaPlanos.jsx";
 export default function PainelPlano({
   config,
   aluno,
+  // Só para o cabeçalho da folha impressa.
+  personal,
   aoErrar,
   aoAbrir,
   aoVisualizar,
@@ -27,6 +33,9 @@ export default function PainelPlano({
   const [carregando, setCarregando] = useState(true);
   // null = formulário fechado. Um item = editando; `true` = prescrevendo novo.
   const [emEdicao, setEmEdicao] = useState(null);
+  // O item a imprimir, já com o que a folha precisa. Um treino precisa dos
+  // exercícios, que a lista não traz (ela só sabe a contagem) — daí a busca.
+  const [imprimindo, setImprimindo] = useState(null);
   const aberto = emEdicao !== null;
   const editando = aberto && emEdicao !== true ? emEdicao : null;
   const rotuloPrescrever = `Prescrever ${config.singular}`;
@@ -74,6 +83,18 @@ export default function PainelPlano({
     }
   }
 
+  async function preparar(item) {
+    if (config.chave === "dietas") {
+      setImprimindo({ item, plano: lerPlanoAlimentar(item.descricao) });
+      return;
+    }
+    try {
+      setImprimindo({ item, itens: await api.treinos.exercicios.listar(item.id) });
+    } catch (erro) {
+      aoErrar(erro.message);
+    }
+  }
+
   async function remover(item) {
     if (!confirm(`Remover "${item.nome}"?`)) return;
     try {
@@ -88,6 +109,24 @@ export default function PainelPlano({
 
   return (
     <>
+      {imprimindo && (
+        <FolhaImpressao
+          titulo={config.chave === "treinos" ? "Ficha de treino" : "Plano alimentar"}
+          aluno={aluno}
+          personal={personal}
+          aoFechar={() => setImprimindo(null)}
+        >
+          {config.chave === "treinos" ? (
+            <FichaDeTreino treino={imprimindo.item} itens={imprimindo.itens} />
+          ) : (
+            <PlanoAlimentarImpresso
+              dieta={imprimindo.item}
+              plano={imprimindo.plano}
+            />
+          )}
+        </FolhaImpressao>
+      )}
+
       <div className="barra-acoes">
         <h2 style={{ margin: 0 }}>
           {config.chave === "treinos" ? "Treinos" : "Dietas"}
@@ -120,6 +159,7 @@ export default function PainelPlano({
         aoAbrir={aoAbrir}
         aoVisualizar={aoVisualizar}
         aoRemover={remover}
+        aoImprimir={preparar}
         textoVazio={`${config.textoVazio} para ${aluno.nome}.`}
       />
     </>

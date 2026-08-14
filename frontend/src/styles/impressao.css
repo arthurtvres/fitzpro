@@ -1,0 +1,142 @@
+/* ---------- impressão / salvar como PDF ---------- */
+/*
+ * A folha existe fora da tela e só aparece na impressão. É o contrário da
+ * abordagem óbvia — mandar imprimir a tela atual escondendo o que sobra: a
+ * tela tem sidebar, abas, botões e estado (o que está marcado hoje, o que está
+ * em edição), e nada disso pertence a um papel entregue ao aluno.
+ *
+ * Com folha própria, o documento é escrito uma vez e não muda quando a tela
+ * mudar.
+ */
+
+.folha-impressao {
+  display: none;
+}
+
+@media print {
+  /* O app inteiro some; sobra a folha. */
+  #root {
+    display: none !important;
+  }
+
+  .folha-impressao {
+    display: block;
+    color: #000;
+    background: #fff;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
+  /* Margem do papel. Sem isto o navegador usa a dele, que varia e costuma
+     cortar a borda em impressora doméstica. */
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  /* A logo, acima do cabecalho. Altura fixa e nao largura: e o que mantem o
+     bloco do titulo sempre na mesma posicao, trocando a arte ou nao. Sem
+     limite nenhum o PNG sairia em tamanho natural e ocuparia a folha. */
+  .folha-logo {
+    margin-bottom: 10px;
+  }
+  .folha-logo img {
+    height: 30px;
+    width: auto;
+    display: block;
+  }
+
+  .folha-cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+    border-bottom: 1.5pt solid #000;
+  }
+  .folha-cabecalho .titulo {
+    margin: 0 0 2px;
+    font-size: 16pt;
+  }
+  .folha-cabecalho .sub {
+    margin: 0;
+    font-size: 10pt;
+    color: #444;
+  }
+  .folha-cabecalho .quem {
+    text-align: right;
+    font-size: 10pt;
+  }
+  .folha-cabecalho .quem strong {
+    display: block;
+    font-size: 12pt;
+  }
+  .folha-cabecalho .prescritor {
+    margin: 3px 0 0;
+    font-size: 10pt;
+    color: #444;
+  }
+
+  .folha-impressao h2 {
+    font-size: 12pt;
+    margin: 18px 0 6px;
+    padding-bottom: 3px;
+    border-bottom: 0.5pt solid #999;
+  }
+
+  .folha-impressao table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5pt;
+  }
+  .folha-impressao th,
+  .folha-impressao td {
+    text-align: left;
+    padding: 5px 6px;
+    border-bottom: 0.5pt solid #ccc;
+    vertical-align: top;
+  }
+  .folha-impressao th {
+    border-bottom: 1pt solid #666;
+    font-size: 9.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  /* Uma linha de exercício não pode começar no fim de uma página e terminar
+     na seguinte — quem lê no papel perde a referência da coluna. */
+  .folha-impressao tr,
+  .folha-impressao .bloco {
+    break-inside: avoid;
+  }
+  .folha-impressao thead {
+    display: table-header-group;
+  }
+
+  .folha-impressao .observacao {
+    margin: 4px 0 0;
+    font-size: 9.5pt;
+    color: #333;
+    font-style: italic;
+  }
+
+  .folha-rodape {
+    margin-top: 22px;
+    padding-top: 8px;
+    border-top: 0.5pt solid #999;
+    font-size: 9pt;
+    color: #555;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  /* Espaço para quem prefere anotar no papel durante o treino. */
+  .folha-impressao .coluna-anotacao {
+    width: 22%;
+  }
+}
