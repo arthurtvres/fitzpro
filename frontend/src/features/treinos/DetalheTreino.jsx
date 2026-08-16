@@ -383,6 +383,7 @@ export default function DetalheTreino({
             aoSelecionar={escolherDoCatalogo}
             aoDetalhar={setDetalhando}
             aoErrar={aoErrar}
+            podeGerenciar
           />
         </Modal>
       )}

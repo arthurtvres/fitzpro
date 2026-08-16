@@ -4,6 +4,7 @@ import { Plus, Search } from "lucide-react";
 import { api } from "../../api/index.js";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
+import MeusExercicios from "./MeusExercicios.jsx";
 
 const POR_PAGINA = 24;
 const FILTROS_VAZIOS = {
@@ -15,11 +16,44 @@ const FILTROS_VAZIOS = {
 };
 
 /**
- * Catálogo pesquisável do free-exercise-db. Serve dois contextos:
+ * As duas fontes de exercício, em abas: a biblioteca própria do personal, e o
+ * catálogo público do free-exercise-db. Serve dois contextos:
  * - tela "Exercícios > Catálogo": clicar no cartão abre os detalhes;
  * - seletor dentro de um treino (`aoSelecionar`): o cartão vira botão de adicionar.
+ *
+ * `podeGerenciar` decide se a aba "Meus exercícios" mostra as ações de criar,
+ * editar e arquivar — o aluno também navega esta tela (para ler a instrução
+ * de algo prescrito por ele), mas só o personal gerencia a biblioteca.
  */
-export default function CatalogoExercicios({ aoSelecionar, aoDetalhar, aoErrar }) {
+export default function CatalogoExercicios({ aoSelecionar, aoDetalhar, aoErrar, podeGerenciar = false }) {
+  const [aba, setAba] = useState("catalogo");
+
+  return (
+    <>
+      <div className="abas">
+        <button className={aba === "catalogo" ? "ativa" : ""} onClick={() => setAba("catalogo")}>
+          free-exercise-db
+        </button>
+        <button className={aba === "meus" ? "ativa" : ""} onClick={() => setAba("meus")}>
+          Meus exercícios
+        </button>
+      </div>
+
+      {aba === "meus" ? (
+        <MeusExercicios
+          aoSelecionar={aoSelecionar}
+          aoDetalhar={aoDetalhar}
+          aoErrar={aoErrar}
+          podeGerenciar={podeGerenciar}
+        />
+      ) : (
+        <CatalogoPublico aoSelecionar={aoSelecionar} aoDetalhar={aoDetalhar} aoErrar={aoErrar} />
+      )}
+    </>
+  );
+}
+
+function CatalogoPublico({ aoSelecionar, aoDetalhar, aoErrar }) {
   const [filtros, setFiltros] = useState(FILTROS_VAZIOS);
   const [opcoes, setOpcoes] = useState(null);
   const [itens, setItens] = useState([]);
@@ -37,7 +71,7 @@ export default function CatalogoExercicios({ aoSelecionar, aoDetalhar, aoErrar }
 
     const timer = setTimeout(() => {
       api.exercicios
-        .listar({ ...filtros, limite: POR_PAGINA, offset: 0 })
+        .listar({ ...filtros, fonte: "catalogo", limite: POR_PAGINA, offset: 0 })
         .then((resposta) => {
           if (cancelado) return;
           setItens(resposta.itens);
@@ -57,6 +91,7 @@ export default function CatalogoExercicios({ aoSelecionar, aoDetalhar, aoErrar }
     try {
       const resposta = await api.exercicios.listar({
         ...filtros,
+        fonte: "catalogo",
         limite: POR_PAGINA,
         offset: itens.length,
       });

@@ -22,11 +22,13 @@ from app.core import config as config_app  # noqa: E402
 from app.core.dependencias import personal_atual  # noqa: E402
 from app.db.session import create_db_and_tables, engine  # noqa: E402
 from app.models import (  # noqa: E402
+    AlimentoPersonalizadoCriacao,
     AvaliacaoCriacao,
     ExecucaoExercicio,
     ExecucaoExercicioEntrada,
     ExecucaoRefeicao,
     ExecucaoRefeicaoCriacao,
+    ExercicioPersonalizadoCriacao,
     FaixaDeAlunos,
     DietaCriacao,
     SerieRealizada,
@@ -44,11 +46,15 @@ from app.models import (  # noqa: E402
     publico,
 )
 from app.routers import auth, avaliacoes, dietas, execucoes, painel, treinos, usuarios  # noqa: E402
+from app.routers import alimentos as alimentos_rotas  # noqa: E402
+from app.routers import exercicios as exercicios_rotas  # noqa: E402
 from app.routers import progressao as progressao_rotas  # noqa: E402
 from app.seed import plano_alimentar as plano_alimentar_json  # noqa: E402
 from app.seed import refeicoes_base  # noqa: E402
 from app.services import catalogo, dias, plano_alimentar, progressao, token_acesso  # noqa: E402
+from app.services import alimentos_personalizados  # noqa: E402
 from app.services import desempenho as desempenho_svc  # noqa: E402
+from app.services import exercicios_personalizados  # noqa: E402
 
 create_db_and_tables()
 # O catalogo e carregado no lifespan do app; aqui as rotas sao chamadas direto,
@@ -1236,6 +1242,176 @@ for descricao, condicao in [
     ("o treino continua existindo", s.get(Treino, arq_treino.id) is not None),
     ("e a data do arquivamento fica registrada",
      s.get(Dieta, arq_dieta.id).arquivado_em is not None),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+print("\n== itens personalizados ==")
+
+# Toda rota de escrita nova precisa estar atras de personal_atual — mesma
+# checagem usada acima para o painel e para as observacoes: chamar a funcao de
+# rota direto pula o Depends, entao a barreira so aparece inspecionando a
+# assinatura.
+for modulo, nome_rota in [
+    (exercicios_rotas, "criar_exercicio_personalizado"),
+    (exercicios_rotas, "atualizar_exercicio_personalizado"),
+    (exercicios_rotas, "arquivar_exercicio_personalizado"),
+    (exercicios_rotas, "desarquivar_exercicio_personalizado"),
+    (alimentos_rotas, "criar_alimento_personalizado"),
+    (alimentos_rotas, "atualizar_alimento_personalizado"),
+    (alimentos_rotas, "arquivar_alimento_personalizado"),
+    (alimentos_rotas, "desarquivar_alimento_personalizado"),
+]:
+    guarda = inspect.signature(getattr(modulo, nome_rota)).parameters["logado"].default
+    condicao = guarda.dependency is personal_atual
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {nome_rota} depende de personal_atual")
+
+# ---------- exercicio personalizado ----------
+
+exercicio_ana = exercicios_rotas.criar_exercicio_personalizado(
+    ExercicioPersonalizadoCriacao(nome="Remada no elastico da Ana", categoria="strength"),
+    s, ana,
+)
+exercicio_bruno = exercicios_rotas.criar_exercicio_personalizado(
+    ExercicioPersonalizadoCriacao(nome="Prancha do Bruno"), s, bruno,
+)
+
+print(f"  personal_id gravado pelo servidor: {exercicio_ana['id']} -> ana={ana.id}")
+assert exercicio_ana["fonte"] == "personal"
+assert exercicios_personalizados.obter_ou_404(
+    int(exercicio_ana["id"].split(":")[1]), ana.id, s
+).personal_id == ana.id
+
+checar("PUT exercicio personalizado alheio", 404, lambda: exercicios_rotas.atualizar_exercicio_personalizado(
+    int(exercicio_ana["id"].split(":")[1]),
+    ExercicioPersonalizadoCriacao(nome="Roubado"), s, bruno))
+checar("arquivar exercicio personalizado alheio", 404, lambda: exercicios_rotas.arquivar_exercicio_personalizado(
+    int(exercicio_ana["id"].split(":")[1]), s, bruno))
+checar("desarquivar exercicio personalizado alheio", 404, lambda: exercicios_rotas.desarquivar_exercicio_personalizado(
+    int(exercicio_ana["id"].split(":")[1]), s, bruno))
+
+# limite/offset explicitos: por padrao esses parametros sao objetos `Query(...)`
+# no proprio corpo da funcao (so o FastAPI os resolve para int, via HTTP) — uma
+# chamada direta, como aqui, precisa passar valores de verdade.
+busca_ana = exercicios_rotas.listar_exercicios(limite=1000, offset=0, session=s, logado=ana)
+nomes_ana = [i["nome"] for i in busca_ana["itens"]]
+busca_bruno = exercicios_rotas.listar_exercicios(limite=1000, offset=0, session=s, logado=bruno)
+nomes_bruno = [i["nome"] for i in busca_bruno["itens"]]
+
+busca_aluno_ana = exercicios_rotas.listar_exercicios(limite=1000, offset=0, session=s, logado=obj_aluno)
+nomes_aluno_ana = [i["nome"] for i in busca_aluno_ana["itens"]]
+busca_aluno_bruno = exercicios_rotas.listar_exercicios(
+    limite=1000, offset=0, session=s, logado=s.get(Usuario, id_bruno))
+nomes_aluno_bruno = [i["nome"] for i in busca_aluno_bruno["itens"]]
+
+for descricao, condicao in [
+    ("exercicio da Ana aparece pra ela", "Remada no elastico da Ana" in nomes_ana),
+    ("exercicio da Ana NAO aparece pro Bruno", "Remada no elastico da Ana" not in nomes_bruno),
+    ("exercicio do Bruno NAO aparece pra Ana", "Prancha do Bruno" not in nomes_ana),
+    ("todo item da busca tem fonte valida",
+     all(i["fonte"] in ("catalogo", "personal") for i in busca_ana["itens"])),
+    ("catalogo continua so com os 873 originais",
+     all(i["fonte"] == "catalogo" for i in busca_ana["itens"] if i["nome"] != "Remada no elastico da Ana")),
+    # O aluno precisa ver o exercicio do PROPRIO personal (para ler a instrucao
+    # de algo que foi prescrito pra ele), mas nao o de um personal alheio.
+    ("aluno da Ana ve o exercicio da Ana", "Remada no elastico da Ana" in nomes_aluno_ana),
+    ("aluno do Bruno NAO ve o exercicio da Ana", "Remada no elastico da Ana" not in nomes_aluno_bruno),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+print(f"\n  id do catalogo nunca colide: catalogo.existe({exercicio_ana['id']!r}) = "
+      f"{catalogo.existe(exercicio_ana['id'])}")
+assert catalogo.existe(exercicio_ana["id"]) is False
+
+# O teste mais afiado: prescrever o exercicio personalizado num treino de
+# verdade, e o resumo dentro do treino precisar resolver via a biblioteca do
+# tenant, nao via o catalogo. `treino_ana` ja foi deletado la em cima (linha
+# 637) — este e um treino novo, so para esta secao.
+treino_para_personalizados = treinos.criar_treino(
+    TreinoCriacao(nome="Treino com item da biblioteca", dia_semana="quinta", aluno_id=id_ana), s, ana)
+
+prescricao_personalizada = treinos.adicionar_exercicio(
+    treino_para_personalizados.id, TreinoExercicioCriacao(exercicio_id=exercicio_ana["id"]), s, ana)
+checar("prescrever exercicio personalizado alheio", 404, lambda: treinos.adicionar_exercicio(
+    treino_para_personalizados.id, TreinoExercicioCriacao(exercicio_id=exercicio_bruno["id"]), s, ana))
+
+itens_do_treino = treinos.listar_exercicios_do_treino(treino_para_personalizados.id, s, ana)
+resolvido = next(i for i in itens_do_treino if i["id"] == prescricao_personalizada["id"])
+print(f"  exercicio resolvido dentro do treino: {resolvido['exercicio']}")
+assert resolvido["exercicio"] is not None and resolvido["exercicio"]["nome"] == "Remada no elastico da Ana"
+
+# Arquivado some da listagem padrao, mas segue existindo para quem edita direto.
+exercicios_rotas.arquivar_exercicio_personalizado(int(exercicio_bruno["id"].split(":")[1]), s, bruno)
+mine_bruno_padrao = [i["nome"] for i in exercicios_rotas.listar_meus_exercicios(session=s, logado=bruno)]
+mine_bruno_com_arquivados = exercicios_rotas.listar_meus_exercicios(
+    incluir_arquivados=True, session=s, logado=bruno)
+prancha = next(i for i in mine_bruno_com_arquivados if i["nome"] == "Prancha do Bruno")
+
+desarquivado = exercicios_rotas.desarquivar_exercicio_personalizado(
+    int(exercicio_bruno["id"].split(":")[1]), s, bruno)
+
+for descricao, condicao in [
+    ("arquivado some da minha lista", "Prancha do Bruno" not in mine_bruno_padrao),
+    ("incluir_arquivados traz de volta", any(i["nome"] == "Prancha do Bruno" for i in mine_bruno_com_arquivados)),
+    # A trava que importa de verdade: sem `arquivado_em` na resposta, o front
+    # nunca sabe que o item está arquivado e o botão "Desarquivar" não aparece
+    # — foi exatamente o bug que passou batido até aparecer na tela.
+    ("resposta publica carrega arquivado_em", prancha["arquivado_em"] is not None),
+    ("desarquivar limpa arquivado_em na resposta", desarquivado["arquivado_em"] is None),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+# ---------- alimento personalizado ----------
+
+alimento_ana = alimentos_rotas.criar_alimento_personalizado(
+    AlimentoPersonalizadoCriacao(nome="Whey da marca X da Ana", proteina_g=80, kcal=None), s, ana,
+)
+alimento_bruno = alimentos_rotas.criar_alimento_personalizado(
+    AlimentoPersonalizadoCriacao(nome="Barrinha do Bruno", kcal=200), s, bruno,
+)
+
+checar("PUT alimento personalizado alheio", 404, lambda: alimentos_rotas.atualizar_alimento_personalizado(
+    int(alimento_ana["id"].split(":")[1]),
+    AlimentoPersonalizadoCriacao(nome="Roubado"), s, bruno))
+checar("arquivar alimento personalizado alheio", 404, lambda: alimentos_rotas.arquivar_alimento_personalizado(
+    int(alimento_ana["id"].split(":")[1]), s, bruno))
+checar("GET direto de alimento personalizado alheio", 404, lambda: alimentos_rotas.buscar_alimento_personalizado(
+    int(alimento_ana["id"].split(":")[1]), s, bruno))
+
+# limite alto: a TACO tem varios itens cujo nome contem "da"/"ana" como
+# substring, e o padrao (30) poderia cortar o item da Ana antes da asserção.
+busca_alimento_ana = alimentos_rotas.listar_alimentos(busca="da Ana", limite=1000, session=s, logado=ana)
+busca_alimento_bruno = alimentos_rotas.listar_alimentos(busca="da Ana", limite=1000, session=s, logado=bruno)
+
+for descricao, condicao in [
+    ("alimento da Ana aparece pra ela", any(a["nome"] == "Whey da marca X da Ana" for a in busca_alimento_ana)),
+    ("alimento da Ana NAO aparece pro Bruno", not any(a["nome"] == "Whey da marca X da Ana" for a in busca_alimento_bruno)),
+    ("fonte 'personal' no item combinado",
+     next(a for a in busca_alimento_ana if a["nome"] == "Whey da marca X da Ana")["fonte"] == "personal"),
+    # kcal ausente e "nao analisado": nao pode virar 0 na volta da busca combinada.
+    ("kcal nulo continua nulo, nao vira 0",
+     next(a for a in busca_alimento_ana if a["nome"] == "Whey da marca X da Ana")["kcal"] is None),
+]:
+    ok += condicao
+    falhas += not condicao
+    print(f"  [{'PASS' if condicao else 'FALHA'}] {descricao}")
+
+# Mesma trava do lado dos alimentos: sem `arquivado_em` na resposta publica, o
+# front nunca sabe que o item esta arquivado e o "Desarquivar" nao aparece.
+alimento_arquivado = alimentos_rotas.arquivar_alimento_personalizado(
+    int(alimento_ana["id"].split(":")[1]), s, ana)
+alimento_desarquivado = alimentos_rotas.desarquivar_alimento_personalizado(
+    int(alimento_ana["id"].split(":")[1]), s, ana)
+for descricao, condicao in [
+    ("resposta publica do alimento carrega arquivado_em", alimento_arquivado["arquivado_em"] is not None),
+    ("desarquivar limpa arquivado_em na resposta", alimento_desarquivado["arquivado_em"] is None),
 ]:
     ok += condicao
     falhas += not condicao

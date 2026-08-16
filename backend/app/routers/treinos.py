@@ -7,6 +7,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.services import catalogo, progressao
+from app.services import exercicios_personalizados as personalizados
 from app.db.session import get_session
 from app.core.dependencias import aluno_do_tenant, personal_atual, tenant_de, usuario_atual
 from app.models import (
@@ -219,9 +220,19 @@ def deletar_treino(
 
 # ---------- exercícios do treino ----------
 
-def _com_catalogo(item: TreinoExercicio) -> dict:
-    """Junta a prescrição salva com os dados do exercício no catálogo."""
-    return {**item.model_dump(), "exercicio": catalogo.resumo(item.exercicio_id)}
+def _exercicio_valido(exercicio_id: str, tenant_id: int, session: Session) -> bool:
+    """Existe no catálogo público, ou na biblioteca do tenant que está prescrevendo."""
+    if personalizados.eh_personalizado(exercicio_id):
+        return personalizados.existe(exercicio_id, tenant_id, session)
+    return catalogo.existe(exercicio_id)
+
+def _com_catalogo(item: TreinoExercicio, tenant_id: int, session: Session) -> dict:
+    """Junta a prescrição salva com os dados do exercício no catálogo ou na biblioteca do tenant."""
+    if personalizados.eh_personalizado(item.exercicio_id):
+        resumo = personalizados.resumo_publico(item.exercicio_id, tenant_id, session)
+    else:
+        resumo = catalogo.resumo(item.exercicio_id)
+    return {**item.model_dump(), "exercicio": resumo}
 
 def _renumerar(treino_id: int, session: Session):
     """Reescreve ordem como 0,1,2... para não deixar buracos depois de remover."""
@@ -236,7 +247,10 @@ def listar_exercicios_do_treino(
     logado: Usuario = Depends(usuario_atual),
 ):
     buscar_ou_404(treino_id, logado, session)
-    return [_com_catalogo(item) for item in exercicios_do_treino(treino_id, session)]
+    return [
+        _com_catalogo(item, tenant_de(logado), session)
+        for item in exercicios_do_treino(treino_id, session)
+    ]
 
 @router.post("/{treino_id}/exercicios")
 def adicionar_exercicio(
@@ -246,7 +260,7 @@ def adicionar_exercicio(
     logado: Usuario = Depends(personal_atual),
 ):
     buscar_ou_404(treino_id, logado, session)
-    if not catalogo.existe(dados.exercicio_id):
+    if not _exercicio_valido(dados.exercicio_id, tenant_de(logado), session):
         raise HTTPException(status_code=404, detail="Exercício não encontrado")
 
     existentes = exercicios_do_treino(treino_id, session)
@@ -257,7 +271,7 @@ def adicionar_exercicio(
     session.add(novo)
     session.commit()
     session.refresh(novo)
-    return _com_catalogo(novo)
+    return _com_catalogo(novo, tenant_de(logado), session)
 
 # Precisa vir antes de /{item_id}, senão "ordem" é lido como um id.
 @router.put("/{treino_id}/exercicios/ordem")
@@ -282,7 +296,10 @@ def reordenar_exercicios(
         session.add(itens[item_id])
 
     session.commit()
-    return [_com_catalogo(item) for item in exercicios_do_treino(treino_id, session)]
+    return [
+        _com_catalogo(item, tenant_de(logado), session)
+        for item in exercicios_do_treino(treino_id, session)
+    ]
 
 @router.put("/{treino_id}/exercicios/{item_id}")
 def atualizar_exercicio(
@@ -297,7 +314,7 @@ def atualizar_exercicio(
     item = session.get(TreinoExercicio, item_id)
     if not item or item.treino_id != treino_id:
         raise HTTPException(status_code=404, detail="Exercício não encontrado no treino")
-    if not catalogo.existe(dados.exercicio_id):
+    if not _exercicio_valido(dados.exercicio_id, tenant_de(logado), session):
         raise HTTPException(status_code=404, detail="Exercício não encontrado")
 
     item.sqlmodel_update(dados.model_dump())
@@ -305,7 +322,7 @@ def atualizar_exercicio(
     session.add(item)
     session.commit()
     session.refresh(item)
-    return _com_catalogo(item)
+    return _com_catalogo(item, tenant_de(logado), session)
 
 @router.delete("/{treino_id}/exercicios/{item_id}")
 def remover_exercicio(

@@ -62,7 +62,7 @@ def carregar() -> int:
     _por_id = {a["id"]: a for a in _ordenados}
     return len(_ordenados)
 
-def _ordenar(itens: list[dict], ordenar: str) -> list[dict]:
+def ordenar_itens(itens: list[dict], ordenar: str) -> list[dict]:
     """
     Ordena por um macro, com os alimentos sem dado **sempre no fim**.
 
@@ -70,6 +70,11 @@ def _ordenar(itens: list[dict], ordenar: str) -> list[dict]:
     número — ordenar direto levantaria TypeError. Tratá-los como zero seria
     pior que o erro: em "menos calorias" eles subiriam ao topo da lista como se
     fossem os mais leves, que é exatamente a leitura errada.
+
+    Público (sem `_`) porque o router de alimentos reaproveita esta mesma
+    lógica para ordenar a busca combinada com os itens personalizados — sem
+    isso, duplicar a regra do "nulo sempre por último" é duplicar o jeito
+    certo de errar essa conta duas vezes.
     """
     campo, decrescente = ORDENACOES.get(ordenar, ORDENACOES["nome"])
     if campo == "busca":
@@ -106,7 +111,7 @@ def listar(
         ]
 
     if not busca or not busca.strip():
-        return _ordenar(candidatos, ordenar)[:limite]
+        return ordenar_itens(candidatos, ordenar)[:limite]
 
     frase = _sem_acento(busca.strip())
     # Cada palavra tem que aparecer, em qualquer posição — e não a frase
@@ -121,7 +126,7 @@ def listar(
     candidatos = [a for a in candidatos if casa(a)]
 
     if ordenar != "nome":
-        return _ordenar(candidatos, ordenar)[:limite]
+        return ordenar_itens(candidatos, ordenar)[:limite]
 
     # Sem ordenação pedida, quem começa com o que foi digitado vem antes: com
     # "arroz", "Arroz integral cozido" é mais provável que "Bolo de arroz".

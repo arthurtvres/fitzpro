@@ -461,7 +461,7 @@ function RefeicaoCard({
               <label>Alimento</label>
               <BuscaDeAlimento
                 valor={alimento.nome}
-                vinculado={Boolean(alimento.por_cem)}
+                fonte={alimento.por_cem ? alimento.fonte : null}
                 aoDigitar={(texto) =>
                   // Digitar à mão desfaz o vínculo: os macros guardados eram
                   // do alimento escolhido, e mantê-los faria a linha exibir um
@@ -470,12 +470,15 @@ function RefeicaoCard({
                     nome: texto,
                     alimento_id: null,
                     por_cem: null,
+                    fonte: null,
                   })
                 }
                 aoEscolher={(escolhido) =>
                   alterarAlimento(refeicao.id, alimento.id, {
                     nome: escolhido.nome,
                     alimento_id: escolhido.id,
+                    // "taco" ou "personal" — só para o selo mostrar de onde veio.
+                    fonte: escolhido.fonte,
                     // A tabela é sempre por 100 g; a porção sai da quantidade.
                     por_cem: {
                       kcal: escolhido.kcal,

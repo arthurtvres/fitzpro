@@ -4,6 +4,7 @@ import { Search, Utensils } from "lucide-react";
 import { api } from "../../api/index.js";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
+import MeusAlimentos from "./MeusAlimentos.jsx";
 
 // A tabela tem 597 itens. Trazer tudo de uma vez é uma resposta grande para uma
 // tela em que ninguém rola até o fim — quem procura um alimento, digita.
@@ -33,6 +34,35 @@ const numero = (valor) =>
   valor == null ? "—" : new Intl.NumberFormat("pt-BR").format(valor);
 
 /**
+ * As duas fontes de alimento, em abas: a biblioteca própria do personal, e a
+ * tabela TACO. `podeGerenciar` decide se a aba "Meus alimentos" mostra as
+ * ações de criar, editar e arquivar — o aluno também navega esta tela, mas só
+ * o personal gerencia a biblioteca.
+ */
+export default function CatalogoAlimentos({ aoErrar, podeGerenciar = false }) {
+  const [aba, setAba] = useState("taco");
+
+  return (
+    <>
+      <div className="abas">
+        <button className={aba === "taco" ? "ativa" : ""} onClick={() => setAba("taco")}>
+          TACO
+        </button>
+        <button className={aba === "meus" ? "ativa" : ""} onClick={() => setAba("meus")}>
+          Meus alimentos
+        </button>
+      </div>
+
+      {aba === "meus" ? (
+        <MeusAlimentos aoErrar={aoErrar} podeGerenciar={podeGerenciar} />
+      ) : (
+        <TabelaTaco aoErrar={aoErrar} />
+      )}
+    </>
+  );
+}
+
+/**
  * Consulta à tabela TACO, sem prescrever nada.
  *
  * Serve para o personal conferir um valor antes de montar a dieta, e para
@@ -42,7 +72,7 @@ const numero = (valor) =>
  * Os valores são **sempre por 100 g** — é como a TACO publica, e escrever isso
  * na tela evita a leitura errada de que seriam por porção.
  */
-export default function CatalogoAlimentos({ aoErrar }) {
+function TabelaTaco({ aoErrar }) {
   const [busca, setBusca] = useState("");
   const [fonte, setFonte] = useState("");
   const [ordenar, setOrdenar] = useState("nome");
@@ -54,7 +84,7 @@ export default function CatalogoAlimentos({ aoErrar }) {
     const cronometro = setTimeout(() => {
       setCarregando(true);
       api.alimentos
-        .buscar(busca.trim() || undefined, LIMITE, { fonte, ordenar })
+        .buscar(busca.trim() || undefined, LIMITE, { fonte, ordenar, origem: "taco" })
         .then((lista) => !cancelado && setAlimentos(lista))
         .catch((e) => !cancelado && aoErrar?.(e.message))
         .finally(() => !cancelado && setCarregando(false));

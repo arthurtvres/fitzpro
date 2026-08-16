@@ -16,9 +16,14 @@
 
 const LADO_PERFIL = 256;
 const LADO_EVOLUCAO = 1024;
+const LADO_EXERCICIO = 800;
 const QUALIDADE = 0.82;
 
 export const TIPOS_ACEITOS = ["image/jpeg", "image/png", "image/webp"];
+// Gif entra num grupo à parte: os outros três passam pelo canvas de
+// redimensionar, e desenhar um gif animado num canvas captura só um quadro —
+// achataria a animação numa imagem parada.
+export const TIPOS_ACEITOS_COM_GIF = [...TIPOS_ACEITOS, "image/gif"];
 
 /** Antes da leitura: erra cedo, com mensagem que dá para mostrar no campo. */
 export function conferirImagem(arquivo) {
@@ -29,6 +34,22 @@ export function conferirImagem(arquivo) {
   // perfil legítima desse tamanho.
   if (arquivo.size > 12 * 1024 * 1024) {
     return "Imagem muito grande. Escolha uma de até 12 MB.";
+  }
+  return null;
+}
+
+/**
+ * Mesma ideia de `conferirImagem`, mas aceitando gif — e com um teto menor,
+ * porque o gif não é reduzido antes de subir (ao contrário de jpg/png/webp,
+ * que passam pelo canvas em `prepararMidiaDeExercicio`).
+ */
+export function conferirMidiaDeExercicio(arquivo) {
+  if (!TIPOS_ACEITOS_COM_GIF.includes(arquivo.type)) {
+    return "Formato não suportado. Use JPG, PNG, WEBP ou GIF.";
+  }
+  const limite = arquivo.type === "image/gif" ? 4 : 12;
+  if (arquivo.size > limite * 1024 * 1024) {
+    return `Arquivo muito grande. Escolha um de até ${limite} MB.`;
   }
   return null;
 }
@@ -122,6 +143,37 @@ export async function prepararFotoDeEvolucao(arquivo) {
   const imagem = await carregarImagem(arquivo);
 
   const escala = Math.min(1, LADO_EVOLUCAO / Math.max(imagem.width, imagem.height));
+
+  return paraDataUrl(
+    imagem,
+    Math.round(imagem.width * escala),
+    Math.round(imagem.height * escala)
+  );
+}
+
+function paraDataUrlBruta(arquivo) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = () => resolve(leitor.result);
+    leitor.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+    leitor.readAsDataURL(arquivo);
+  });
+}
+
+/**
+ * Foto ou gif de demonstração de um exercício.
+ *
+ * Gif sobe como veio — sem o canvas de redimensionar, que achataria a
+ * animação num quadro só. Jpg/png/webp continuam passando pelo mesmo
+ * pipeline das outras fotos, reduzidos para caber num quadrado de 800px.
+ */
+export async function prepararMidiaDeExercicio(arquivo) {
+  if (arquivo.type === "image/gif") {
+    return paraDataUrlBruta(arquivo);
+  }
+
+  const imagem = await carregarImagem(arquivo);
+  const escala = Math.min(1, LADO_EXERCICIO / Math.max(imagem.width, imagem.height));
 
   return paraDataUrl(
     imagem,

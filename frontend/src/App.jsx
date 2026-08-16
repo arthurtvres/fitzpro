@@ -434,10 +434,10 @@ export default function App() {
     }
 
     if (secao === "exercicios") {
-      if (pagina === "alimentos") return <CatalogoAlimentos aoErrar={setErro} />;
+      if (pagina === "alimentos") return <CatalogoAlimentos aoErrar={setErro} podeGerenciar />;
       return (
         <section className="painel">
-          <CatalogoExercicios aoDetalhar={setExercicioDetalhado} aoErrar={setErro} />
+          <CatalogoExercicios aoDetalhar={setExercicioDetalhado} aoErrar={setErro} podeGerenciar />
         </section>
       );
     }

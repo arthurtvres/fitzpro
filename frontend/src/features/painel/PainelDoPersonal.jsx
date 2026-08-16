@@ -13,7 +13,7 @@ import { api } from "../../api/index.js";
 import Avatar from "../../components/Avatar.jsx";
 import Skeleton from "../../components/Skeleton.jsx";
 import Vazio from "../../components/Vazio.jsx";
-import { dataCurta, numero } from "../aluno/home/formato.js";
+import { dataCurta, kg, numero } from "../aluno/home/formato.js";
 import AtividadeDosAlunos from "./AtividadeDosAlunos.jsx";
 
 /**

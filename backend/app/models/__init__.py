@@ -28,3 +28,11 @@ from app.models.dieta import Dieta, DietaCriacao
 # Precisa estar aqui, e não só no módulo: o autogenerate do Alembic só enxerga
 # tabela que foi importada — modelo fora desta lista gera migration vazia.
 from app.models.token_acesso import FinalidadeDoToken, TokenDeAcesso
+from app.models.exercicio_personalizado import (
+    ExercicioPersonalizado,
+    ExercicioPersonalizadoCriacao,
+)
+from app.models.alimento_personalizado import (
+    AlimentoPersonalizado,
+    AlimentoPersonalizadoCriacao,
+)

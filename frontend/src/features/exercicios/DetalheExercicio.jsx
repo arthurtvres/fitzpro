@@ -25,17 +25,20 @@ export default function DetalheExercicio({ exercicioId, aoFechar, aoErrar }) {
       ) : (
         <>
           <div className="selos-exercicio">
+            {/* mecanica_pt/forca_pt são específicos do free-exercise-db — um
+                exercício da biblioteca do personal não os tem. */}
             <span className="selo">{exercicio.equipamento_pt}</span>
-            <span className="selo">{exercicio.nivel_pt}</span>
-            <span className="selo">{exercicio.categoria_pt}</span>
-            <span className="selo">{exercicio.mecanica_pt}</span>
-            <span className="selo">{exercicio.forca_pt}</span>
+            {exercicio.nivel_pt && <span className="selo">{exercicio.nivel_pt}</span>}
+            {exercicio.categoria_pt && <span className="selo">{exercicio.categoria_pt}</span>}
+            {exercicio.mecanica_pt && <span className="selo">{exercicio.mecanica_pt}</span>}
+            {exercicio.forca_pt && <span className="selo">{exercicio.forca_pt}</span>}
+            {exercicio.fonte === "personal" && <span className="selo">meu</span>}
           </div>
 
           <p className="meta">
             <strong>Principais:</strong>{" "}
             {exercicio.musculos_primarios_pt.join(", ") || "—"}
-            {exercicio.musculos_secundarios_pt.length > 0 && (
+            {exercicio.musculos_secundarios_pt?.length > 0 && (
               <>
                 {" · "}
                 <strong>Secundários:</strong>{" "}

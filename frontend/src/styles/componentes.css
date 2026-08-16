@@ -1914,6 +1914,32 @@
   font-style: normal;
   text-align: right;
 }
+.preview-midia-exercicio {
+  position: relative;
+  margin: 0;
+  max-width: 260px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-controle);
+  background: var(--superficie-2);
+  overflow: hidden;
+}
+.preview-midia-exercicio img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+.preview-midia-exercicio .remover-foto {
+  position: absolute;
+  top: var(--e-2);
+  right: var(--e-2);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--raio-pilula);
+  background: var(--superficie);
+  border-color: var(--borda);
+}
 .upload-avaliacao {
   border: 1px dashed var(--borda-forte);
   border-radius: var(--raio-card);
@@ -3846,6 +3872,17 @@ button.perigo:hover:not(:disabled) {
   font-size: 12.5px;
   color: var(--texto-fraco);
 }
+.acoes-cartao {
+  display: flex;
+  gap: var(--e-1);
+}
+.acoes-cartao button {
+  flex: 1;
+  padding: var(--e-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .miniatura {
   padding: 0;
@@ -3964,6 +4001,14 @@ button.perigo:hover:not(:disabled) {
 }
 .fotos-exercicio img {
   width: 100%;
+  /* As imagens do free-exercise-db já vêm numa proporção contida — mas uma
+     foto ou gif enviado pelo personal pode vir bem mais alto, e sem teto ele
+     dominava o modal inteiro e empurrava a descrição para fora da tela. */
+  max-height: 320px;
+  /* `contain` e não `cover`: uma imagem de personal pode ser bem mais alta
+     que larga, e `cover` cortava a cabeça/pés do movimento — a imagem
+     inteira precisa caber, mesmo que sobre respiro nas laterais. */
+  object-fit: contain;
   border-radius: var(--raio-controle);
   border: 1px solid var(--borda);
   background: var(--superficie-2);
@@ -4455,6 +4500,16 @@ button.perigo:hover:not(:disabled) {
   border-radius: var(--raio-pilula);
   padding: 2px 6px;
   pointer-events: none;
+}
+.selo-fonte {
+  margin-left: var(--e-1);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--texto-fraco);
+  background: var(--superficie-2);
+  border-radius: var(--raio-pilula);
+  padding: 1px 5px;
 }
 .sugestoes-alimento {
   position: absolute;

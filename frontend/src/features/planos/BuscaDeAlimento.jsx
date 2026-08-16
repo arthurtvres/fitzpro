@@ -18,7 +18,7 @@ const MINIMO_PARA_BUSCAR = 2;
  * Escolher da lista é o que traz os macros junto — digitar à mão é permitido e
  * simplesmente não calcula nada.
  */
-export default function BuscaDeAlimento({ valor, aoDigitar, aoEscolher, vinculado }) {
+export default function BuscaDeAlimento({ valor, aoDigitar, aoEscolher, fonte }) {
   const [sugestoes, setSugestoes] = useState([]);
   const [aberto, setAberto] = useState(false);
   const cronometro = useRef(null);
@@ -72,9 +72,12 @@ export default function BuscaDeAlimento({ valor, aoDigitar, aoEscolher, vinculad
         placeholder="Arroz, frango, ovo..."
         autoComplete="off"
       />
-      {vinculado && (
-        <span className="selo-tabela" title="Valores da tabela TACO">
-          TACO
+      {fonte && (
+        <span
+          className="selo-tabela"
+          title={fonte === "personal" ? "Alimento da sua biblioteca" : "Valores da tabela TACO"}
+        >
+          {fonte === "personal" ? "MEU" : "TACO"}
         </span>
       )}
 
@@ -89,7 +92,10 @@ export default function BuscaDeAlimento({ valor, aoDigitar, aoEscolher, vinculad
                   setAberto(false);
                 }}
               >
-                <span className="nome">{alimento.nome}</span>
+                <span className="nome">
+                  {alimento.nome}
+                  <small className="selo-fonte">{alimento.fonte === "personal" ? "meu" : "TACO"}</small>
+                </span>
                 <span className="macros">
                   {alimento.kcal == null
                     ? "sem dados"
