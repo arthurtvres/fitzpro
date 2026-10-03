@@ -1,0 +1,86 @@
+# Ambiente de desenvolvimento: três serviços com hot-reload (banco, API,
+# front), equivalente ao que o README descreve rodando à mão — só que
+# containerizado, então funciona igual em qualquer máquina e já fala com
+# Postgres em vez do SQLite local.
+#
+# O container do backend ainda usa SQLite por padrão em código (ver
+# FITZPRO_DB_URL em app/core/config.py); aqui apontamos explicitamente pro
+# serviço `db` abaixo. Trocar o default do código é a próxima etapa.
+#
+# Subir tudo:
+#   docker compose up --build
+# API em http://localhost:8000, front em http://localhost:5173.
+#
+# LIMITAÇÃO CONHECIDA (achada testando isto): o histórico de migrations do
+# Alembic foi gerado todo contra SQLite e tem pelo menos uma incompatível com
+# Postgres — a migration 38ae877c9498 faz `ADD COLUMN ... quantidade_alunos`
+# com um `sa.Enum` (FaixaDeAlunos) sem o `CREATE TYPE` correspondente, e
+# Postgres (ao contrário do SQLite) tem enum nativo, então a coluna falha com
+# "type faixadealunos does not exist". Rodar `up` sobe banco e front normalmente;
+# o backend derruba nessa migration. Corrigir isto é parte da troca de banco
+# (próxima etapa combinada), não deste passo de DevOps — aqui o que foi
+# validado e funciona é o build, o healthcheck e a conexão do backend com o
+# Postgres (chegou a rodar 3 migrations nele antes de travar nesta).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fitzpro
+      POSTGRES_PASSWORD: fitzpro
+      POSTGRES_DB: fitzpro
+    ports:
+      # Exposto pro host (ex: abrir num client de SQL) — o backend fala com o
+      # serviço pelo nome `db` na rede interna do compose, não por isto.
+      - "5432:5432"
+    volumes:
+      - fitzpro_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitzpro"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-dev
+    ports:
+      - "8000:8000"
+    environment:
+      FITZPRO_DB_URL: postgresql+psycopg://fitzpro:fitzpro@db:5432/fitzpro
+      # Só vale pra este ambiente local — nunca usar em produção (ver aviso
+      # em app/core/config.py sobre o default de FITZPRO_SEGREDO).
+      FITZPRO_SEGREDO: dev-secret-nao-usar-em-producao
+      FITZPRO_URL_APP: http://localhost:5173
+    volumes:
+      # Código ao vivo: o --reload do uvicorn (definido no estágio
+      # backend-dev do Dockerfile) percebe a mudança sem rebuildar a imagem.
+      - ./backend/app:/app/backend/app
+      - ./backend/alembic:/app/backend/alembic
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: node:24-alpine
+    working_dir: /app/frontend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app/frontend
+      # Volume nomeado, não bind mount: node_modules tem binário nativo, e
+      # usar o do host (possivelmente instalado fora do container, noutro
+      # SO) quebraria em silêncio. Named volume mantém a instalação isolada
+      # e também evita reinstalar tudo a cada `docker compose up`.
+      - fitzpro_node_modules:/app/frontend/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  fitzpro_pgdata:
+  fitzpro_node_modules:

@@ -56,6 +56,16 @@ app.include_router(execucoes.router_dieta)
 app.include_router(progressao.router)
 app.include_router(painel.router)
 
+@app.get("/health", include_in_schema=False)
+def health():
+    """
+    Sinal de vida para orquestrador (Docker, Railway, Fly) — não garante que o
+    banco responde, só que o processo subiu e está aceitando requisição. Fica
+    antes do coringa de SPA pela mesma razão que os routers ficam: declarado
+    depois, o `/{caminho:path}` o engoliria.
+    """
+    return {"status": "ok"}
+
 # ---------- o front, quando existe um build ----------
 #
 # Isto fica no fim de propósito: o FastAPI casa rotas na ordem em que foram

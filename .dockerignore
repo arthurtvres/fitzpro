@@ -1,0 +1,25 @@
+# Build context é a raiz do repo (o Dockerfile copia backend/ e frontend/
+# separadamente), então as duas árvores precisam dos próprios ignores aqui.
+
+# ---------- geral ----------
+.git
+.github
+.claude
+**/__pycache__
+**/*.py[cod]
+*.md
+
+# ---------- backend ----------
+backend/venv
+backend/.venv
+backend/fitzpro.db
+# CSVs de origem da TACO — só usados por scripts/gerar_alimentos.py pra gerar
+# app/data/alimentos.json, que já vai commitado. Não entram na imagem.
+backend/dataset
+backend/tests
+
+# ---------- frontend ----------
+frontend/node_modules
+# Gerado dentro da imagem pelo estágio frontend-build — não precisa (nem deve)
+# vir do host, que pode ter um build antigo ou de outra plataforma.
+frontend/dist

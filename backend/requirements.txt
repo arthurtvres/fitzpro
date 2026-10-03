@@ -11,6 +11,10 @@ h11==0.16.0
 idna==3.18
 Mako==1.4.1
 MarkupSafe==3.0.3
+# Driver do Postgres usado pelo docker-compose de desenvolvimento (serviço
+# `db`). O default em código continua SQLite — ver FITZPRO_DB_URL em
+# app/core/config.py — então isto não muda nada pra quem não usa o compose.
+psycopg[binary]==3.3.6
 pydantic==2.13.4
 pydantic_core==2.46.4
 PyJWT==2.13.0

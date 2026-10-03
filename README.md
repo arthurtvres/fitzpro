@@ -65,6 +65,41 @@ Variável opcional:
 VITE_API_URL=http://127.0.0.1:8000
 ```
 
+## Rodando com Docker
+
+Alternativa ao setup manual acima — sobe banco, API e front com um comando só,
+igual em qualquer máquina.
+
+```bash
+docker compose up --build
+```
+
+API em http://localhost:8000, front em http://localhost:5173. O backend roda
+com `--reload` e o front com o Vite normal — ambos com o código montado como
+volume, então editar local reflete nos containers sem rebuild.
+
+> **Limitação conhecida:** o compose já sobe um Postgres (serviço `db`) e
+> aponta o backend pra ele via `FITZPRO_DB_URL`, mas o histórico de migrations
+> foi gerado todo contra SQLite — pelo menos uma (`38ae877c9498`) usa um tipo
+> `Enum` que falha em Postgres por faltar o `CREATE TYPE`. Corrigir isso é
+> parte da troca de banco (próxima etapa). Até lá, `docker compose up` sobe
+> banco e front normalmente, mas o backend derruba nessa migration. Sem usar o
+> compose — `docker build` + `docker run` direto, como o CI faz — funciona
+> hoje porque cai no default SQLite.
+
+Build de produção (mesma imagem que o CI valida a cada push/PR):
+
+```bash
+docker build -t fitzpro .
+docker run -p 8000:8000 fitzpro
+```
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) roda em todo push/PR pra main:
+suíte de isolamento do backend, build do front e build da imagem Docker. Não
+publica nada ainda — falta decidir onde hospedar em produção.
+
 ## Banco
 
 O backend roda as migrations ao iniciar. O SQLite local fica em `backend/fitzpro.db`.
@@ -80,8 +115,10 @@ alembic downgrade -1
 
 ```bash
 cd backend
-python tests/teste_isolamento.py
+PYTHONPATH=. python tests/teste_isolamento.py
 ```
+
+(No Windows/cmd: `set PYTHONPATH=.` antes, ou `$env:PYTHONPATH="."` no PowerShell. Sem isso o import de `app.*` falha — o script não é instalado como pacote.)
 
 ## Estrutura
 
